@@ -64,7 +64,7 @@ namespace MepPanel.AutoCAD.Licensing
 
                 return true;
             }
-            catch (Exception)
+            catch (System.Exception)
             {
                 // Mất mạng: cho phép trong cửa sổ offline nếu cache còn hạn.
                 LicenseCacheData cache;
