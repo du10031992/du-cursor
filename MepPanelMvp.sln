@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Core", "src\MepPan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.AutoCAD", "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj", "{230E6AC0-8498-4492-845C-38744806A11B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.LoadTest", "src\MepPanel.LoadTest\MepPanel.LoadTest.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Tests", "tests\MepPanel.Tests\MepPanel.Tests.csproj", "{95AE2397-0FDC-479C-A701-7369FA6512ED}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Blocks.AutoCAD", "src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj", "{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}"
@@ -37,6 +39,14 @@ Global
 		{230E6AC0-8498-4492-845C-38744806A11B}.Release|Any CPU.Build.0 = Release|x64
 		{230E6AC0-8498-4492-845C-38744806A11B}.Release|x64.ActiveCfg = Release|x64
 		{230E6AC0-8498-4492-845C-38744806A11B}.Release|x64.Build.0 = Release|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x64.ActiveCfg = Debug|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|x64.Build.0 = Debug|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x64.ActiveCfg = Release|x64
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x64.Build.0 = Release|x64
 		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Debug|x64.ActiveCfg = Debug|Any CPU

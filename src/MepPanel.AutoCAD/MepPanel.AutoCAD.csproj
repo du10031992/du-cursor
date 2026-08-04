@@ -2,16 +2,20 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <UseWPF>true</UseWPF>
+    <OutputType>Library</OutputType>
     <LangVersion>7.3</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>
     <Configurations>Debug;Release</Configurations>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
     <RootNamespace>MepPanel.AutoCAD</RootNamespace>
     <AssemblyName>MepPanel.AutoCAD</AssemblyName>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AutoCadDir Condition="'$(AutoCadDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadDir>
     <DefaultItemExcludes>$(DefaultItemExcludes);**\*.g.cs;**\*.g.i.cs</DefaultItemExcludes>
+    <!-- Tránh copy phụ thuộc làm rối AutoCAD NETLOAD -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>

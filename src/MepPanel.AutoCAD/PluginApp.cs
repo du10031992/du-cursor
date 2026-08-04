@@ -1,25 +1,18 @@
 using Autodesk.AutoCAD.Runtime;
 using MepPanel.AutoCAD.Licensing;
 
-[assembly: ExtensionApplication(typeof(MepPanelMvp.PluginApp))]
+// Không dùng IExtensionApplication để tránh lỗi khởi động chặn đăng ký lệnh.
 [assembly: CommandClass(typeof(MepPanel.AutoCAD.Commands.LicenseCommands))]
 
 namespace MepPanelMvp
 {
-    /// <summary>
-    /// Khởi động plugin: không mở UI. Đăng nhập chỉ khi gõ MEPDB/MEPHVAC/MEPLOGIN.
-    /// </summary>
-    public sealed class PluginApp : IExtensionApplication
+    // Giữ class để tương thích; lệnh đăng ký qua CommandClass ở trên.
+    internal static class PluginMarker
     {
-        public void Initialize()
+        // Session được xóa khi AutoCAD unload assembly (nếu có).
+        static PluginMarker()
         {
-            // Cố ý để trống: không hiện popup lúc NETLOAD/khởi động.
-            // Lệnh được đăng ký qua [assembly: CommandClass].
-        }
-
-        public void Terminate()
-        {
-            LicenseSession.Clear();
+            // no-op
         }
     }
 }
