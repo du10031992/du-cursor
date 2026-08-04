@@ -6,7 +6,14 @@ namespace MepPanel.AutoCAD.Commands
 {
     public class LicenseCommands
     {
-        [CommandMethod("MEPLOGIN")]
+        [CommandMethod("MEPPING", CommandFlags.Modal)]
+        public void Ping()
+        {
+            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                "\nMepPanel v0.2.1 đã load OK. Dùng MEPLOGIN / MEPDB / MEPHVAC.");
+        }
+
+        [CommandMethod("MEPLOGIN", CommandFlags.Modal)]
         public void Login()
         {
             var client = new LicenseApiClient(LicenseGuard.LicenseServerBaseUrl);
@@ -18,7 +25,7 @@ namespace MepPanel.AutoCAD.Commands
             window.ShowDialog();
         }
 
-        [CommandMethod("MEPDB")]
+        [CommandMethod("MEPDB", CommandFlags.Modal)]
         public void OpenMepDb()
         {
             if (!LicenseGuard.EnsureFeature(PluginFeatureCodes.MepDb))
@@ -31,7 +38,7 @@ namespace MepPanel.AutoCAD.Commands
             // TODO: gọi UI/tool MEPDB thật của bạn tại đây.
         }
 
-        [CommandMethod("MEPHVAC")]
+        [CommandMethod("MEPHVAC", CommandFlags.Modal)]
         public void OpenMepHvac()
         {
             if (!LicenseGuard.EnsureFeature(PluginFeatureCodes.MepHvac))
@@ -44,7 +51,7 @@ namespace MepPanel.AutoCAD.Commands
             // TODO: gọi UI/tool MEPHVAC thật của bạn tại đây.
         }
 
-        [CommandMethod("MEPLOGOUT")]
+        [CommandMethod("MEPLOGOUT", CommandFlags.Modal)]
         public void Logout()
         {
             LicenseSession.Clear();
