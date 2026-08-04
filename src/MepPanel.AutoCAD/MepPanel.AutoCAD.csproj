@@ -7,8 +7,8 @@
     <Platforms>x64</Platforms>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
-    <AssemblyName>MepPanel.AutoCAD</AssemblyName>
-    <RootNamespace>MepPanel.AutoCAD</RootNamespace>
+    <AssemblyName>MepPanel.Plugin</AssemblyName>
+    <RootNamespace>MepPanel.Plugin</RootNamespace>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AutoCadDir Condition="'$(AutoCadDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadDir>
   </PropertyGroup>
