@@ -10,6 +10,15 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
+## [0.2.1] - 2026-08-04 — Đăng nhập khi chạy lệnh
+
+### Thay đổi
+- Plugin **không** mở cửa sổ đăng nhập khi NETLOAD/khởi động AutoCAD
+- Cửa sổ đăng nhập chỉ hiện khi gõ `MEPDB`, `MEPHVAC` hoặc `MEPLOGIN`
+- Nếu cache offline còn hạn, lệnh vẫn chạy được mà không cần đăng nhập lại
+
+---
+
 ## [0.2.0] - 2026-08-04 — Admin Control UI
 
 ### Thêm mới

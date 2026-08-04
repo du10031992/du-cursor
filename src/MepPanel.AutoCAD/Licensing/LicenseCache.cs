@@ -118,10 +118,42 @@ namespace MepPanel.AutoCAD.Licensing
             out LicenseCacheData cacheData,
             out string message)
         {
+            if (!TryReadCacheFile(out cacheData, out message))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(phoneNumber) ||
+                !string.Equals(cacheData.PhoneNumber, phoneNumber.Trim(), StringComparison.Ordinal))
+            {
+                cacheData = null;
+                message = "Giấy phép không thuộc số điện thoại này.";
+                return false;
+            }
+
+            message = "Giấy phép ngoại tuyến còn hiệu lực.";
+            return true;
+        }
+
+        public static bool TryLoadAnyValid(out LicenseCacheData cacheData, out string message)
+        {
+            if (!TryReadCacheFile(out cacheData, out message))
+            {
+                return false;
+            }
+
+            message = "Giấy phép ngoại tuyến còn hiệu lực.";
+            return true;
+        }
+
+        private static bool TryReadCacheFile(
+            out LicenseCacheData cacheData,
+            out string message)
+        {
             cacheData = null;
             message = string.Empty;
 
-            if (string.IsNullOrWhiteSpace(phoneNumber) || !File.Exists(CacheFilePath))
+            if (!File.Exists(CacheFilePath))
             {
                 message = "Chưa có giấy phép ngoại tuyến.";
                 return false;
@@ -144,11 +176,10 @@ namespace MepPanel.AutoCAD.Licensing
             }
 
             if (cacheData == null ||
-                !string.Equals(cacheData.PhoneNumber, phoneNumber.Trim(), StringComparison.Ordinal) ||
                 !string.Equals(cacheData.DeviceKey, DeviceIdentity.GetDeviceKey(), StringComparison.Ordinal))
             {
                 cacheData = null;
-                message = "Giấy phép không thuộc số điện thoại/thiết bị này.";
+                message = "Giấy phép không thuộc thiết bị này.";
                 return false;
             }
 
@@ -168,7 +199,6 @@ namespace MepPanel.AutoCAD.Licensing
                 return false;
             }
 
-            message = "Giấy phép ngoại tuyến còn hiệu lực.";
             return true;
         }
 

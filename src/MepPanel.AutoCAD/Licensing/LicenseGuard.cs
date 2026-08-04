@@ -16,12 +16,9 @@ namespace MepPanel.AutoCAD.Licensing
         {
             if (!LicenseSession.IsAuthorized)
             {
-                // Thử dùng cache offline ngắn hạn.
-                if (!TryAuthorizeFromOfflineCache())
+                // Thử dùng cache offline ngắn hạn trước khi mở cửa sổ đăng nhập.
+                if (!TryAuthorizeFromOfflineCache() && !TryShowLoginDialog())
                 {
-                    Application.ShowAlertDialog(
-                        "Bạn chưa đăng nhập hoặc thiết bị chưa được cấp quyền.\n" +
-                        "Hãy đăng nhập bằng số điện thoại được Admin cấp.");
                     return false;
                 }
             }
@@ -109,8 +106,57 @@ namespace MepPanel.AutoCAD.Licensing
 
         private static bool TryAuthorizeFromOfflineCache()
         {
-            // Không có phone trong session thì không dùng cache.
-            return false;
+            LicenseCacheData cache;
+            string message;
+            if (!LicenseCache.TryLoadAnyValid(out cache, out message))
+            {
+                return false;
+            }
+
+            LicenseSession.Authorize(
+                cache.PhoneNumber,
+                cache.DisplayName,
+                string.Empty,
+                cache.Features,
+                cache.LicensePlan);
+
+            return true;
+        }
+
+        private static bool TryShowLoginDialog()
+        {
+            var client = new LicenseApiClient(LicenseServerBaseUrl);
+
+            string autoCadVersion =
+                Convert.ToString(Application.GetSystemVariable("ACADVER"))
+                ?? string.Empty;
+
+            string pluginVersion = Assembly.GetExecutingAssembly()
+                .GetName()
+                .Version
+                .ToString();
+
+            var loginWindow = new LoginWindow(client, autoCadVersion, pluginVersion);
+            bool? loginResult = loginWindow.ShowDialog();
+
+            if (loginResult != true)
+            {
+                Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                    "\nChưa đăng nhập giấy phép.");
+                return false;
+            }
+
+            Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                "\nĐăng nhập giấy phép thành công.");
+
+            if (loginWindow.LicenseInfo != null &&
+                !string.IsNullOrWhiteSpace(loginWindow.LicenseInfo.DisplayName))
+            {
+                Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                    "\nXin chào: " + loginWindow.LicenseInfo.DisplayName);
+            }
+
+            return true;
         }
     }
 }
