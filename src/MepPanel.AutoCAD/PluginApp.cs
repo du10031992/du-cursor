@@ -72,7 +72,7 @@ namespace MepPanelMvp
                     document?.Editor.WriteMessage("\nChưa đăng nhập giấy phép.");
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 document?.Editor.WriteMessage(
                     "\nLỗi khởi động hệ thống giấy phép: " + ex.Message);
