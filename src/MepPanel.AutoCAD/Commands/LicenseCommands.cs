@@ -10,7 +10,7 @@ namespace MepPanel.AutoCAD.Commands
         public void Status()
         {
             AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel v0.2.1 đã load OK. Dùng MEPLOGIN / MEPDB / MEPHVAC.");
+                "\nMepPanel v0.2.2 đã load OK. Dùng MEPLOGIN / MEPDB / MEPHVAC.");
         }
 
         [CommandMethod("MEPLOGIN", CommandFlags.Modal)]
@@ -21,8 +21,10 @@ namespace MepPanel.AutoCAD.Commands
                 System.Convert.ToString(AcApp.GetSystemVariable("ACADVER")) ?? string.Empty;
             string pluginVersion = typeof(LicenseCommands).Assembly.GetName().Version.ToString();
 
-            var window = new LoginWindow(client, autoCadVersion, pluginVersion);
-            window.ShowDialog();
+            using (var window = new LoginWindow(client, autoCadVersion, pluginVersion))
+            {
+                window.ShowDialog();
+            }
         }
 
         [CommandMethod("MEPDB", CommandFlags.Modal)]

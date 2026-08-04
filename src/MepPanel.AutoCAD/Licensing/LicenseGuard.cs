@@ -136,27 +136,27 @@ namespace MepPanel.AutoCAD.Licensing
                 .Version
                 .ToString();
 
-            var loginWindow = new LoginWindow(client, autoCadVersion, pluginVersion);
-            bool? loginResult = loginWindow.ShowDialog();
-
-            if (loginResult != true)
+            using (var loginWindow = new LoginWindow(client, autoCadVersion, pluginVersion))
             {
+                if (loginWindow.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                {
+                    Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                        "\nChưa đăng nhập giấy phép.");
+                    return false;
+                }
+
                 Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                    "\nChưa đăng nhập giấy phép.");
-                return false;
+                    "\nĐăng nhập giấy phép thành công.");
+
+                if (loginWindow.LicenseInfo != null &&
+                    !string.IsNullOrWhiteSpace(loginWindow.LicenseInfo.DisplayName))
+                {
+                    Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                        "\nXin chào: " + loginWindow.LicenseInfo.DisplayName);
+                }
+
+                return true;
             }
-
-            Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nĐăng nhập giấy phép thành công.");
-
-            if (loginWindow.LicenseInfo != null &&
-                !string.IsNullOrWhiteSpace(loginWindow.LicenseInfo.DisplayName))
-            {
-                Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                    "\nXin chào: " + loginWindow.LicenseInfo.DisplayName);
-            }
-
-            return true;
         }
     }
 }
