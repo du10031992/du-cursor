@@ -1,25 +1,10 @@
 using Autodesk.AutoCAD.ApplicationServices.Core;
 using Autodesk.AutoCAD.Runtime;
 
-[assembly: ExtensionApplication(typeof(MepPanel.Plugin.PluginApp))]
 [assembly: CommandClass(typeof(MepPanel.Plugin.LoaderCommands))]
 
 namespace MepPanel.Plugin
 {
-    public sealed class PluginApp : IExtensionApplication
-    {
-        public void Initialize()
-        {
-            // Không mở UI lúc khởi động — chỉ báo đã load.
-            Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel.Plugin v0.2.2 đã load. Gõ MEPSTATUS / MEPLOGIN / MEPDB / MEPHVAC.");
-        }
-
-        public void Terminate()
-        {
-        }
-    }
-
     /// <summary>
     /// Lệnh loader — cấu trúc giống MepPanel.LoadTest (đã chứng minh NETLOAD OK).
     /// </summary>
