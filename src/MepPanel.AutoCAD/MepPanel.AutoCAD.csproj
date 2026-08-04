@@ -34,5 +34,8 @@
 
   <ItemGroup>
     <Compile Remove="Licensing\_BuildStub.cs" />
+    <Page Remove="**\*" />
+    <ApplicationDefinition Remove="**\*" />
   </ItemGroup>
 </Project>
+
