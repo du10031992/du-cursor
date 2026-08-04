@@ -1,28 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>7.3</LangVersion>
-    <RootNamespace>MepPanel.AutoCAD</RootNamespace>
-    <AssemblyName>MepPanel.AutoCAD</AssemblyName>
-    <AutoCadDir Condition="'$(AutoCadDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadDir>
-    <BuildAutoCadPlugin Condition="Exists('$(AutoCadDir)\AcCoreMgd.dll')">true</BuildAutoCadPlugin>
-    <BuildAutoCadPlugin Condition="'$(BuildAutoCadPlugin)' == ''">false</BuildAutoCadPlugin>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <EnableDefaultPageItems>false</EnableDefaultPageItems>
-    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
-  </PropertyGroup>
-
-  <!-- Máy có AutoCAD 2021: build plugin thật (cần Visual Studio trên Windows). -->
-  <PropertyGroup Condition="'$(BuildAutoCadPlugin)' == 'true'">
     <TargetFramework>net48</TargetFramework>
     <UseWPF>true</UseWPF>
+    <LangVersion>7.3</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <Configurations>Debug;Release</Configurations>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <RootNamespace>MepPanel.AutoCAD</RootNamespace>
+    <AssemblyName>MepPanel.AutoCAD</AssemblyName>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AutoCadDir Condition="'$(AutoCadDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadDir>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(BuildAutoCadPlugin)' == 'true'">
-    <Compile Include="**\*.cs" Exclude="Licensing\_BuildStub.cs" />
-    <Page Include="**\*.xaml" />
+  <ItemGroup>
     <Reference Include="AcCoreMgd">
       <HintPath>$(AutoCadDir)\AcCoreMgd.dll</HintPath>
       <Private>false</Private>
@@ -40,14 +31,7 @@
     <Reference Include="System.Security" />
   </ItemGroup>
 
-  <!-- CI / máy chưa cài AutoCAD: giữ source, chỉ compile stub. -->
-  <ItemGroup Condition="'$(BuildAutoCadPlugin)' != 'true'">
-    <Compile Include="Licensing\_BuildStub.cs" />
-    <None Include="**\*.cs" Exclude="Licensing\_BuildStub.cs" />
-    <None Include="**\*.xaml" />
+  <ItemGroup>
+    <Compile Remove="Licensing\_BuildStub.cs" />
   </ItemGroup>
-
-  <Target Name="WarnIfAutoCadMissing" BeforeTargets="Build" Condition="'$(BuildAutoCadPlugin)' != 'true'">
-    <Warning Text="AutoCAD 2021 SDK không tìm thấy tại '$(AutoCadDir)'. Source licensing nằm trong Licensing\; build plugin trên máy Windows có AutoCAD." />
-  </Target>
 </Project>
