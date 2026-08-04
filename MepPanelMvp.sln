@@ -1,0 +1,46 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Core", "src\MepPanel.Core\MepPanel.Core.csproj", "{5F8FBB97-710D-4BBA-A438-1F7345105AB4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.AutoCAD", "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj", "{230E6AC0-8498-4492-845C-38744806A11B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Tests", "tests\MepPanel.Tests\MepPanel.Tests.csproj", "{95AE2397-0FDC-479C-A701-7369FA6512ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Blocks.AutoCAD", "src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj", "{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.LicenseServer", "MepPanel.LicenseServer\MepPanel.LicenseServer.csproj", "{D4095378-F594-4E40-8386-F9952F64B4D6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5F8FBB97-710D-4BBA-A438-1F7345105AB4}.Debug|x64.ActiveCfg = Debug|x64
+		{5F8FBB97-710D-4BBA-A438-1F7345105AB4}.Debug|x64.Build.0 = Debug|x64
+		{5F8FBB97-710D-4BBA-A438-1F7345105AB4}.Release|x64.ActiveCfg = Release|x64
+		{5F8FBB97-710D-4BBA-A438-1F7345105AB4}.Release|x64.Build.0 = Release|x64
+		{230E6AC0-8498-4492-845C-38744806A11B}.Debug|x64.ActiveCfg = Debug|x64
+		{230E6AC0-8498-4492-845C-38744806A11B}.Debug|x64.Build.0 = Debug|x64
+		{230E6AC0-8498-4492-845C-38744806A11B}.Release|x64.ActiveCfg = Release|x64
+		{230E6AC0-8498-4492-845C-38744806A11B}.Release|x64.Build.0 = Release|x64
+		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Debug|x64.ActiveCfg = Debug|x64
+		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Debug|x64.Build.0 = Debug|x64
+		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Release|x64.ActiveCfg = Release|x64
+		{95AE2397-0FDC-479C-A701-7369FA6512ED}.Release|x64.Build.0 = Release|x64
+		{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}.Debug|x64.ActiveCfg = Debug|x64
+		{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}.Debug|x64.Build.0 = Debug|x64
+		{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}.Release|x64.ActiveCfg = Release|x64
+		{CA956AA6-EB9D-49E2-87A3-FF3C3EBC6877}.Release|x64.Build.0 = Release|x64
+		{D4095378-F594-4E40-8386-F9952F64B4D6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D4095378-F594-4E40-8386-F9952F64B4D6}.Debug|x64.Build.0 = Debug|Any CPU
+		{D4095378-F594-4E40-8386-F9952F64B4D6}.Release|x64.ActiveCfg = Release|Any CPU
+		{D4095378-F594-4E40-8386-F9952F64B4D6}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
