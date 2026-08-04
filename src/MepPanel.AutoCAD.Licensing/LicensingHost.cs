@@ -1,8 +1,5 @@
 using System.Reflection;
 using Autodesk.AutoCAD.ApplicationServices.Core;
-using Autodesk.AutoCAD.Runtime;
-
-[assembly: CommandClass(typeof(MepPanel.AutoCAD.Commands.LicenseCommands))]
 
 namespace MepPanel.AutoCAD.Licensing
 {
