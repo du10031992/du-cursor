@@ -6,8 +6,8 @@ namespace MepPanel.AutoCAD.Commands
 {
     public class LicenseCommands
     {
-        [CommandMethod("MEPPING", CommandFlags.Modal)]
-        public void Ping()
+        [CommandMethod("MEPSTATUS", CommandFlags.Modal)]
+        public void Status()
         {
             AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
                 "\nMepPanel v0.2.1 đã load OK. Dùng MEPLOGIN / MEPDB / MEPHVAC.");
