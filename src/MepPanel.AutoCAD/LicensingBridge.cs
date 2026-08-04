@@ -1,17 +1,11 @@
 using System;
 using System.IO;
 using System.Reflection;
-using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-[assembly: CommandClass(typeof(MepPanel.AutoCAD.Commands.LicenseCommands))]
-
-namespace MepPanel.AutoCAD.Commands
+namespace MepPanel.Plugin
 {
-    /// <summary>
-    /// Loader mỏng — giống LoadTest, gọi licensing qua reflection để NETLOAD ổn định.
-    /// </summary>
-    public class LicenseCommands
+    internal static class LicensingBridge
     {
         private const string HostTypeName = "MepPanel.AutoCAD.Licensing.LicensingHost";
         private const string LicensingAssemblyFileName = "MepPanel.AutoCAD.Licensing.dll";
@@ -19,52 +13,7 @@ namespace MepPanel.AutoCAD.Commands
         private static Assembly _licensingAssembly;
         private static Type _hostType;
 
-        [CommandMethod("MEPSTATUS", CommandFlags.Modal)]
-        public void Status()
-        {
-            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel v0.2.2 loader OK. Gõ MEPLOGIN / MEPDB / MEPHVAC.");
-        }
-
-        [CommandMethod("MEPLOGIN", CommandFlags.Modal)]
-        public void Login()
-        {
-            InvokeHost("ShowLogin");
-        }
-
-        [CommandMethod("MEPDB", CommandFlags.Modal)]
-        public void OpenMepDb()
-        {
-            if (!InvokeHostBool("EnsureFeature", "MEPDB"))
-            {
-                return;
-            }
-
-            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPDB đã được mở khóa cho tài khoản này.");
-        }
-
-        [CommandMethod("MEPHVAC", CommandFlags.Modal)]
-        public void OpenMepHvac()
-        {
-            if (!InvokeHostBool("EnsureFeature", "MEPHVAC"))
-            {
-                return;
-            }
-
-            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPHVAC đã được mở khóa cho tài khoản này.");
-        }
-
-        [CommandMethod("MEPLOGOUT", CommandFlags.Modal)]
-        public void Logout()
-        {
-            InvokeHost("Logout");
-            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nĐã đăng xuất giấy phép MepPanel.");
-        }
-
-        private static void InvokeHost(string methodName, params object[] args)
+        public static void InvokeHost(string methodName, params object[] args)
         {
             try
             {
@@ -90,7 +39,7 @@ namespace MepPanel.AutoCAD.Commands
             }
         }
 
-        private static bool InvokeHostBool(string methodName, params object[] args)
+        public static bool InvokeHostBool(string methodName, params object[] args)
         {
             try
             {
@@ -126,14 +75,14 @@ namespace MepPanel.AutoCAD.Commands
                 return _hostType;
             }
 
-            string pluginDir = Path.GetDirectoryName(typeof(LicenseCommands).Assembly.Location);
+            string pluginDir = Path.GetDirectoryName(typeof(LicensingBridge).Assembly.Location);
             string licensingPath = Path.Combine(pluginDir, LicensingAssemblyFileName);
 
             if (!File.Exists(licensingPath))
             {
                 throw new FileNotFoundException(
                     "Không tìm thấy " + LicensingAssemblyFileName +
-                    " cạnh MepPanel.AutoCAD.dll. Hãy build lại solution.",
+                    " cạnh MepPanel.Plugin.dll. Hãy build lại solution.",
                     licensingPath);
             }
 
