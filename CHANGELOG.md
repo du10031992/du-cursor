@@ -10,6 +10,25 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
+## [0.2.0] - 2026-08-04 — Admin Control UI
+
+### Thêm mới
+- Trang quản trị `/admin` để tắt/bật trực tiếp:
+  - User (Active/Blocked) theo SĐT bất kỳ
+  - Thiết bị (Active/Blocked)
+  - Chức năng tool `MEPDB` / `MEPHVAC`
+  - Mở chuyển máy (`release-device`)
+  - Gia hạn license +30 ngày
+- API tương thích Swagger đang dùng:
+  - `GET /api/Admin/overview`
+  - `PUT /api/Admin/users/{userId}/status`
+  - `PUT /api/Admin/devices/{deviceId}/status`
+  - `PUT /api/Admin/licenses/{licenseId}/extend`
+  - `PUT /api/Admin/users/{userId}/features/{featureCode}`
+- F5 mặc định mở `/admin` thay vì chỉ Swagger
+
+---
+
 ## [0.1.0] - 2026-08-04 — License Control MVP
 
 ### Thêm mới

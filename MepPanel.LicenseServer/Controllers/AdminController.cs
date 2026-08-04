@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 namespace MepPanel.LicenseServer.Controllers;
 
 /// <summary>
-/// API quản trị: khóa/mở user, khóa/mở chức năng plugin, mở chuyển máy.
-/// Gửi header: X-Admin-ApiKey
+/// API quản trị: khóa/mở user, thiết bị, chức năng plugin theo SĐT.
+/// Header bắt buộc: X-Admin-ApiKey
 /// </summary>
 [ApiController]
-[Route("api/admin")]
+[Route("api/[controller]")]
 [AdminApiKey]
 public class AdminController : ControllerBase
 {
@@ -30,6 +30,35 @@ public class AdminController : ControllerBase
         _auditService = auditService;
     }
 
+    /// <summary>Tổng quan toàn hệ thống — dùng cho trang Admin UI.</summary>
+    [HttpGet("overview")]
+    public async Task<IActionResult> Overview()
+    {
+        var users = await _db.Users
+            .AsNoTracking()
+            .Include(x => x.License)
+            .Include(x => x.Devices)
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+
+        var mapped = users.Select(MapUser).ToList();
+
+        return Ok(new
+        {
+            generatedAtUtc = DateTime.UtcNow,
+            totals = new
+            {
+                users = users.Count,
+                activeUsers = users.Count(x => x.Status == UserStatuses.Active),
+                blockedUsers = users.Count(x => x.Status == UserStatuses.Blocked),
+                devices = users.Sum(x => x.Devices.Count),
+                activeDevices = users.Sum(x => x.Devices.Count(d => d.Status == DeviceStatuses.Active)),
+                availableFeatures = PluginFeatures.All
+            },
+            users = mapped
+        });
+    }
+
     [HttpGet("users")]
     public async Task<IActionResult> ListUsers()
     {
@@ -41,6 +70,24 @@ public class AdminController : ControllerBase
             .ToListAsync();
 
         return Ok(users.Select(MapUser));
+    }
+
+    [HttpGet("users/by-phone/{phoneNumber}")]
+    public async Task<IActionResult> GetByPhone(string phoneNumber)
+    {
+        var phone = (phoneNumber ?? string.Empty).Trim();
+        var user = await _db.Users
+            .AsNoTracking()
+            .Include(x => x.License)
+            .Include(x => x.Devices)
+            .FirstOrDefaultAsync(x => x.PhoneNumber == phone);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "Không tìm thấy SĐT này." });
+        }
+
+        return Ok(MapUser(user));
     }
 
     [HttpPost("users")]
@@ -61,8 +108,6 @@ public class AdminController : ControllerBase
         var maxDevices = request.MaxDevices > 0
             ? request.MaxDevices
             : _configuration.GetValue("LicenseSettings:DefaultMaxDevices", 1);
-
-        // Theo yêu cầu hiện tại: mặc định 1 máy / 1 SĐT.
         if (maxDevices < 1)
         {
             maxDevices = 1;
@@ -119,9 +164,9 @@ public class AdminController : ControllerBase
         return Ok(MapUser(created));
     }
 
-    /// <summary>Active / Blocked toàn bộ tài khoản.</summary>
-    [HttpPatch("users/{id:int}/status")]
-    public async Task<IActionResult> SetUserStatus(int id, SetStatusRequest request)
+    [HttpPut("users/{userId:int}/status")]
+    [HttpPatch("users/{userId:int}/status")]
+    public async Task<IActionResult> SetUserStatus(int userId, SetStatusRequest request)
     {
         var status = NormalizeStatus(request.Status, UserStatuses.Active, UserStatuses.Blocked);
         if (status == null)
@@ -129,7 +174,7 @@ public class AdminController : ControllerBase
             return BadRequest(new { message = "Status phải là Active hoặc Blocked." });
         }
 
-        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == id);
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         if (user == null)
         {
             return NotFound(new { message = "Không tìm thấy user." });
@@ -155,13 +200,13 @@ public class AdminController : ControllerBase
         });
     }
 
-    /// <summary>Mở/khóa từng chức năng plugin (MEPDB, MEPHVAC, ...).</summary>
-    [HttpPatch("users/{id:int}/features")]
-    public async Task<IActionResult> SetFeatures(int id, SetFeaturesRequest request)
+    [HttpPut("users/{userId:int}/features")]
+    [HttpPatch("users/{userId:int}/features")]
+    public async Task<IActionResult> SetFeatures(int userId, SetFeaturesRequest request)
     {
         var user = await _db.Users
             .Include(x => x.License)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user?.License == null)
         {
@@ -187,16 +232,74 @@ public class AdminController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// Mở chuyển máy: revoke toàn bộ device Active hiện tại của user.
-    /// Sau đó user có thể kích hoạt máy mới.
-    /// </summary>
-    [HttpPost("users/{id:int}/release-device")]
-    public async Task<IActionResult> ReleaseDevice(int id)
+    /// <summary>Bật/tắt 1 chức năng cụ thể (MEPDB hoặc MEPHVAC) theo user.</summary>
+    [HttpPut("users/{userId:int}/features/{featureCode}")]
+    public async Task<IActionResult> SetSingleFeature(
+        int userId,
+        string featureCode,
+        SetFeatureEnabledRequest request)
+    {
+        var code = (featureCode ?? string.Empty).Trim().ToUpperInvariant();
+        if (!PluginFeatures.All.Contains(code, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest(new
+            {
+                message = $"Feature không hỗ trợ. Chỉ nhận: {string.Join(", ", PluginFeatures.All)}"
+            });
+        }
+
+        var user = await _db.Users
+            .Include(x => x.License)
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user?.License == null)
+        {
+            return NotFound(new { message = "Không tìm thấy user/license." });
+        }
+
+        var current = FeatureParser.Parse(user.License.EnabledFeatures).ToList();
+        if (request.Enabled)
+        {
+            if (!current.Contains(code, StringComparer.OrdinalIgnoreCase))
+            {
+                current.Add(code);
+            }
+        }
+        else
+        {
+            current = current
+                .Where(x => !string.Equals(x, code, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        user.License.EnabledFeatures = FeatureParser.Join(current);
+        user.License.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        await _auditService.WriteAsync(
+            "admin-toggle-feature",
+            $"User {user.PhoneNumber} {code}={(request.Enabled ? "ON" : "OFF")}",
+            user.Id);
+
+        return Ok(new
+        {
+            user.Id,
+            user.PhoneNumber,
+            feature = code,
+            enabled = request.Enabled,
+            features = FeatureParser.Parse(user.License.EnabledFeatures),
+            message = request.Enabled
+                ? $"Đã bật {code}."
+                : $"Đã tắt {code}."
+        });
+    }
+
+    [HttpPost("users/{userId:int}/release-device")]
+    public async Task<IActionResult> ReleaseDevice(int userId)
     {
         var user = await _db.Users
             .Include(x => x.Devices)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user == null)
         {
@@ -231,9 +334,9 @@ public class AdminController : ControllerBase
         });
     }
 
-    /// <summary>Khóa hoặc mở một thiết bị cụ thể.</summary>
-    [HttpPatch("devices/{id:int}/status")]
-    public async Task<IActionResult> SetDeviceStatus(int id, SetStatusRequest request)
+    [HttpPut("devices/{deviceId:int}/status")]
+    [HttpPatch("devices/{deviceId:int}/status")]
+    public async Task<IActionResult> SetDeviceStatus(int deviceId, SetStatusRequest request)
     {
         var status = NormalizeStatus(
             request.Status,
@@ -251,15 +354,14 @@ public class AdminController : ControllerBase
 
         var device = await _db.Devices
             .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == deviceId);
 
         if (device == null)
         {
             return NotFound(new { message = "Không tìm thấy thiết bị." });
         }
 
-        // Không cho Active nếu user đã có máy Active khác (max 1 theo mặc định).
-        if (status == DeviceStatuses.Active && device.User != null)
+        if (status == DeviceStatuses.Active)
         {
             var license = await _db.Licenses
                 .AsNoTracking()
@@ -297,9 +399,72 @@ public class AdminController : ControllerBase
         {
             device.Id,
             device.UserId,
+            phoneNumber = device.User?.PhoneNumber,
             device.DeviceName,
             device.Status,
             message = "Đã cập nhật trạng thái thiết bị."
+        });
+    }
+
+    [HttpPut("licenses/{licenseId:int}/extend")]
+    public async Task<IActionResult> ExtendLicense(int licenseId, ExtendLicenseRequest request)
+    {
+        var license = await _db.Licenses
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == licenseId);
+
+        if (license == null)
+        {
+            return NotFound(new { message = "Không tìm thấy giấy phép." });
+        }
+
+        if (request.ExpiresAtUtc.HasValue)
+        {
+            license.ExpiresAtUtc = request.ExpiresAtUtc.Value.ToUniversalTime();
+        }
+        else
+        {
+            var days = request.ExtraDays > 0 ? request.ExtraDays : 30;
+            var baseline = license.ExpiresAtUtc > DateTime.UtcNow
+                ? license.ExpiresAtUtc
+                : DateTime.UtcNow;
+            license.ExpiresAtUtc = baseline.AddDays(days);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = NormalizeStatus(
+                request.Status,
+                LicenseStatuses.Active,
+                LicenseStatuses.Blocked,
+                LicenseStatuses.Expired);
+            if (status != null)
+            {
+                license.Status = status;
+            }
+        }
+        else if (license.ExpiresAtUtc > DateTime.UtcNow &&
+                 license.Status == LicenseStatuses.Expired)
+        {
+            license.Status = LicenseStatuses.Active;
+        }
+
+        license.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        await _auditService.WriteAsync(
+            "admin-extend-license",
+            $"License {license.Id} expires={license.ExpiresAtUtc:o}",
+            license.UserId);
+
+        return Ok(new
+        {
+            license.Id,
+            license.UserId,
+            phoneNumber = license.User?.PhoneNumber,
+            license.Status,
+            license.ExpiresAtUtc,
+            message = "Đã cập nhật hạn giấy phép."
         });
     }
 
@@ -332,9 +497,11 @@ public class AdminController : ControllerBase
     private static object MapUser(User user)
     {
         var license = user.License;
+        var featureList = FeatureParser.Parse(license?.EnabledFeatures);
         return new
         {
             user.Id,
+            userId = user.Id,
             user.PhoneNumber,
             user.DisplayName,
             user.Role,
@@ -345,18 +512,23 @@ public class AdminController : ControllerBase
                 : new
                 {
                     license.Id,
+                    licenseId = license.Id,
                     license.Plan,
                     license.Status,
                     license.MaxDevices,
                     license.StartsAtUtc,
                     license.ExpiresAtUtc,
-                    features = FeatureParser.Parse(license.EnabledFeatures)
+                    features = featureList,
+                    featureFlags = PluginFeatures.All.ToDictionary(
+                        f => f,
+                        f => featureList.Contains(f, StringComparer.OrdinalIgnoreCase))
                 },
             devices = user.Devices
                 .OrderByDescending(x => x.LastSeenAtUtc)
                 .Select(d => new
                 {
                     d.Id,
+                    deviceId = d.Id,
                     d.DeviceName,
                     d.Status,
                     d.AutoCadVersion,
@@ -392,4 +564,18 @@ public class SetStatusRequest
 public class SetFeaturesRequest
 {
     public string[]? Features { get; set; }
+}
+
+public class SetFeatureEnabledRequest
+{
+    public bool Enabled { get; set; }
+}
+
+public class ExtendLicenseRequest
+{
+    public int ExtraDays { get; set; } = 30;
+
+    public DateTime? ExpiresAtUtc { get; set; }
+
+    public string? Status { get; set; }
 }

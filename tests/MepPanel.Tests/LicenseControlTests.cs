@@ -105,6 +105,46 @@ public class LicenseControlTests : IClassFixture<LicenseWebAppFactory>
     }
 
     [Fact]
+    public async Task Admin_Overview_And_Put_Toggle_Feature_Work()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Add("X-Admin-ApiKey", "MEP-PANEL-ADMIN-TEST-2026");
+
+        var phone = "0911000004";
+        var create = await admin.PostAsJsonAsync("/api/Admin/users", new
+        {
+            phoneNumber = phone,
+            displayName = "Overview User",
+            maxDevices = 1,
+            features = new[] { "MEPDB", "MEPHVAC" }
+        });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        using var createDoc = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
+        var userId = createDoc.RootElement.GetProperty("id").GetInt32();
+
+        var overview = await admin.GetAsync("/api/Admin/overview");
+        Assert.Equal(HttpStatusCode.OK, overview.StatusCode);
+
+        var disableHvac = await admin.PutAsJsonAsync(
+            $"/api/Admin/users/{userId}/features/MEPHVAC",
+            new { enabled = false });
+        Assert.Equal(HttpStatusCode.OK, disableHvac.StatusCode);
+
+        using var featureDoc = JsonDocument.Parse(await disableHvac.Content.ReadAsStringAsync());
+        var features = featureDoc.RootElement.GetProperty("features")
+            .EnumerateArray()
+            .Select(x => x.GetString())
+            .ToArray();
+        Assert.Contains("MEPDB", features);
+        Assert.DoesNotContain("MEPHVAC", features);
+
+        var blockDeviceUser = await admin.PutAsJsonAsync(
+            $"/api/Admin/users/{userId}/status",
+            new { status = "Blocked" });
+        Assert.Equal(HttpStatusCode.OK, blockDeviceUser.StatusCode);
+    }
+
+    [Fact]
     public async Task Admin_Can_Lock_Plugin_Features()
     {
         var admin = _factory.CreateClient();

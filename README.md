@@ -1,6 +1,6 @@
 # MepPanel MVP — License control
 
-Phiên bản hiện tại: **v0.1.0** ([CHANGELOG](CHANGELOG.md) · [cách đóng gói](docs/VERSIONING.md))
+Phiên bản hiện tại: **v0.2.0** ([CHANGELOG](CHANGELOG.md) · [cách đóng gói](docs/VERSIONING.md))
 
 Plugin AutoCAD 2021 + License Server để Admin:
 
@@ -20,10 +20,12 @@ Plugin AutoCAD 2021 + License Server để Admin:
 ## Quick start (máy bạn)
 
 1. Mở `MepPanelMvp.sln` bằng Visual Studio  
-2. F5 project `MepPanel.LicenseServer` → `https://localhost:7024/swagger`  
-3. Build `MepPanel.AutoCAD` (cần AutoCAD 2021)  
-4. AutoCAD: `NETLOAD` → login SĐT test `0900000001` / OTP `123456`  
-5. Gõ `MEPDB` / `MEPHVAC`
+2. F5 project `MepPanel.LicenseServer`  
+3. Mở trang điều khiển: `https://localhost:7024/admin`  
+   - Tạo SĐT bất kỳ  
+   - Tắt/bật user, máy, chức năng `MEPDB` / `MEPHVAC`  
+4. Swagger (nếu cần): `https://localhost:7024/swagger`  
+5. Build `MepPanel.AutoCAD` → AutoCAD `NETLOAD` → login SĐT vừa tạo / OTP `123456`
 
 ## Đóng gói theo phiên bản
 

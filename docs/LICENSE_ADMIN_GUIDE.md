@@ -4,7 +4,18 @@
 
 1. Mở `MepPanelMvp.sln` trong Visual Studio  
 2. Set startup project: `MepPanel.LicenseServer`  
-3. F5 → Swagger: `https://localhost:7024/swagger`
+3. F5 → trang Admin: `https://localhost:7024/admin`  
+4. Swagger (tuỳ chọn): `https://localhost:7024/swagger`
+
+### Dùng trang `/admin` (khuyên dùng)
+
+1. Dán Admin API Key: `MEP-PANEL-ADMIN-TEST-2026`  
+2. Tạo user với SĐT bất kỳ + chọn chức năng  
+3. Với từng user:
+   - **Mở/Khóa user**
+   - Tick/untick `MEPDB` / `MEPHVAC`
+   - **Khóa máy** / **Mở máy**
+   - **Mở chuyển máy** nếu muốn sang PC khác
 
 Admin API key mặc định (đổi trong `appsettings.json`):
 

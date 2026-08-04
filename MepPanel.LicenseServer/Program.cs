@@ -14,11 +14,11 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "MepPanel License Server",
+        Title = "MepPanel.LicenseServer",
         Version = "v1",
         Description =
-            "Admin khóa/mở tài khoản & chức năng plugin. " +
-            "Mỗi SĐT mặc định 1 máy; chuyển máy cần Admin release-device."
+            "Admin khóa/mở tài khoản, thiết bị & chức năng plugin theo SĐT. " +
+            "UI quản trị: /admin · Mỗi SĐT mặc định 1 máy."
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -111,6 +111,9 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db, app.Configuration);
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -125,6 +128,9 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Trang điều khiển Admin: https://localhost:7024/admin/
+app.MapGet("/", () => Results.Redirect("/admin/"));
 
 app.Run();
 
