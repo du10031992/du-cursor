@@ -9,3 +9,5 @@
 mep-panel-license.db*
 .idea/
 *.log
+dist/
+releases/**/*.zip
