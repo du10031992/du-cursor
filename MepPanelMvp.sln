@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Core", "src\MepPan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.AutoCAD", "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj", "{230E6AC0-8498-4492-845C-38744806A11B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.AutoCAD.Licensing", "src\MepPanel.AutoCAD.Licensing\MepPanel.AutoCAD.Licensing.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F23456789012}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.LoadTest", "src\MepPanel.LoadTest\MepPanel.LoadTest.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MepPanel.Tests", "tests\MepPanel.Tests\MepPanel.Tests.csproj", "{95AE2397-0FDC-479C-A701-7369FA6512ED}"

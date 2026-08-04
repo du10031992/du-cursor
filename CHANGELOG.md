@@ -10,11 +10,12 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
-## [0.2.2] - 2026-08-04 — Sửa NETLOAD (WinForms thay WPF)
+## [0.2.2] - 2026-08-04 — Sửa NETLOAD (tách loader + licensing)
 
 ### Sửa lỗi
-- Đổi LoginWindow từ WPF sang **WinForms** — AutoCAD NETLOAD không còn fail im lặng
-- Plugin chính đăng ký lệnh `MEPSTATUS`, `MEPLOGIN`, `MEPDB`, `MEPHVAC` ổn định
+- Tách `MepPanel.AutoCAD.dll` (loader mỏng, giống LoadTest) và `MepPanel.AutoCAD.Licensing.dll`
+- AutoCAD chỉ NETLOAD file chính; licensing load sau qua reflection
+- LoginWindow dùng WinForms thay WPF
 
 ---
 
