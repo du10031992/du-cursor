@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 using System.Windows;
-using Autodesk.AutoCAD.ApplicationServices.Core;
+using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace MepPanel.AutoCAD.Licensing
 {
@@ -40,7 +40,7 @@ namespace MepPanel.AutoCAD.Licensing
                 {
                     LicenseSession.Clear();
 
-                    Application.ShowAlertDialog(
+                    AcApp.ShowAlertDialog(
                         response != null && !string.IsNullOrWhiteSpace(response.Message)
                             ? response.Message
                             : "Thiet bi da bi khoa hoac giay phep khong hop le.");
@@ -54,7 +54,7 @@ namespace MepPanel.AutoCAD.Licensing
             {
                 LicenseSession.Clear();
 
-                Application.ShowAlertDialog(
+                AcApp.ShowAlertDialog(
                     "Khong kiem tra duoc giay phep voi may chu.\n" +
                     ex.Message);
 
@@ -69,7 +69,7 @@ namespace MepPanel.AutoCAD.Licensing
                 var client = new LicenseApiClient(LicenseServerBaseUrl);
 
                 string autoCadVersion =
-                    Convert.ToString(Application.GetSystemVariable("ACADVER"))
+                    Convert.ToString(AcApp.GetSystemVariable("ACADVER"))
                     ?? string.Empty;
 
                 string pluginVersion = Assembly.GetExecutingAssembly()
@@ -98,7 +98,7 @@ namespace MepPanel.AutoCAD.Licensing
             }
             catch (Exception ex)
             {
-                Application.ShowAlertDialog(
+                AcApp.ShowAlertDialog(
                     "Loi mo cua so dang nhap: " + ex.Message);
                 return false;
             }
