@@ -147,7 +147,7 @@ function Patch-CsFile {
 
         if ($braceIndex -ge $lines.Count) { continue }
 
-        # Bo qua expression-bodied / delegate — khong co body block
+        # Bo qua expression-bodied / delegate - khong co body block
         if ($lines[$braceIndex] -match '=>\s*\S') { continue }
 
         $already = $false
