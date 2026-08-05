@@ -29,12 +29,16 @@ public static class PluginFeatures
     /// <summary>Chuc nang phu — khoa/mo trong panel plugin.</summary>
     public static readonly string[] SubFeatures =
     [
+        "MEPDB3P4W",
         "MEPDBCABINET2D",
         "MEPDBCABINET3D",
         "MEPDBCABINETVIEWS",
         "MEPDBCONFIG",
+        "MEPDBDRAW",
         "MEPDBDUPLICATE",
+        "MEPDBEDIT",
         "MEPDBEXPORT",
+        "MEPDBHELP",
         "MEPDBKNOWLEDGE",
         "MEPDBPOWER",
         "MEPDBREALRENDER",

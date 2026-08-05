@@ -1,4 +1,4 @@
-# Chi giu lenh MEPDB tren command line. Cac lenh MEP* khac chi goi tu panel.
+# Chi giu lenh MEPDB tren command line. Comment moi [CommandMethod] khac MEPDB.
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -11,92 +11,67 @@ if (-not (Test-Path $autoCadRoot)) {
     exit 0
 }
 
-function Test-ExactMepDbCommand {
-    param([string]$Line)
-    return $Line -match 'CommandMethod\s*\(\s*"MEPDB"\s*[,)]'
-}
+$script:TotalCommented = 0
+$script:TotalFiles = 0
 
-function Test-MepSubCommand {
-    param([string]$Line)
-    if ($Line -notmatch 'CommandMethod\s*\(\s*"(MEP[^"]+)"') {
-        return $false
+function Get-CommandNameFromAttribute {
+    param([string]$AttributeText)
+
+    if ($AttributeText -match 'CommandMethod\s*\(\s*"([^"]+)"') {
+        return $Matches[1]
     }
-    $name = $Matches[1]
-    return $name -ne "MEPDB"
+    return $null
 }
 
 function Patch-CsFile {
     param([string]$Path)
 
-    $lines = Get-Content $Path -Encoding UTF8
-    $changed = $false
-    $activeSubFeature = $null
-    $inEntryMethod = $false
-    $result = New-Object System.Collections.Generic.List[string]
-
-    foreach ($line in $lines) {
-        $newLine = $line
-
-        if (Test-ExactMepDbCommand $line) {
-            $inEntryMethod = $true
-            $activeSubFeature = $null
-        }
-        elseif (Test-MepSubCommand $line) {
-            $activeSubFeature = $Matches[1]
-            $inEntryMethod = $false
-            if ($line -notmatch 'SINGLE_ENTRY_PATCH') {
-                $indent = if ($line -match '^(\s*)') { $Matches[1] } else { "" }
-                $newLine = "${indent}// SINGLE_ENTRY_PATCH: $($line.Trim())"
-                $changed = $true
-            }
-        }
-        elseif ($line -match '^\s*(public|private|protected|internal)\s+\w') {
-            if ($line -notmatch 'CommandMethod') {
-                $inEntryMethod = $false
-                $activeSubFeature = $null
-            }
-        }
-
-        if ($line -match 'LicenseGuard\.(EnsureAuthorized|EnsureFeature)\s*\(') {
-            if ($inEntryMethod) {
-                $replacement = 'LicenseGuard.EnsureEntry()'
-                $updated = $line -replace 'LicenseGuard\.(EnsureAuthorized|EnsureFeature)\s*\([^)]*\)', $replacement
-                if ($updated -ne $line) {
-                    $newLine = $updated
-                    $changed = $true
-                }
-            }
-            elseif ($activeSubFeature) {
-                $replacement = "LicenseGuard.EnsureSubFeature(`"$activeSubFeature`")"
-                $updated = $line -replace 'LicenseGuard\.(EnsureAuthorized|EnsureFeature)\s*\([^)]*\)', $replacement
-                if ($updated -ne $line) {
-                    $newLine = $updated
-                    $changed = $true
-                }
-            }
-        }
-
-        if ($line -match 'PluginFeatureGate\.Ensure\s*\(' -and $activeSubFeature) {
-            $updated = $line -replace 'PluginFeatureGate\.Ensure\s*\([^)]*\)', "PluginFeatureGate.Ensure(`"$activeSubFeature`")"
-            if ($updated -ne $line) {
-                $newLine = $updated
-                $changed = $true
-            }
-        }
-
-        $result.Add($newLine)
+    $text = Get-Content $Path -Raw -Encoding UTF8
+    if ($text -notmatch 'CommandMethod') {
+        return
     }
 
-    if ($changed) {
-        Set-Content -Path $Path -Value $result -Encoding UTF8
-        Write-Host "   OK single-entry -> $Path"
+    $original = $text
+    $localCommented = 0
+
+    # Comment tung dong [CommandMethod(...)] neu khong phai MEPDB chinh xac
+    $text = [regex]::Replace($text, '(?m)^(?<indent>\s*)\[(?<attr>CommandMethod[^\]]*\])', {
+        param($m)
+        $cmd = Get-CommandNameFromAttribute $m.Groups['attr'].Value
+        if ($null -eq $cmd) {
+            return $m.Value
+        }
+        if ($cmd -eq 'MEPDB') {
+            return $m.Value
+        }
+        if ($cmd -like 'MEP*') {
+            $script:TotalCommented++
+            $localCommented++
+            return "$($m.Groups['indent'].Value)// SINGLE_ENTRY_PATCH: [$($m.Groups['attr'].Value)]"
+        }
+        return $m.Value
+    })
+
+    # Doi license guard trong file
+    $text = [regex]::Replace($text, 'LicenseGuard\.EnsureAuthorized\s*\(\s*\)', 'LicenseGuard.EnsureEntry()')
+    $text = [regex]::Replace($text, 'LicenseGuard\.EnsureFeature\s*\(\s*"MEPDB"\s*\)', 'LicenseGuard.EnsureEntry()')
+    $text = [regex]::Replace($text, 'LicenseGuard\.EnsureFeature\s*\(\s*PluginFeatures\.MepDb\s*\)', 'LicenseGuard.EnsureEntry()')
+
+    if ($text -ne $original) {
+        Set-Content -Path $Path -Value $text -Encoding UTF8 -NoNewline
+        $script:TotalFiles++
+        Write-Host "   OK single-entry -> $Path ($localCommented lenh phu da an)"
     }
 }
 
 Write-Host "==> Apply single-entry patch (chi lenh MEPDB)"
 Get-ChildItem -Path $autoCadRoot -Filter *.cs -Recurse | ForEach-Object {
-    $content = Get-Content $_.FullName -Raw -Encoding UTF8
-    if ($content -match 'CommandMethod\s*\(\s*"MEP') {
-        Patch-CsFile -Path $_.FullName
-    }
+    Patch-CsFile -Path $_.FullName
+}
+
+if ($script:TotalCommented -eq 0) {
+    Write-Host "   CANH BAO: Khong tim thay lenh phu MEP* de an. Kiem tra source MepPanelMvp."
+}
+else {
+    Write-Host "   Da an $($script:TotalCommented) [CommandMethod] phu trong $($script:TotalFiles) file."
 }

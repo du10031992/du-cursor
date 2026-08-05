@@ -159,6 +159,7 @@ app.Use(async (context, next) =>
         }
 
         context.Response.ContentType = "text/html; charset=utf-8";
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         await context.Response.SendFileAsync(indexPath);
         return;
     }

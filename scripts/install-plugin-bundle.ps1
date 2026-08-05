@@ -113,5 +113,5 @@ Install-Bundle -RequiredFiles $releaseRequired
 
 Write-Host ""
 Write-Host "Done! Restart AutoCAD - plugin loads automatically."
-Write-Host "Plugin v0.13: MEPDB, MEPHVAC (+ nhieu lenh con). Admin kiem soat feature tren /admin"
+Write-Host "Plugin: chi lenh MEPDB tren command line. Chuc nang phu khoa/mo trong panel + /admin"
 Write-Host "License Server: chay F5, OTP test 123456 (TestMode=true)"
