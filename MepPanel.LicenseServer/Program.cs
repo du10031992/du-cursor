@@ -114,6 +114,58 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db, app.Configuration);
 }
 
+static string? ResolveAdminIndexPath(IWebHostEnvironment env)
+{
+    var candidates = new[]
+    {
+        Path.Combine(env.WebRootPath ?? "", "admin", "index.html"),
+        Path.Combine(env.ContentRootPath, "wwwroot", "admin", "index.html")
+    };
+
+    foreach (var path in candidates)
+    {
+        if (File.Exists(path))
+        {
+            return path;
+        }
+    }
+
+    return null;
+}
+
+var adminIndex = ResolveAdminIndexPath(app.Environment);
+
+// Admin UI — xu ly som, truoc static files / auth
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+
+    if (path.Equals("/admin", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.Redirect("/admin/", permanent: false);
+        return;
+    }
+
+    if (path.Equals("/admin/", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/admin/index.html", StringComparison.OrdinalIgnoreCase))
+    {
+        var indexPath = ResolveAdminIndexPath(app.Environment);
+        if (indexPath is null)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsync(
+                "Khong tim thay wwwroot/admin/index.html. Hay git pull repo du-cursor roi Rebuild Solution.");
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(indexPath);
+        return;
+    }
+
+    await next();
+});
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -132,19 +184,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Admin UI — phuc vu ro rang /admin va /admin/
-var adminIndex = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "admin", "index.html");
-app.MapGet("/admin", () => Results.Redirect("/admin/"));
-app.MapGet("/admin/", () =>
+app.MapGet("/health", () => Results.Ok(new
 {
-    if (!File.Exists(adminIndex))
-    {
-        return Results.NotFound("Khong tim thay wwwroot/admin/index.html. Hay git pull repo du-cursor.");
-    }
-
-    return Results.File(adminIndex, "text/html");
-});
-app.MapGet("/admin/index.html", () => Results.File(adminIndex, "text/html"));
+    ok = true,
+    adminUi = adminIndex is not null,
+    version = "2026-08-05-admin-v2"
+}));
 
 // Trang mac dinh
 app.MapGet("/", () => Results.Redirect("/admin/"));
