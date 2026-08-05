@@ -85,7 +85,7 @@ namespace MepPanel.AutoCAD.Licensing
 
         public static bool EnsureFeature(string featureCode)
         {
-            if (!EnsureAuthorized())
+            if (!EnsureAuthorized(requireFreshServerFeatures: true))
             {
                 return false;
             }

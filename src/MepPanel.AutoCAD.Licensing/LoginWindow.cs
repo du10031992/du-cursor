@@ -102,7 +102,7 @@ namespace MepPanel.AutoCAD.Licensing
             Controls.Add(_loginButton);
         }
 
-        private async void RequestOtpButton_Click(object sender, EventArgs e)
+        private void RequestOtpButton_Click(object sender, EventArgs e)
         {
             string phoneNumber = _phoneNumberTextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(phoneNumber))
@@ -111,13 +111,13 @@ namespace MepPanel.AutoCAD.Licensing
                 return;
             }
 
+            SetBusy(true);
+            _statusLabel.Text = "Đang gửi mã OTP...";
+
             try
             {
-                SetBusy(true);
-                _statusLabel.Text = "Đang gửi mã OTP...";
-
-                RequestOtpResponse response =
-                    await _apiClient.RequestOtpAsync(phoneNumber).ConfigureAwait(true);
+                RequestOtpResponse response = AsyncRunner.Run(
+                    () => _apiClient.RequestOtpAsync(phoneNumber));
 
                 _statusLabel.Text = response != null
                     ? response.Message
@@ -140,7 +140,7 @@ namespace MepPanel.AutoCAD.Licensing
             }
         }
 
-        private async void LoginButton_Click(object sender, EventArgs e)
+        private void LoginButton_Click(object sender, EventArgs e)
         {
             string phoneNumber = _phoneNumberTextBox.Text.Trim();
             string otp = _otpTextBox.Text.Trim();
@@ -152,68 +152,12 @@ namespace MepPanel.AutoCAD.Licensing
                 return;
             }
 
+            SetBusy(true);
+            _statusLabel.Text = "Đang đăng nhập...";
+
             try
             {
-                SetBusy(true);
-                _statusLabel.Text = "Đang xác thực OTP...";
-
-                VerifyOtpResponse verifyResponse =
-                    await _apiClient.VerifyOtpAsync(phoneNumber, otp).ConfigureAwait(true);
-
-                if (verifyResponse == null || !verifyResponse.Authenticated ||
-                    string.IsNullOrWhiteSpace(verifyResponse.AccessToken))
-                {
-                    _statusLabel.Text = verifyResponse != null &&
-                        !string.IsNullOrWhiteSpace(verifyResponse.Message)
-                            ? verifyResponse.Message
-                            : "Mã OTP không hợp lệ.";
-                    return;
-                }
-
-                _apiClient.SetAccessToken(verifyResponse.AccessToken);
-                _statusLabel.Text = "Đang kích hoạt thiết bị...";
-
-                ActivateDeviceResponse activateResponse =
-                    await _apiClient.ActivateDeviceAsync(
-                        phoneNumber,
-                        _autoCadVersion,
-                        _pluginVersion).ConfigureAwait(true);
-
-                if (activateResponse == null || !activateResponse.Activated)
-                {
-                    _statusLabel.Text = activateResponse != null &&
-                        !string.IsNullOrWhiteSpace(activateResponse.Message)
-                            ? activateResponse.Message
-                            : "Không kích hoạt được thiết bị. Có thể Admin chưa mở chuyển máy.";
-                    return;
-                }
-
-                _statusLabel.Text = "Đang kiểm tra giấy phép...";
-
-                CheckLicenseResponse checkResponse =
-                    await _apiClient.CheckLicenseAsync(phoneNumber, _pluginVersion)
-                        .ConfigureAwait(true);
-
-                if (checkResponse == null || !checkResponse.Valid)
-                {
-                    _statusLabel.Text = checkResponse != null &&
-                        !string.IsNullOrWhiteSpace(checkResponse.Message)
-                            ? checkResponse.Message
-                            : "Giấy phép không hợp lệ.";
-                    return;
-                }
-
-                LicenseCache.Save(phoneNumber, checkResponse);
-                AuthenticatedPhoneNumber = phoneNumber;
-                LicenseInfo = checkResponse;
-
-                LicenseSession.Authorize(
-                    phoneNumber,
-                    checkResponse.DisplayName,
-                    verifyResponse.AccessToken,
-                    checkResponse.Features,
-                    checkResponse.LicensePlan);
-
+                AsyncRunner.Run(() => CompleteLoginAsync(phoneNumber, otp));
                 _statusLabel.Text = "Đăng nhập thành công.";
                 DialogResult = DialogResult.OK;
                 Close();
@@ -223,11 +167,62 @@ namespace MepPanel.AutoCAD.Licensing
                 LicenseSession.Clear();
                 _statusLabel.Text = "Đăng nhập không thành công.";
                 MessageBox.Show(ex.Message, "Lỗi đăng nhập");
-            }
-            finally
-            {
                 SetBusy(false);
             }
+        }
+
+        private async Task CompleteLoginAsync(string phoneNumber, string otp)
+        {
+            VerifyOtpResponse verifyResponse =
+                await _apiClient.VerifyOtpAsync(phoneNumber, otp).ConfigureAwait(false);
+
+            if (verifyResponse == null || !verifyResponse.Authenticated ||
+                string.IsNullOrWhiteSpace(verifyResponse.AccessToken))
+            {
+                throw new InvalidOperationException(
+                    verifyResponse != null && !string.IsNullOrWhiteSpace(verifyResponse.Message)
+                        ? verifyResponse.Message
+                        : "Mã OTP không hợp lệ.");
+            }
+
+            _apiClient.SetAccessToken(verifyResponse.AccessToken);
+
+            ActivateDeviceResponse activateResponse =
+                await _apiClient.ActivateDeviceAsync(
+                    phoneNumber,
+                    _autoCadVersion,
+                    _pluginVersion).ConfigureAwait(false);
+
+            if (activateResponse == null || !activateResponse.Activated)
+            {
+                throw new InvalidOperationException(
+                    activateResponse != null && !string.IsNullOrWhiteSpace(activateResponse.Message)
+                        ? activateResponse.Message
+                        : "Không kích hoạt được thiết bị. Có thể Admin chưa mở chuyển máy.");
+            }
+
+            CheckLicenseResponse checkResponse =
+                await _apiClient.CheckLicenseAsync(phoneNumber, _pluginVersion)
+                    .ConfigureAwait(false);
+
+            if (checkResponse == null || !checkResponse.Valid)
+            {
+                throw new InvalidOperationException(
+                    checkResponse != null && !string.IsNullOrWhiteSpace(checkResponse.Message)
+                        ? checkResponse.Message
+                        : "Giấy phép không hợp lệ.");
+            }
+
+            LicenseCache.Save(phoneNumber, checkResponse);
+            AuthenticatedPhoneNumber = phoneNumber;
+            LicenseInfo = checkResponse;
+
+            LicenseSession.Authorize(
+                phoneNumber,
+                checkResponse.DisplayName,
+                verifyResponse.AccessToken,
+                checkResponse.Features,
+                checkResponse.LicensePlan);
         }
 
         private void SetBusy(bool isBusy)
@@ -236,6 +231,7 @@ namespace MepPanel.AutoCAD.Licensing
             _otpTextBox.Enabled = !isBusy;
             _requestOtpButton.Enabled = !isBusy;
             _loginButton.Enabled = !isBusy;
+            UseWaitCursor = isBusy;
         }
     }
 }
