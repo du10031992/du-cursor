@@ -11,7 +11,7 @@ namespace MepPanel.AutoCAD.Licensing
         private const string LicenseServerBaseUrl =
             "http://192.168.1.7:5268/";
 
-        public static bool EnsureAuthorized()
+        public static bool EnsureAuthorized(bool requireFreshServerFeatures = false)
         {
             if (!LicenseSession.IsAuthorized)
             {
@@ -49,10 +49,24 @@ namespace MepPanel.AutoCAD.Licensing
                     return false;
                 }
 
+                LicenseSession.Authorize(
+                    LicenseSession.PhoneNumber,
+                    response.DisplayName,
+                    LicenseSession.AccessToken,
+                    response.Features,
+                    response.LicensePlan);
+
                 return true;
             }
             catch (Exception ex)
             {
+                if (requireFreshServerFeatures)
+                {
+                    LicenseSession.Clear();
+                    AcApp.ShowAlertDialog(ex.Message);
+                    return false;
+                }
+
                 LicenseSession.Clear();
 
                 AcApp.ShowAlertDialog(
@@ -61,6 +75,28 @@ namespace MepPanel.AutoCAD.Licensing
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Hoi server moi lan va chan neu Admin da tat chuc nang (MEPDB/MEPHVAC).
+        /// </summary>
+        public static bool EnsureFeature(string featureCode)
+        {
+            if (!EnsureAuthorized(requireFreshServerFeatures: true))
+            {
+                return false;
+            }
+
+            if (LicenseSession.HasFeature(featureCode))
+            {
+                return true;
+            }
+
+            AcApp.ShowAlertDialog(
+                "Tai khoan cua ban chua duoc mo chuc nang: " + featureCode + "\n" +
+                "Lien he Admin de Active chuc nang nay.");
+
+            return false;
         }
 
         private static bool TryShowLoginDialog()
@@ -129,7 +165,10 @@ namespace MepPanel.AutoCAD.Licensing
                 finally
                 {
                     closeTimer.Stop();
-                    delayTimer?.Stop();
+                    if (delayTimer != null)
+                    {
+                        delayTimer.Stop();
+                    }
                 }
 
                 return LicenseSession.IsAuthorized;

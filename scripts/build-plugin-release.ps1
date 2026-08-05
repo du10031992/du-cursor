@@ -70,6 +70,11 @@ if (Test-Path $PatchLicensing) {
     Copy-Item (Join-Path $PatchLicensing "*") $TargetLicensing -Force
 }
 
+$FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
+if (Test-Path $FeaturePatch) {
+    & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
+}
+
 foreach ($proj in @($AutoCadProj, $CoreProj)) {
     if (-not (Test-Path $proj)) {
         throw "Khong tim thay project: $proj`nKiem tra pluginSourceRoot trong plugin.local.json"
