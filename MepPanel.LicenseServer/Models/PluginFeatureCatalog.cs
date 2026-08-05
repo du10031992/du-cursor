@@ -2,7 +2,7 @@ namespace MepPanel.LicenseServer.Models;
 
 public sealed record PluginFeatureInfo(string Code, string LabelVi, string Group);
 
-/// <summary>Tên tiếng Việt khớp panel MEP DRAWING TOOL.</summary>
+/// <summary>Tên tiếng Việt khớp panel MEP DRAWING TOOL (không trùng nhóm).</summary>
 public static class PluginFeatureCatalog
 {
     public const string EntryCode = PluginFeatures.Entry;
@@ -32,23 +32,6 @@ public static class PluginFeatureCatalog
         new("MEPDBCABINETVIEWS", "Mặt chiếu tủ", "Tủ điện / DB"),
         new("MEPDBPOWER", "Bố trí động lực", "Tủ điện / DB"),
         new("MEPDB3P4W", "Sơ đồ 3P-4D+E", "Tủ điện / DB"),
-
-        // HVAC (trong panel Điều hòa)
-        new("MEPHVACDRAW", "Vẽ HVAC", "Điều hòa"),
-        new("MEPHVACCONFIG", "Cấu hình HVAC", "Điều hòa"),
-        new("MEPHVACSMOKE", "Khói HVAC", "Điều hòa"),
-
-        // Khác (tool nâng cao)
-        new("MEPDBCABINET3D", "Tủ 3D", "Khác"),
-        new("MEPDBDUPLICATE", "Nhân bản tủ", "Khác"),
-        new("MEPDBEDIT", "Sửa tủ", "Khác"),
-        new("MEPDBHELP", "Trợ giúp", "Khác"),
-        new("MEPDBKNOWLEDGE", "Thư viện điện", "Khác"),
-        new("MEPDBREALRENDER", "Render wiring thật", "Khác"),
-        new("MEPDBREALWIRING", "Wiring thật", "Khác"),
-        new("MEPDBRENDER", "Render tủ", "Khác"),
-        new("MEPDBUNFOLD", "Triển khai tủ", "Khác"),
-        new("MEPDEVICEBLOCKS", "Block thiết bị", "Khác"),
     ];
 
     public static string? GetLabelVi(string? code)

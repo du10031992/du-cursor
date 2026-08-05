@@ -236,7 +236,7 @@ public class AdminController : ControllerBase
         });
     }
 
-    /// <summary>Bật/tắt 1 chức năng cụ thể (MEPDB hoặc MEPHVAC) theo user.</summary>
+    /// <summary>Bật/tắt 1 chức năng cụ thể theo user (MEPDB hoặc sub-feature trong catalog).</summary>
     [HttpPut("users/{userId:int}/features/{featureCode}")]
     public async Task<IActionResult> SetSingleFeature(
         int userId,

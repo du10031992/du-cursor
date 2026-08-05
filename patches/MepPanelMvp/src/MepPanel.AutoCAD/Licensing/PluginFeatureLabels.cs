@@ -26,19 +26,6 @@ namespace MepPanel.AutoCAD.Licensing
                 case "MEPDBCABINETVIEWS": return "Mặt chiếu tủ";
                 case "MEPDBPOWER": return "Bố trí động lực";
                 case "MEPDB3P4W": return "Sơ đồ 3P-4D+E";
-                case "MEPHVACDRAW": return "Vẽ HVAC";
-                case "MEPHVACCONFIG": return "Cấu hình HVAC";
-                case "MEPHVACSMOKE": return "Khói HVAC";
-                case "MEPDBCABINET3D": return "Tủ 3D";
-                case "MEPDBDUPLICATE": return "Nhân bản tủ";
-                case "MEPDBEDIT": return "Sửa tủ";
-                case "MEPDBHELP": return "Trợ giúp";
-                case "MEPDBKNOWLEDGE": return "Thư viện điện";
-                case "MEPDBREALRENDER": return "Render wiring thật";
-                case "MEPDBREALWIRING": return "Wiring thật";
-                case "MEPDBRENDER": return "Render tủ";
-                case "MEPDBUNFOLD": return "Triển khai tủ";
-                case "MEPDEVICEBLOCKS": return "Block thiết bị";
                 default: return featureCode;
             }
         }
