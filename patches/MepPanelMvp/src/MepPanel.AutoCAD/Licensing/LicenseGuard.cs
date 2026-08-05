@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Threading;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace MepPanel.AutoCAD.Licensing
@@ -92,7 +93,44 @@ namespace MepPanel.AutoCAD.Licensing
                     WindowStartupLocation = WindowStartupLocation.CenterScreen
                 };
 
-                window.ShowDialog();
+                DispatcherTimer closeTimer = null;
+                DispatcherTimer delayTimer = null;
+
+                closeTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(200)
+                };
+                closeTimer.Tick += (_, _) =>
+                {
+                    if (!LicenseSession.IsAuthorized)
+                    {
+                        return;
+                    }
+
+                    closeTimer.Stop();
+
+                    delayTimer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(600)
+                    };
+                    delayTimer.Tick += (_, _) =>
+                    {
+                        delayTimer.Stop();
+                        window.Close();
+                    };
+                    delayTimer.Start();
+                };
+                closeTimer.Start();
+
+                try
+                {
+                    window.ShowDialog();
+                }
+                finally
+                {
+                    closeTimer.Stop();
+                    delayTimer?.Stop();
+                }
 
                 return LicenseSession.IsAuthorized;
             }
