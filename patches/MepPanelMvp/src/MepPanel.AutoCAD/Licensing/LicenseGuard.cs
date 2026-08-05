@@ -73,6 +73,7 @@ namespace MepPanel.AutoCAD.Licensing
             AcApp.ShowAlertDialog(
                 "Chuc nang phu chua duoc mo: " +
                 PluginFeatureLabels.GetDisplayName(subFeatureCode) + "\n" +
+                "Quyen hien tai: " + string.Join(", ", LicenseSession.Features) + "\n" +
                 "Lien he Admin de bat tren trang /admin.");
 
             return false;
@@ -116,7 +117,7 @@ namespace MepPanel.AutoCAD.Licensing
                     LicenseSession.PhoneNumber,
                     response.DisplayName,
                     LicenseSession.AccessToken,
-                    response.Features,
+                    response.Features ?? new System.Collections.Generic.List<string>(),
                     response.LicensePlan);
 
                 return true;
@@ -180,7 +181,7 @@ namespace MepPanel.AutoCAD.Licensing
                     LicenseSession.PhoneNumber,
                     response.DisplayName,
                     LicenseSession.AccessToken,
-                    response.Features,
+                    response.Features ?? new System.Collections.Generic.List<string>(),
                     response.LicensePlan);
 
                 return true;

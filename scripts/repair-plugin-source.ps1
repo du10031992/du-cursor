@@ -18,6 +18,7 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
 
     foreach ($line in $lines) {
         if ($line -match 'SUBFEATURE_GUARD') { continue }
+        if ($line -match 'SUBFEATURE_WINDOW_GUARD') { continue }
         if ($line -match 'PluginFeatureGate\.Ensure\s*\(') { continue }
         if ($line -match 'PanelSystemGuard\.Ensure') { continue }
         $newLines.Add($line)
