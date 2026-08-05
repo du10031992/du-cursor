@@ -62,6 +62,14 @@ $PluginSourceRoot = (Resolve-Path $PluginSourceRoot).Path
 $AutoCadProj = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj"
 $CoreProj = Join-Path $PluginSourceRoot "src\MepPanel.Core\MepPanel.Core.csproj"
 
+$PatchLicensing = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Licensing"
+$TargetLicensing = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Licensing"
+if (Test-Path $PatchLicensing) {
+    Write-Host "==> Apply patch Licensing (LicenseGuard + AsyncRunner)"
+    New-Item -ItemType Directory -Force -Path $TargetLicensing | Out-Null
+    Copy-Item (Join-Path $PatchLicensing "*") $TargetLicensing -Force
+}
+
 foreach ($proj in @($AutoCadProj, $CoreProj)) {
     if (-not (Test-Path $proj)) {
         throw "Khong tim thay project: $proj`nKiem tra pluginSourceRoot trong plugin.local.json"
