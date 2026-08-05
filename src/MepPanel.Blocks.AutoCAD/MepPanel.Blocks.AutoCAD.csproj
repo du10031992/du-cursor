@@ -19,6 +19,10 @@
       <HintPath>$(AutoCadDir)\AcCoreMgd.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="AcDbMgd">
+      <HintPath>$(AutoCadDir)\AcDbMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="AcMgd">
       <HintPath>$(AutoCadDir)\AcMgd.dll</HintPath>
       <Private>false</Private>
