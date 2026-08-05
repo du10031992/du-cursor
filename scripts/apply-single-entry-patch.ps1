@@ -5,21 +5,23 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$autoCadRoot = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD"
-if (-not (Test-Path $autoCadRoot)) {
-    Write-Host "   (bo qua single-entry patch - khong tim thay src\MepPanel.AutoCAD)"
-    exit 0
-}
-
 $script:TotalCommented = 0
 $script:TotalFiles = 0
+$script:ScannedFiles = 0
 
 function Get-CommandNameFromAttribute {
     param([string]$AttributeText)
 
+    # [CommandMethod("Group", "MEPDBCABINET2D", ...)]
+    if ($AttributeText -match 'CommandMethod\s*\(\s*"[^"]*"\s*,\s*"([^"]+)"') {
+        return $Matches[1]
+    }
+
+    # [CommandMethod("MEPDB", ...)]
     if ($AttributeText -match 'CommandMethod\s*\(\s*"([^"]+)"') {
         return $Matches[1]
     }
+
     return $null
 }
 
@@ -31,28 +33,36 @@ function Patch-CsFile {
         return
     }
 
+    $script:ScannedFiles++
     $original = $text
     $localCommented = 0
 
-    # Comment tung dong [CommandMethod(...)] neu khong phai MEPDB chinh xac
-    $text = [regex]::Replace($text, '(?m)^(?<indent>\s*)\[(?<attr>CommandMethod[^\]]*\])', {
+    # Match [CommandMethod(...)] ke ca nhieu dong
+    $text = [regex]::Replace($text, '\[CommandMethod\s*\((?:[^[\]]|\[[^\]]*\])*\)\]', {
         param($m)
-        $cmd = Get-CommandNameFromAttribute $m.Groups['attr'].Value
+
+        if ($m.Value -match 'SINGLE_ENTRY_PATCH') {
+            return $m.Value
+        }
+
+        $cmd = Get-CommandNameFromAttribute $m.Value
         if ($null -eq $cmd) {
             return $m.Value
         }
+
         if ($cmd -eq 'MEPDB') {
             return $m.Value
         }
+
         if ($cmd -like 'MEP*') {
             $script:TotalCommented++
             $localCommented++
-            return "$($m.Groups['indent'].Value)// SINGLE_ENTRY_PATCH: [$($m.Groups['attr'].Value)]"
+            return "// SINGLE_ENTRY_PATCH: $($m.Value)"
         }
+
         return $m.Value
     })
 
-    # Doi license guard trong file
     $text = [regex]::Replace($text, 'LicenseGuard\.EnsureAuthorized\s*\(\s*\)', 'LicenseGuard.EnsureEntry()')
     $text = [regex]::Replace($text, 'LicenseGuard\.EnsureFeature\s*\(\s*"MEPDB"\s*\)', 'LicenseGuard.EnsureEntry()')
     $text = [regex]::Replace($text, 'LicenseGuard\.EnsureFeature\s*\(\s*PluginFeatures\.MepDb\s*\)', 'LicenseGuard.EnsureEntry()')
@@ -65,12 +75,17 @@ function Patch-CsFile {
 }
 
 Write-Host "==> Apply single-entry patch (chi lenh MEPDB)"
-Get-ChildItem -Path $autoCadRoot -Filter *.cs -Recurse | ForEach-Object {
+Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
+    if ($_.FullName -match '\\(bin|obj)\\') {
+        return
+    }
     Patch-CsFile -Path $_.FullName
 }
 
+Write-Host "   Da quet $script:ScannedFiles file co CommandMethod."
 if ($script:TotalCommented -eq 0) {
-    Write-Host "   CANH BAO: Khong tim thay lenh phu MEP* de an. Kiem tra source MepPanelMvp."
+    Write-Host "   CANH BAO: Khong tim thay lenh phu MEP* de an."
+    Write-Host "   Kiem tra PanelCommands.cs / HvacCommands.cs trong MepPanelMvp."
 }
 else {
     Write-Host "   Da an $($script:TotalCommented) [CommandMethod] phu trong $($script:TotalFiles) file."
