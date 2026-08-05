@@ -1,4 +1,4 @@
-# Chen PluginFeatureGate.Ensure vao handler panel + method sau SINGLE_ENTRY_PATCH.
+# Chi chen guard vao *_Click handler ro rang + method sau SINGLE_ENTRY_PATCH.
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -8,69 +8,31 @@ $ErrorActionPreference = "Stop"
 $script:Injected = 0
 $script:Files = 0
 
-function Resolve-FeatureFromMethodName {
-    param([string]$Name)
-
-    if ($Name -match 'Login|Otp|Theme|Close|Refresh|Save|MoveUp|MoveDown|Add_|Remove|Calculate|Recalculate|Renumber|QuickLoad|Balance|IncreaseCable|BranchPanel|MainPanel|EditPanel|NewPanel|OpenPanel|Select[^L]') {
-        return $null
-    }
-
-    $rules = @(
-        @{ Pattern = 'Cabinet2d|DrawCabinet2d'; Feature = 'MEPDBCABINET2D' },
-        @{ Pattern = 'Cabinet3d'; Feature = 'MEPDBCABINET3D' },
-        @{ Pattern = 'CabinetViews'; Feature = 'MEPDBCABINETVIEWS' },
-        @{ Pattern = 'HvacDraw'; Feature = 'MEPHVACDRAW' },
-        @{ Pattern = 'HvacSmoke'; Feature = 'MEPHVACSMOKE' },
-        @{ Pattern = 'HvacConfig'; Feature = 'MEPHVACCONFIG' },
-        @{ Pattern = 'Hvac'; Feature = 'MEPHVAC' },
-        @{ Pattern = 'Unfold'; Feature = 'MEPDBUNFOLD' },
-        @{ Pattern = 'RealisticWiringRender|RealWiringRender'; Feature = 'MEPDBREALRENDER' },
-        @{ Pattern = 'RealisticWiring|RealWiring'; Feature = 'MEPDBREALWIRING' },
-        @{ Pattern = 'CabinetRender'; Feature = 'MEPDBRENDER' },
-        @{ Pattern = 'DeviceBlocks'; Feature = 'MEPDEVICEBLOCKS' },
-        @{ Pattern = 'SelectLayer'; Feature = 'MEPSELAYER' },
-        @{ Pattern = 'Duplicate'; Feature = 'MEPDBDUPLICATE' },
-        @{ Pattern = 'Update'; Feature = 'MEPDBUPDATE' },
-        @{ Pattern = 'OpenConfiguration|Configuration'; Feature = 'MEPDBCONFIG' },
-        @{ Pattern = 'ElectricalKnowledge|Knowledge'; Feature = 'MEPDBKNOWLEDGE' },
-        @{ Pattern = 'ThreePhaseFourWire|3P4W'; Feature = 'MEPDB3P4W' },
-        @{ Pattern = 'Help'; Feature = 'MEPDBHELP' },
-        @{ Pattern = 'Export'; Feature = 'MEPDBEXPORT' },
-        @{ Pattern = 'Smoke'; Feature = 'MEPDBSMOKE' },
-        @{ Pattern = 'Power'; Feature = 'MEPDBPOWER' },
-        @{ Pattern = 'Draw'; Feature = 'MEPDBDRAW' }
-    )
-
-    foreach ($rule in $rules) {
-        if ($Name -match $rule.Pattern) {
-            return $rule.Feature
-        }
-    }
-
-    return $null
-}
-
-function Get-Indent {
-    param([string]$Line)
-    if ($Line -match '^(\s*)') { return $Matches[1] }
-    return '            '
-}
-
-function Should-SkipInject {
-    param([string[]]$Lines, [int]$BraceIndex)
-
-    $end = [Math]::Min($BraceIndex + 4, $Lines.Count - 1)
-    for ($i = $BraceIndex + 1; $i -le $end; $i++) {
-        if ($Lines[$i] -match 'PluginFeatureGate\.Ensure|LicenseGuard\.EnsureSubFeature|SUBFEATURE_GUARD') {
-            return $true
-        }
-    }
-    return $false
-}
-
-function New-GuardLine {
-    param([string]$Indent, [string]$Feature)
-    return "${Indent}if (!PluginFeatureGate.Ensure(`"$Feature`")) return; // SUBFEATURE_GUARD"
+$ClickFeatureMap = @{
+    'Cabinet2d_Click' = 'MEPDBCABINET2D'
+    'DrawCabinet2d' = 'MEPDBCABINET2D'
+    'Cabinet3d_Click' = 'MEPDBCABINET3D'
+    'CabinetViews_Click' = 'MEPDBCABINETVIEWS'
+    'HvacDraw_Click' = 'MEPHVACDRAW'
+    'HvacSmoke_Click' = 'MEPHVACSMOKE'
+    'HvacConfig_Click' = 'MEPHVACCONFIG'
+    'Hvac_Click' = 'MEPHVAC'
+    'CabinetUnfold_Click' = 'MEPDBUNFOLD'
+    'RealisticWiringRender_Click' = 'MEPDBREALRENDER'
+    'RealisticWiring_Click' = 'MEPDBREALWIRING'
+    'CabinetRender_Click' = 'MEPDBRENDER'
+    'DeviceBlocks_Click' = 'MEPDEVICEBLOCKS'
+    'SelectLayer_Click' = 'MEPSELAYER'
+    'Duplicate_Click' = 'MEPDBDUPLICATE'
+    'DuplicatePanel_Click' = 'MEPDBDUPLICATE'
+    'Update_Click' = 'MEPDBUPDATE'
+    'OpenConfiguration_Click' = 'MEPDBCONFIG'
+    'ElectricalKnowledge_Click' = 'MEPDBKNOWLEDGE'
+    'ThreePhaseFourWire_Click' = 'MEPDB3P4W'
+    'Help_Click' = 'MEPDBHELP'
+    'Export_Click' = 'MEPDBEXPORT'
+    'Smoke_Click' = 'MEPDBSMOKE'
+    'Power_Click' = 'MEPDBPOWER'
 }
 
 function Patch-CsFile {
@@ -89,36 +51,48 @@ function Patch-CsFile {
             continue
         }
 
-        if ($line -match '^\s*(public|private|protected|internal)\s+(?:async\s+)?(?:void|[\w<>\[\]]+)\s+(?<name>\w+)\s*\(') {
-            $methodName = $Matches['name']
+        if ($line -notmatch '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?void\s+(?<name>\w+)\s*\(') {
+            continue
+        }
+
+        $methodName = $Matches['name']
+        $feature = $null
+
+        if ($pendingFeature) {
             $feature = $pendingFeature
-            if (-not $feature) {
-                $feature = Resolve-FeatureFromMethodName -Name $methodName
-            }
-
-            if ($feature) {
-                $braceIndex = $i
-                while ($braceIndex -lt $lines.Count - 1 -and $lines[$braceIndex] -notmatch '\{') {
-                    $braceIndex++
-                }
-
-                if ($braceIndex -lt $lines.Count -and $lines[$braceIndex] -match '\{' -and -not (Should-SkipInject $lines.ToArray() $braceIndex)) {
-                    $indent = Get-Indent $lines[$braceIndex]
-                    $indent = "$indent    "
-                    $lines.Insert($braceIndex + 1, (New-GuardLine $indent $feature))
-                    $localInjected++
-                    $changed = $true
-                    $i++
-                }
-            }
-
             $pendingFeature = $null
         }
+        elseif ($ClickFeatureMap.ContainsKey($methodName)) {
+            $feature = $ClickFeatureMap[$methodName]
+        }
+
+        if (-not $feature) { continue }
+
+        $braceIndex = $i
+        while ($braceIndex -lt $lines.Count - 1 -and $lines[$braceIndex] -notmatch '\{') {
+            $braceIndex++
+        }
+
+        if ($braceIndex -ge $lines.Count) { continue }
+
+        $already = $false
+        for ($j = $braceIndex + 1; $j -le [Math]::Min($braceIndex + 4, $lines.Count - 1); $j++) {
+            if ($lines[$j] -match 'SUBFEATURE_GUARD') { $already = $true; break }
+        }
+        if ($already) { continue }
+
+        $indent = '            '
+        if ($lines[$braceIndex] -match '^(\s*)') { $indent = $Matches[1] + '    ' }
+
+        $lines.Insert($braceIndex + 1, "${indent}if (!PluginFeatureGate.Ensure(`"$feature`")) return; // SUBFEATURE_GUARD")
+        $localInjected++
+        $changed = $true
+        $i++
     }
 
     if ($changed) {
         $text = $lines -join "`r`n"
-        if ($text -notmatch 'using MepPanel\.AutoCAD\.Licensing' -and $text -match 'PluginFeatureGate') {
+        if ($text -notmatch 'using MepPanel\.AutoCAD\.Licensing;' -and $text -match 'PluginFeatureGate') {
             $text = "using MepPanel.AutoCAD.Licensing;`r`n" + $text
         }
         Set-Content -Path $Path -Value $text -Encoding UTF8
@@ -131,13 +105,13 @@ function Patch-CsFile {
 Write-Host "==> Apply subfeature guard patch (panel handlers)"
 Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($_.FullName -match '\\(bin|obj)\\') { return }
+    if ($_.FullName -match 'Configuration|LoginWindow|LoginPalette') { return }
+    if ($_.FullName -notmatch '\\Commands\\|PanelCommands|HvacCommands|\.xaml\.cs$') { return }
+
     $content = Get-Content $_.FullName -Raw -Encoding UTF8
-    if ($content -match '_Click|SINGLE_ENTRY_PATCH|DrawCabinet|Hvac_|Cabinet') {
+    if ($content -match '_Click|SINGLE_ENTRY_PATCH') {
         Patch-CsFile -Path $_.FullName
     }
 }
 
 Write-Host "   Da chen $script:Injected guard trong $script:Files file."
-if ($script:Injected -eq 0) {
-    Write-Host "   CANH BAO: Khong chen duoc guard. Kiem tra ten handler trong MepPanelMvp."
-}

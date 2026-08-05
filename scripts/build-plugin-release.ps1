@@ -88,6 +88,10 @@ if (Test-Path $SingleEntryPatch) {
     & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot
 }
 $SubFeaturePatch = Join-Path $Root "scripts\apply-subfeature-guard-patch.ps1"
+$RestoreSubFeature = Join-Path $Root "scripts\restore-subfeature-patch.ps1"
+if (Test-Path $RestoreSubFeature) {
+    & $RestoreSubFeature -PluginSourceRoot $PluginSourceRoot
+}
 if (Test-Path $SubFeaturePatch) {
     & $SubFeaturePatch -PluginSourceRoot $PluginSourceRoot
 }
