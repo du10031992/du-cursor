@@ -13,9 +13,7 @@ $ClickFeatureMap = @{
     'Cabinet2d_Click' = 'MEPDBCABINET2D'
     'DrawCabinet2d' = 'MEPDBCABINET2D'
     'DrawCabinet2D_Click' = 'MEPDBCABINET2D'
-    'Cabinet2D_Click' = 'MEPDBCABINET2D'
     'Cabinet3d_Click' = 'MEPDBCABINET2D'
-    'Cabinet3D_Click' = 'MEPDBCABINET2D'
     'CabinetViews_Click' = 'MEPDBCABINETVIEWS'
     'CabinetUnfold_Click' = 'MEPDBCABINET2D'
     'RealisticWiringRender_Click' = 'MEPDBCABINET2D'
@@ -86,7 +84,7 @@ $RegexFeaturePatterns = @(
     @{ Pattern = '(?i)(ElectricalSystem|HeDien|ElectricSystem|DeviceBlock)'; Feature = 'MEPDBDRAW' }
     @{ Pattern = '(?i)(SelectLayer|SameLayer|ChonLayer)'; Feature = 'MEPSELAYER' }
     @{ Pattern = '(?i)(OpenConfiguration|CauHinhTu|DbConfig)'; Feature = 'MEPDBCONFIG' }
-    @{ Pattern = '(?i)(ExportCsv|ExportCsv)'; Feature = 'MEPDBEXPORT' }
+    @{ Pattern = '(?i)(ExportCsv)'; Feature = 'MEPDBEXPORT' }
     @{ Pattern = '(?i)(ExportExcel|ExcelExport)'; Feature = 'MEPDBEXCEL' }
     @{ Pattern = '(?i)(CabinetView|ElevationView)'; Feature = 'MEPDBCABINETVIEWS' }
     @{ Pattern = '(?i)(ThreePhase|3P4W|SoDo3P)'; Feature = 'MEPDB3P4W' }
