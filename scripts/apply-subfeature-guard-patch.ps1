@@ -74,6 +74,13 @@ $ClickFeatureMap = @{
     'HvacElbow_Click' = 'MEPHVAC'
     'HvacPipe_Click' = 'MEPHVAC'
     'HvacSetup_Click' = 'MEPHVAC'
+    'CapGio_Click' = 'MEPHVAC'
+    'HeThongCapGio_Click' = 'MEPHVAC'
+    'SupplyAir_Click' = 'MEPHVAC'
+    'ThongSoCapGio_Click' = 'MEPHVAC'
+    'BtnDieuHoa_Click' = 'MEPHVAC'
+    'HeDieuHoa_Click' = 'MEPHVAC'
+    'DieuHoaBtn_Click' = 'MEPHVAC'
 }
 
 function Resolve-FeatureForClickHandler {
@@ -84,6 +91,33 @@ function Resolve-FeatureForClickHandler {
     }
 
     return $null
+}
+
+function Resolve-FeatureForUiClick {
+    param([string]$MethodName)
+
+    $mapped = Resolve-FeatureForClickHandler -MethodName $MethodName
+    if ($mapped) { return $mapped }
+
+    if ($MethodName -match '(?i)(Hvac|DieuHoa|CapGio|SupplyAir|AirCond|HeThongGio|ThongSoHe|HeGio)') { return 'MEPHVAC' }
+    if ($MethodName -match '(?i)(Water|HeNuoc|Plumb|Nuoc(?!.*Hvac))') { return 'MEPDBWATER' }
+    if ($MethodName -match '(?i)(FireAlarm|BaoChay|SmokeSystem|FireSystem|HeChay|BaoChay)') { return 'MEPDBSMOKE' }
+    if ($MethodName -match '(?i)(Electrical|HeDien|ElectricSystem|DeviceBlock|HeDien)') { return 'MEPDBDRAW' }
+    if ($MethodName -match '(?i)(SelectLayer|SameLayer|ChonLayer)') { return 'MEPSELAYER' }
+    if ($MethodName -match '(?i)(OpenConfiguration|CauHinhTu|DbConfig)') { return 'MEPDBCONFIG' }
+    if ($MethodName -match '(?i)(ExportCsv|XuatCsv)') { return 'MEPDBEXPORT' }
+    if ($MethodName -match '(?i)(ExportExcel|XuatExcel|ExcelExport)') { return 'MEPDBEXCEL' }
+    if ($MethodName -match '(?i)(CabinetView|Elevation|MaietChieu)') { return 'MEPDBCABINETVIEWS' }
+    if ($MethodName -match '(?i)(ThreePhase|3P4W|SoDo3P)') { return 'MEPDB3P4W' }
+    if ($MethodName -match '(?i)(PowerLayout|BoTriDongLuc|DongLuc)') { return 'MEPDBPOWER' }
+    if ($MethodName -match '(?i)(Cabinet2|Cabinet3|DrawCabinet|Unfold|Render|Duplicate|RealisticWiring|VeTu|CapNhatTu|UpdateCabinet)') { return 'MEPDBCABINET2D' }
+
+    return $null
+}
+
+function Test-IsUiPanelFile {
+    param([string]$Path)
+    return $Path -match '\\UI\\|ElectricalToolControl|DrawingTool|MepDrawing|MainPanel|ToolControl|ToolPalette'
 }
 
 function Test-ShouldScanFile {
@@ -106,6 +140,7 @@ function Test-IsVoidMethodSignature {
 function Patch-CsFile {
     param([string]$Path)
 
+    $isUiPanel = Test-IsUiPanelFile -Path $Path
     $lines = [System.Collections.Generic.List[string]](Get-Content $Path -Encoding UTF8)
     $changed = $false
     $localInjected = 0
@@ -135,7 +170,15 @@ function Patch-CsFile {
             $pendingFeature = $null
         }
         elseif ($methodName -match '_Click$' -or $ClickFeatureMap.ContainsKey($methodName)) {
-            $feature = Resolve-FeatureForClickHandler -MethodName $methodName
+            if ($isUiPanel) {
+                $feature = Resolve-FeatureForUiClick -MethodName $methodName
+            }
+            else {
+                $feature = Resolve-FeatureForClickHandler -MethodName $methodName
+            }
+        }
+        elseif ($isUiPanel -and $methodName -match '(?i)^(Open|Show|Launch|Select|Switch|On).*(Hvac|CapGio|Supply|DieuHoa|Water|Fire|Electric|Smoke|Layer|Cabinet|Excel|Export|Power|Config)') {
+            $feature = Resolve-FeatureForUiClick -MethodName $methodName
         }
 
         if (-not $feature) { continue }

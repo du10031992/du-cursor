@@ -8,9 +8,6 @@ namespace MepPanel.AutoCAD.Licensing
 {
     public static class LicenseGuard
     {
-        private const string LicenseServerBaseUrl =
-            "http://192.168.1.7:5268/";
-
         private const string EntryFeature = "MEPDB";
 
         /// <summary>
@@ -60,7 +57,13 @@ namespace MepPanel.AutoCAD.Licensing
                 return false;
             }
 
-            TryRefreshFeaturesFromServer();
+            if (!TryRefreshFeaturesFromServer())
+            {
+                AcApp.ShowAlertDialog(
+                    "Khong cap nhat duoc quyen tu License Server.\n" +
+                    "Kiem tra server dang chay (F5) va MepPanel.config.json.");
+                return false;
+            }
 
             if (LicenseSession.HasFeature(subFeatureCode))
             {
@@ -87,19 +90,15 @@ namespace MepPanel.AutoCAD.Licensing
 
             try
             {
-                var client = new LicenseApiClient(LicenseServerBaseUrl);
-                client.SetAccessToken(LicenseSession.AccessToken);
-
                 string pluginVersion = typeof(LicenseGuard)
                     .Assembly
                     .GetName()
                     .Version
                     .ToString();
 
-                CheckLicenseResponse response = AsyncRunner.Run(
-                    () => client.CheckLicenseAsync(
-                        LicenseSession.PhoneNumber,
-                        pluginVersion));
+                CheckLicenseResponse response = TryCheckLicenseWithFallback(
+                    LicenseSession.PhoneNumber,
+                    pluginVersion);
 
                 if (response == null || !response.Valid)
                 {
@@ -162,19 +161,15 @@ namespace MepPanel.AutoCAD.Licensing
 
             try
             {
-                var client = new LicenseApiClient(LicenseServerBaseUrl);
-                client.SetAccessToken(LicenseSession.AccessToken);
-
                 string pluginVersion = typeof(LicenseGuard)
                     .Assembly
                     .GetName()
                     .Version
                     .ToString();
 
-                CheckLicenseResponse response = AsyncRunner.Run(
-                    () => client.CheckLicenseAsync(
-                        LicenseSession.PhoneNumber,
-                        pluginVersion));
+                CheckLicenseResponse response = TryCheckLicenseWithFallback(
+                    LicenseSession.PhoneNumber,
+                    pluginVersion);
 
                 if (response == null || !response.Valid)
                 {
@@ -196,11 +191,46 @@ namespace MepPanel.AutoCAD.Licensing
             }
         }
 
+        private static CheckLicenseResponse TryCheckLicenseWithFallback(
+            string phoneNumber,
+            string pluginVersion)
+        {
+            Exception lastError = null;
+
+            foreach (string baseUrl in LicenseServerUrl.AllCandidates())
+            {
+                try
+                {
+                    var client = new LicenseApiClient(baseUrl);
+                    client.SetAccessToken(LicenseSession.AccessToken);
+
+                    CheckLicenseResponse response = AsyncRunner.Run(
+                        () => client.CheckLicenseAsync(phoneNumber, pluginVersion));
+
+                    if (response != null)
+                    {
+                        return response;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex;
+                }
+            }
+
+            if (lastError != null)
+            {
+                throw lastError;
+            }
+
+            return null;
+        }
+
         private static bool TryShowLoginDialog()
         {
             try
             {
-                var client = new LicenseApiClient(LicenseServerBaseUrl);
+                var client = new LicenseApiClient(LicenseServerUrl.ResolvePrimary());
 
                 string autoCadVersion =
                     Convert.ToString(AcApp.GetSystemVariable("ACADVER"))
