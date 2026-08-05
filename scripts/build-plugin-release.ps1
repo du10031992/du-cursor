@@ -71,6 +71,10 @@ if (Test-Path $PatchLicensing) {
 }
 
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
+$TypesPatch = Join-Path $Root "scripts\apply-licensing-types-patch.ps1"
+if (Test-Path $TypesPatch) {
+    & $TypesPatch -PluginSourceRoot $PluginSourceRoot
+}
 if (Test-Path $FeaturePatch) {
     & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
 }
