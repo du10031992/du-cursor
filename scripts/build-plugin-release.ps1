@@ -95,6 +95,17 @@ if (Test-Path $RestoreSubFeature) {
 if (Test-Path $SubFeaturePatch) {
     & $SubFeaturePatch -PluginSourceRoot $PluginSourceRoot
 }
+
+$AuditGuards = Join-Path $Root "scripts\audit-subfeature-guards.ps1"
+if (Test-Path $AuditGuards) {
+    Write-Host "==> Audit subfeature guards (canh bao neu thieu)"
+    & $AuditGuards -PluginSourceRoot $PluginSourceRoot
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   CANH BAO: Mot so handler panel chua co guard — xem danh sach [!!] o tren."
+        Write-Host "   Them ten method vao scripts/apply-subfeature-guard-patch.ps1 roi build lai."
+    }
+}
+
 if (Test-Path $FeaturePatch) {
     & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
 }

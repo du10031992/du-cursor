@@ -202,6 +202,108 @@ public class LicenseControlTests : IClassFixture<LicenseWebAppFactory>
         Assert.DoesNotContain("MEPHVAC", features);
     }
 
+    [Fact]
+    public async Task Disable_MEPDB_Strips_All_SubFeatures()
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Add("X-Admin-ApiKey", "MEP-PANEL-ADMIN-TEST-2026");
+
+        var phone = "0911000005";
+        var create = await admin.PostAsJsonAsync("/api/admin/users", new
+        {
+            phoneNumber = phone,
+            displayName = "Entry Rule User",
+            maxDevices = 1,
+            features = new[] { "MEPDB", "MEPHVAC", "MEPDBCABINET2D", "MEPDBDRAW" }
+        });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        using var createDoc = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
+        var userId = createDoc.RootElement.GetProperty("id").GetInt32();
+
+        var disableEntry = await admin.PutAsJsonAsync(
+            $"/api/Admin/users/{userId}/features/MEPDB",
+            new { enabled = false });
+        Assert.Equal(HttpStatusCode.OK, disableEntry.StatusCode);
+
+        using var featureDoc = JsonDocument.Parse(await disableEntry.Content.ReadAsStringAsync());
+        var features = featureDoc.RootElement.GetProperty("features")
+            .EnumerateArray()
+            .Select(x => x.GetString())
+            .ToArray();
+
+        Assert.Empty(features);
+    }
+
+    [Theory]
+    [InlineData("MEPDBDRAW")]
+    [InlineData("MEPHVAC")]
+    [InlineData("MEPDBWATER")]
+    [InlineData("MEPDBSMOKE")]
+    [InlineData("MEPSELAYER")]
+    [InlineData("MEPDBCONFIG")]
+    [InlineData("MEPDBEXPORT")]
+    [InlineData("MEPDBCABINET2D")]
+    [InlineData("MEPDBUPDATE")]
+    [InlineData("MEPDBEXCEL")]
+    [InlineData("MEPDBCABINETVIEWS")]
+    [InlineData("MEPDBPOWER")]
+    [InlineData("MEPDB3P4W")]
+    public async Task Toggle_SubFeature_Reflects_In_Device_Check(string subFeature)
+    {
+        var admin = _factory.CreateClient();
+        admin.DefaultRequestHeaders.Add("X-Admin-ApiKey", "MEP-PANEL-ADMIN-TEST-2026");
+
+        var suffix = Math.Abs(StringComparer.Ordinal.GetHashCode(subFeature)) % 100000000;
+        var phone = $"09{suffix:D8}";
+        var create = await admin.PostAsJsonAsync("/api/admin/users", new
+        {
+            phoneNumber = phone,
+            displayName = $"Toggle {subFeature}",
+            maxDevices = 1,
+            features = new[] { "MEPDB", subFeature }
+        });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        using var createDoc = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
+        var userId = createDoc.RootElement.GetProperty("id").GetInt32();
+
+        var disable = await admin.PutAsJsonAsync(
+            $"/api/Admin/users/{userId}/features/{subFeature}",
+            new { enabled = false });
+        Assert.Equal(HttpStatusCode.OK, disable.StatusCode);
+
+        var userClient = _factory.CreateClient();
+        var token = await LoginAsync(userClient, phone);
+        userClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        var activate = await userClient.PostAsJsonAsync("/api/Devices/activate", new
+        {
+            phoneNumber = phone,
+            deviceKey = $"device-{subFeature}",
+            deviceName = "PC-SubFeature",
+            autoCadVersion = "2021",
+            pluginVersion = "1.0.0"
+        });
+        Assert.Equal(HttpStatusCode.OK, activate.StatusCode);
+
+        var check = await userClient.PostAsJsonAsync("/api/Devices/check", new
+        {
+            phoneNumber = phone,
+            deviceKey = $"device-{subFeature}",
+            pluginVersion = "1.0.0"
+        });
+        Assert.Equal(HttpStatusCode.OK, check.StatusCode);
+
+        using var checkDoc = JsonDocument.Parse(await check.Content.ReadAsStringAsync());
+        var features = checkDoc.RootElement.GetProperty("features")
+            .EnumerateArray()
+            .Select(x => x.GetString())
+            .ToArray();
+
+        Assert.Contains("MEPDB", features);
+        Assert.DoesNotContain(subFeature, features);
+    }
+
     private static async Task<string> LoginAsync(HttpClient client, string phone)
     {
         var otp = await client.PostAsJsonAsync("/api/Auth/request-otp", new { phoneNumber = phone });

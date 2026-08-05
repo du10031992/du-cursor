@@ -123,8 +123,8 @@ public class AdminController : ControllerBase
             ?? PluginFeatures.All;
 
         var features = request.Features is { Length: > 0 }
-            ? FeatureParser.NormalizeKnown(request.Features)
-            : FeatureParser.NormalizeKnown(defaultFeatures);
+            ? FeatureParser.ApplyEntryRules(request.Features)
+            : FeatureParser.ApplyEntryRules(defaultFeatures);
 
         var user = new User
         {
@@ -217,7 +217,7 @@ public class AdminController : ControllerBase
             return NotFound(new { message = "Không tìm thấy user/license." });
         }
 
-        var features = FeatureParser.NormalizeKnown(request.Features ?? []);
+        var features = FeatureParser.ApplyEntryRules(request.Features);
         user.License.EnabledFeatures = FeatureParser.Join(features);
         user.License.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -276,6 +276,14 @@ public class AdminController : ControllerBase
                 .ToList();
         }
 
+        if (request.Enabled &&
+            PluginFeatures.IsSubFeature(code) &&
+            !current.Any(x => PluginFeatures.IsEntry(x)))
+        {
+            current.Add(PluginFeatures.Entry);
+        }
+
+        current = FeatureParser.ApplyEntryRules(current).ToList();
         user.License.EnabledFeatures = FeatureParser.Join(current);
         user.License.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();

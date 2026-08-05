@@ -396,12 +396,22 @@
       if (el.matches("input[data-feature]")) {
         const userId = el.getAttribute("data-user");
         const feature = el.getAttribute("data-feature");
+        const entry = catalog.entryFeature || "MEPDB";
+        if (!el.checked && feature === entry) {
+          if (!confirm("Tắt MEPDB sẽ xóa tất cả chức năng phụ của user này. Tiếp tục?")) {
+            el.checked = true;
+            return;
+          }
+        }
         try {
           await api(`/api/Admin/users/${userId}/features/${feature}`, {
             method: "PUT",
             body: JSON.stringify({ enabled: el.checked })
           });
           showMsg(`${labelVi(feature)} (#${userId}): ${el.checked ? "ON" : "OFF"}`);
+          if (feature === entry) {
+            await reload();
+          }
         } catch (err) {
           el.checked = !el.checked;
           showMsg(err.message, true);

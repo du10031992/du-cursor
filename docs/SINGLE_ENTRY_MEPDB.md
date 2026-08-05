@@ -19,9 +19,13 @@ git pull
 
 Script tự:
 
-1. Copy `LicenseGuard`, `PluginFeatureGate`, `LicenseSession`, …
+1. Copy `LicenseGuard`, `PluginFeatureGate`, `PanelSystemGuard`, `LicenseSession`, …
 2. `apply-single-entry-patch.ps1` — comment `[CommandMethod]` các lệnh MEP* trừ `MEPDB`
-3. `apply-feature-guard-patch.ps1` — `MEPDB` → `EnsureEntry()`
+3. `apply-subfeature-guard-patch.ps1` — inject guard vào handler panel (map + regex tên method)
+4. `audit-subfeature-guards.ps1` — báo handler nào chưa có guard (chạy tự động khi build)
+5. `apply-feature-guard-patch.ps1` — `MEPDB` → `EnsureEntry()`
+
+Sau build, nếu thấy cảnh báo `[!!] CHUA CO GUARD`, gửi tên method cho dev để bổ sung vào `apply-subfeature-guard-patch.ps1`.
 
 ## Trong source MepPanelMvp (panel WPF)
 

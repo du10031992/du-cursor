@@ -22,7 +22,7 @@ public class License
     /// Danh sách chức năng plugin được mở, phân tách bởi dấu phẩy.
     /// Ví dụ: MEPDB,MEPHVAC
     /// </summary>
-    public string EnabledFeatures { get; set; } = "MEPDB,MEPHVAC";
+    public string EnabledFeatures { get; set; } = "MEPDB";
 
     public DateTime StartsAtUtc { get; set; } = DateTime.UtcNow;
 

@@ -52,4 +52,18 @@ public static class FeatureParser
             .Where(known.Contains)
             .ToArray();
     }
+
+    /// <summary>MEPDB bat buoc de dung sub-feature; tat MEPDB thi xoa het sub.</summary>
+    public static IReadOnlyList<string> ApplyEntryRules(IEnumerable<string>? features)
+    {
+        var list = NormalizeKnown(features).ToList();
+        var hasEntry = list.Any(x => PluginFeatures.IsEntry(x));
+
+        if (!hasEntry)
+        {
+            return Array.Empty<string>();
+        }
+
+        return list;
+    }
 }

@@ -1,4 +1,4 @@
-# Chi chen guard vao *_Click handler ro rang + method sau SINGLE_ENTRY_PATCH.
+# Chen guard vao handler panel: *_Click, regex ten method, va method sau SINGLE_ENTRY_PATCH.
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -7,34 +7,117 @@ param(
 $ErrorActionPreference = "Stop"
 $script:Injected = 0
 $script:Files = 0
+$script:SkippedAlready = 0
 
 $ClickFeatureMap = @{
     'Cabinet2d_Click' = 'MEPDBCABINET2D'
     'DrawCabinet2d' = 'MEPDBCABINET2D'
+    'DrawCabinet2D_Click' = 'MEPDBCABINET2D'
+    'Cabinet2D_Click' = 'MEPDBCABINET2D'
     'Cabinet3d_Click' = 'MEPDBCABINET2D'
+    'Cabinet3D_Click' = 'MEPDBCABINET2D'
     'CabinetViews_Click' = 'MEPDBCABINETVIEWS'
-    'HvacDraw_Click' = 'MEPHVAC'
-    'HvacSmoke_Click' = 'MEPHVAC'
-    'HvacConfig_Click' = 'MEPHVAC'
-    'Hvac_Click' = 'MEPHVAC'
     'CabinetUnfold_Click' = 'MEPDBCABINET2D'
     'RealisticWiringRender_Click' = 'MEPDBCABINET2D'
     'RealisticWiring_Click' = 'MEPDBCABINET2D'
     'CabinetRender_Click' = 'MEPDBCABINET2D'
-    'DeviceBlocks_Click' = 'MEPDBDRAW'
-    'SelectLayer_Click' = 'MEPSELAYER'
     'Duplicate_Click' = 'MEPDBCABINET2D'
     'DuplicatePanel_Click' = 'MEPDBCABINET2D'
     'Update_Click' = 'MEPDBUPDATE'
     'OpenConfiguration_Click' = 'MEPDBCONFIG'
-    'ElectricalKnowledge_Click' = 'MEPDBDRAW'
-    'ThreePhaseFourWire_Click' = 'MEPDB3P4W'
+    'Config_Click' = 'MEPDBCONFIG'
+    'CauHinhTu_Click' = 'MEPDBCONFIG'
     'Export_Click' = 'MEPDBEXPORT'
+    'ExportCsv_Click' = 'MEPDBEXPORT'
     'Excel_Click' = 'MEPDBEXCEL'
+    'ExportExcel_Click' = 'MEPDBEXCEL'
     'Power_Click' = 'MEPDBPOWER'
+    'PowerLayout_Click' = 'MEPDBPOWER'
+    'ThreePhaseFourWire_Click' = 'MEPDB3P4W'
+    'Diagram3P4W_Click' = 'MEPDB3P4W'
+    'SoDo3P4W_Click' = 'MEPDB3P4W'
+    'SelectLayer_Click' = 'MEPSELAYER'
+    'ChonLayer_Click' = 'MEPSELAYER'
+    'SameLayer_Click' = 'MEPSELAYER'
+    'DeviceBlocks_Click' = 'MEPDBDRAW'
+    'ElectricalKnowledge_Click' = 'MEPDBDRAW'
     'ElectricalSystem_Click' = 'MEPDBDRAW'
+    'HeDien_Click' = 'MEPDBDRAW'
+    'Electric_Click' = 'MEPDBDRAW'
+    'PowerSystem_Click' = 'MEPDBDRAW'
     'WaterSystem_Click' = 'MEPDBWATER'
+    'HeNuoc_Click' = 'MEPDBWATER'
+    'Plumbing_Click' = 'MEPDBWATER'
+    'Water_Click' = 'MEPDBWATER'
     'FireAlarm_Click' = 'MEPDBSMOKE'
+    'BaoChay_Click' = 'MEPDBSMOKE'
+    'SmokeSystem_Click' = 'MEPDBSMOKE'
+    'FireSystem_Click' = 'MEPDBSMOKE'
+    'Hvac_Click' = 'MEPHVAC'
+    'HvacSystem_Click' = 'MEPHVAC'
+    'HvacPanel_Click' = 'MEPHVAC'
+    'OpenHvac_Click' = 'MEPHVAC'
+    'ShowHvac_Click' = 'MEPHVAC'
+    'DieuHoa_Click' = 'MEPHVAC'
+    'DieuHoaSystem_Click' = 'MEPHVAC'
+    'AirCondition_Click' = 'MEPHVAC'
+    'AirConditioning_Click' = 'MEPHVAC'
+    'BtnHvac_Click' = 'MEPHVAC'
+    'HvacButton_Click' = 'MEPHVAC'
+    'HvacTab_Click' = 'MEPHVAC'
+    'SelectHvac_Click' = 'MEPHVAC'
+    'SystemHvac_Click' = 'MEPHVAC'
+    'MepHvac_Click' = 'MEPHVAC'
+    'HvacDraw_Click' = 'MEPHVAC'
+    'HvacConfig_Click' = 'MEPHVAC'
+    'HvacSmoke_Click' = 'MEPHVAC'
+    'HvacDuct_Click' = 'MEPHVAC'
+    'HvacLayer_Click' = 'MEPHVAC'
+    'HvacElbow_Click' = 'MEPHVAC'
+    'HvacPipe_Click' = 'MEPHVAC'
+    'HvacSetup_Click' = 'MEPHVAC'
+}
+
+# Regex ten method -> feature (case-insensitive)
+$RegexFeaturePatterns = @(
+    @{ Pattern = '(?i)(Hvac|DieuHoa|AirCondition|MepHvac)'; Feature = 'MEPHVAC' }
+    @{ Pattern = '(?i)(Water|HeNuoc|Plumbing)'; Feature = 'MEPDBWATER' }
+    @{ Pattern = '(?i)(FireAlarm|BaoChay|SmokeSystem|FireSystem)(?!.*Hvac)'; Feature = 'MEPDBSMOKE' }
+    @{ Pattern = '(?i)(ElectricalSystem|HeDien|ElectricSystem|DeviceBlock)'; Feature = 'MEPDBDRAW' }
+    @{ Pattern = '(?i)(SelectLayer|SameLayer|ChonLayer)'; Feature = 'MEPSELAYER' }
+    @{ Pattern = '(?i)(OpenConfiguration|CauHinhTu|DbConfig)'; Feature = 'MEPDBCONFIG' }
+    @{ Pattern = '(?i)(ExportCsv|ExportCsv)'; Feature = 'MEPDBEXPORT' }
+    @{ Pattern = '(?i)(ExportExcel|ExcelExport)'; Feature = 'MEPDBEXCEL' }
+    @{ Pattern = '(?i)(CabinetView|ElevationView)'; Feature = 'MEPDBCABINETVIEWS' }
+    @{ Pattern = '(?i)(ThreePhase|3P4W|SoDo3P)'; Feature = 'MEPDB3P4W' }
+    @{ Pattern = '(?i)(PowerLayout|BoTriDongLuc)'; Feature = 'MEPDBPOWER' }
+    @{ Pattern = '(?i)(Cabinet2[Dd]|DrawCabinet|Cabinet3[Dd]|CabinetUnfold|CabinetRender|RealisticWiring|DuplicatePanel|DuplicateCabinet)'; Feature = 'MEPDBCABINET2D' }
+    @{ Pattern = '(?i)(UpdateCabinet|CapNhatTu)'; Feature = 'MEPDBUPDATE' }
+)
+
+function Resolve-FeatureForMethod {
+    param([string]$MethodName)
+
+    if ($ClickFeatureMap.ContainsKey($MethodName)) {
+        return $ClickFeatureMap[$MethodName]
+    }
+
+    foreach ($entry in $RegexFeaturePatterns) {
+        if ($MethodName -match $entry.Pattern) {
+            return $entry.Feature
+        }
+    }
+
+    return $null
+}
+
+function Test-ShouldScanFile {
+    param([string]$FullName)
+
+    if ($FullName -match '\\(bin|obj)\\') { return $false }
+    if ($FullName -match '\\Licensing\\') { return $false }
+    if ($FullName -notmatch '\\src\\MepPanel\.AutoCAD\\') { return $false }
+    return $true
 }
 
 function Patch-CsFile {
@@ -53,7 +136,7 @@ function Patch-CsFile {
             continue
         }
 
-        if ($line -notmatch '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?void\s+(?<name>\w+)\s*\(') {
+        if ($line -notmatch '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?(?:void|bool|Task)\s+(?<name>\w+)\s*\(') {
             continue
         }
 
@@ -64,8 +147,8 @@ function Patch-CsFile {
             $feature = $pendingFeature
             $pendingFeature = $null
         }
-        elseif ($ClickFeatureMap.ContainsKey($methodName)) {
-            $feature = $ClickFeatureMap[$methodName]
+        else {
+            $feature = Resolve-FeatureForMethod -MethodName $methodName
         }
 
         if (-not $feature) { continue }
@@ -78,10 +161,13 @@ function Patch-CsFile {
         if ($braceIndex -ge $lines.Count) { continue }
 
         $already = $false
-        for ($j = $braceIndex + 1; $j -le [Math]::Min($braceIndex + 4, $lines.Count - 1); $j++) {
+        for ($j = $braceIndex + 1; $j -le [Math]::Min($braceIndex + 6, $lines.Count - 1); $j++) {
             if ($lines[$j] -match 'SUBFEATURE_GUARD') { $already = $true; break }
         }
-        if ($already) { continue }
+        if ($already) {
+            $script:SkippedAlready++
+            continue
+        }
 
         $indent = '            '
         if ($lines[$braceIndex] -match '^(\s*)') { $indent = $Matches[1] + '    ' }
@@ -104,16 +190,14 @@ function Patch-CsFile {
     }
 }
 
-Write-Host "==> Apply subfeature guard patch (panel handlers)"
+Write-Host "==> Apply subfeature guard patch (panel handlers + regex)"
 Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
-    if ($_.FullName -match '\\(bin|obj)\\') { return }
-    if ($_.FullName -match 'Configuration|LoginWindow|LoginPalette') { return }
-    if ($_.FullName -notmatch '\\Commands\\|PanelCommands|HvacCommands|\.xaml\.cs$') { return }
+    if (-not (Test-ShouldScanFile -FullName $_.FullName)) { return }
 
     $content = Get-Content $_.FullName -Raw -Encoding UTF8
-    if ($content -match '_Click|SINGLE_ENTRY_PATCH') {
+    if ($content -match '_Click|SINGLE_ENTRY_PATCH|Hvac|DieuHoa|Water|FireAlarm|Cabinet|Export|Power|Layer|Configuration|Electrical') {
         Patch-CsFile -Path $_.FullName
     }
 }
 
-Write-Host "   Da chen $script:Injected guard trong $script:Files file."
+Write-Host "   Da chen $script:Injected guard trong $script:Files file (bo qua $script:SkippedAlready da co guard)."

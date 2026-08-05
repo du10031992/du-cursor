@@ -43,7 +43,7 @@ namespace MepPanel.AutoCAD.Licensing
         }
 
         /// <summary>
-        /// Chuc nang phu trong panel — khong goi server lai (da refresh o EnsureEntry).
+        /// Chuc nang phu trong panel — refresh quyen tu server roi kiem tra.
         /// </summary>
         public static bool EnsureSubFeature(string subFeatureCode)
         {
@@ -59,6 +59,8 @@ namespace MepPanel.AutoCAD.Licensing
             {
                 return false;
             }
+
+            TryRefreshFeaturesFromServer();
 
             if (LicenseSession.HasFeature(subFeatureCode))
             {
@@ -149,6 +151,49 @@ namespace MepPanel.AutoCAD.Licensing
             }
 
             return EnsureSubFeature(featureCode);
+        }
+
+        private static bool TryRefreshFeaturesFromServer()
+        {
+            if (!LicenseSession.IsAuthorized)
+            {
+                return false;
+            }
+
+            try
+            {
+                var client = new LicenseApiClient(LicenseServerBaseUrl);
+                client.SetAccessToken(LicenseSession.AccessToken);
+
+                string pluginVersion = typeof(LicenseGuard)
+                    .Assembly
+                    .GetName()
+                    .Version
+                    .ToString();
+
+                CheckLicenseResponse response = AsyncRunner.Run(
+                    () => client.CheckLicenseAsync(
+                        LicenseSession.PhoneNumber,
+                        pluginVersion));
+
+                if (response == null || !response.Valid)
+                {
+                    return false;
+                }
+
+                LicenseSession.Authorize(
+                    LicenseSession.PhoneNumber,
+                    response.DisplayName,
+                    LicenseSession.AccessToken,
+                    response.Features,
+                    response.LicensePlan);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static bool TryShowLoginDialog()
