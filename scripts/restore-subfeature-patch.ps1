@@ -11,7 +11,10 @@ Write-Host "==> Restore: xoa SUBFEATURE_GUARD bi chen sai"
 Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($_.FullName -match '\\(bin|obj)\\') { return }
     $lines = Get-Content $_.FullName -Encoding UTF8
-    $newLines = $lines | Where-Object { $_ -notmatch 'SUBFEATURE_GUARD' }
+    $newLines = $lines | Where-Object {
+        $_ -notmatch 'SUBFEATURE_GUARD' -and
+        $_ -notmatch 'PluginFeatureGate\.Ensure\s*\('
+    }
     if ($newLines.Count -lt $lines.Count) {
         $count = $lines.Count - $newLines.Count
         $removed += $count

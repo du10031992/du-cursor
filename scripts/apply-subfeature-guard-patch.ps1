@@ -1,4 +1,4 @@
-# Chen guard vao handler panel: *_Click, regex ten method, va method sau SINGLE_ENTRY_PATCH.
+# Chen guard vao handler panel: chi void *_Click (an toan) + lenh sau SINGLE_ENTRY_PATCH.
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -76,34 +76,11 @@ $ClickFeatureMap = @{
     'HvacSetup_Click' = 'MEPHVAC'
 }
 
-# Regex ten method -> feature (case-insensitive)
-$RegexFeaturePatterns = @(
-    @{ Pattern = '(?i)(Hvac|DieuHoa|AirCondition|MepHvac)'; Feature = 'MEPHVAC' }
-    @{ Pattern = '(?i)(Water|HeNuoc|Plumbing)'; Feature = 'MEPDBWATER' }
-    @{ Pattern = '(?i)(FireAlarm|BaoChay|SmokeSystem|FireSystem)(?!.*Hvac)'; Feature = 'MEPDBSMOKE' }
-    @{ Pattern = '(?i)(ElectricalSystem|HeDien|ElectricSystem|DeviceBlock)'; Feature = 'MEPDBDRAW' }
-    @{ Pattern = '(?i)(SelectLayer|SameLayer|ChonLayer)'; Feature = 'MEPSELAYER' }
-    @{ Pattern = '(?i)(OpenConfiguration|CauHinhTu|DbConfig)'; Feature = 'MEPDBCONFIG' }
-    @{ Pattern = '(?i)(ExportCsv)'; Feature = 'MEPDBEXPORT' }
-    @{ Pattern = '(?i)(ExportExcel|ExcelExport)'; Feature = 'MEPDBEXCEL' }
-    @{ Pattern = '(?i)(CabinetView|ElevationView)'; Feature = 'MEPDBCABINETVIEWS' }
-    @{ Pattern = '(?i)(ThreePhase|3P4W|SoDo3P)'; Feature = 'MEPDB3P4W' }
-    @{ Pattern = '(?i)(PowerLayout|BoTriDongLuc)'; Feature = 'MEPDBPOWER' }
-    @{ Pattern = '(?i)(Cabinet2[Dd]|DrawCabinet|Cabinet3[Dd]|CabinetUnfold|CabinetRender|RealisticWiring|DuplicatePanel|DuplicateCabinet)'; Feature = 'MEPDBCABINET2D' }
-    @{ Pattern = '(?i)(UpdateCabinet|CapNhatTu)'; Feature = 'MEPDBUPDATE' }
-)
-
-function Resolve-FeatureForMethod {
+function Resolve-FeatureForClickHandler {
     param([string]$MethodName)
 
     if ($ClickFeatureMap.ContainsKey($MethodName)) {
         return $ClickFeatureMap[$MethodName]
-    }
-
-    foreach ($entry in $RegexFeaturePatterns) {
-        if ($MethodName -match $entry.Pattern) {
-            return $entry.Feature
-        }
     }
 
     return $null
@@ -115,7 +92,14 @@ function Test-ShouldScanFile {
     if ($FullName -match '\\(bin|obj)\\') { return $false }
     if ($FullName -match '\\Licensing\\') { return $false }
     if ($FullName -notmatch '\\src\\MepPanel\.AutoCAD\\') { return $false }
+    if ($FullName -match 'LoginWindow|LoginPalette') { return $false }
     return $true
+}
+
+function Test-IsVoidMethodSignature {
+    param([string]$Line)
+
+    return $Line -match '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?void\s+\w+\s*\('
 }
 
 function Patch-CsFile {
@@ -134,7 +118,11 @@ function Patch-CsFile {
             continue
         }
 
-        if ($line -notmatch '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?(?:void|bool|Task)\s+(?<name>\w+)\s*\(') {
+        if (-not (Test-IsVoidMethodSignature -Line $line)) {
+            continue
+        }
+
+        if ($line -notmatch '^\s*(?:public|private|protected|internal)\s+(?:async\s+)?void\s+(?<name>\w+)\s*\(') {
             continue
         }
 
@@ -145,8 +133,8 @@ function Patch-CsFile {
             $feature = $pendingFeature
             $pendingFeature = $null
         }
-        else {
-            $feature = Resolve-FeatureForMethod -MethodName $methodName
+        elseif ($methodName -match '_Click$' -or $ClickFeatureMap.ContainsKey($methodName)) {
+            $feature = Resolve-FeatureForClickHandler -MethodName $methodName
         }
 
         if (-not $feature) { continue }
@@ -157,6 +145,9 @@ function Patch-CsFile {
         }
 
         if ($braceIndex -ge $lines.Count) { continue }
+
+        # Bo qua expression-bodied / delegate — khong co body block
+        if ($lines[$braceIndex] -match '=>\s*\S') { continue }
 
         $already = $false
         for ($j = $braceIndex + 1; $j -le [Math]::Min($braceIndex + 6, $lines.Count - 1); $j++) {
@@ -188,12 +179,12 @@ function Patch-CsFile {
     }
 }
 
-Write-Host "==> Apply subfeature guard patch (panel handlers + regex)"
+Write-Host "==> Apply subfeature guard patch (void *_Click handlers only)"
 Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if (-not (Test-ShouldScanFile -FullName $_.FullName)) { return }
 
     $content = Get-Content $_.FullName -Raw -Encoding UTF8
-    if ($content -match '_Click|SINGLE_ENTRY_PATCH|Hvac|DieuHoa|Water|FireAlarm|Cabinet|Export|Power|Layer|Configuration|Electrical') {
+    if ($content -match '_Click|SINGLE_ENTRY_PATCH') {
         Patch-CsFile -Path $_.FullName
     }
 }
