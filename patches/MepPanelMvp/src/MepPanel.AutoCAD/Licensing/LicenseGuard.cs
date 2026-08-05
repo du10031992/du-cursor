@@ -66,7 +66,8 @@ namespace MepPanel.AutoCAD.Licensing
             }
 
             AcApp.ShowAlertDialog(
-                "Chuc nang phu chua duoc mo: " + subFeatureCode + "\n" +
+                "Chuc nang phu chua duoc mo: " +
+                PluginFeatureLabels.GetDisplayName(subFeatureCode) + "\n" +
                 "Lien he Admin de bat tren trang /admin.");
 
             return false;

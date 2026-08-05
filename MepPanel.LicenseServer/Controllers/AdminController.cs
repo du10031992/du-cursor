@@ -55,7 +55,9 @@ public class AdminController : ControllerBase
                 activeDevices = users.Sum(x => x.Devices.Count(d => d.Status == DeviceStatuses.Active)),
                 availableFeatures = PluginFeatures.All,
                 entryFeature = PluginFeatures.Entry,
-                subFeatures = PluginFeatures.SubFeatures
+                subFeatures = PluginFeatures.SubFeatures,
+                featureCatalog = PluginFeatureCatalog.ToApiList(),
+                featureLabels = PluginFeatureCatalog.AllLabels()
             },
             users = mapped
         });

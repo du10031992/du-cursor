@@ -31,8 +31,11 @@ $ClickFeatureMap = @{
     'ThreePhaseFourWire_Click' = 'MEPDB3P4W'
     'Help_Click' = 'MEPDBHELP'
     'Export_Click' = 'MEPDBEXPORT'
-    'Smoke_Click' = 'MEPDBSMOKE'
+    'Excel_Click' = 'MEPDBEXCEL'
     'Power_Click' = 'MEPDBPOWER'
+    'ElectricalSystem_Click' = 'MEPDBDRAW'
+    'WaterSystem_Click' = 'MEPDBWATER'
+    'FireAlarm_Click' = 'MEPDBSMOKE'
 }
 
 function Patch-CsFile {

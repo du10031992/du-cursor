@@ -27,33 +27,9 @@ public static class PluginFeatures
     public const string MepDb = Entry;
 
     /// <summary>Chuc nang phu — khoa/mo trong panel plugin.</summary>
-    public static readonly string[] SubFeatures =
-    [
-        "MEPDB3P4W",
-        "MEPDBCABINET2D",
-        "MEPDBCABINET3D",
-        "MEPDBCABINETVIEWS",
-        "MEPDBCONFIG",
-        "MEPDBDRAW",
-        "MEPDBDUPLICATE",
-        "MEPDBEDIT",
-        "MEPDBEXPORT",
-        "MEPDBHELP",
-        "MEPDBKNOWLEDGE",
-        "MEPDBPOWER",
-        "MEPDBREALRENDER",
-        "MEPDBREALWIRING",
-        "MEPDBRENDER",
-        "MEPDBSMOKE",
-        "MEPDBUNFOLD",
-        "MEPDBUPDATE",
-        "MEPDEVICEBLOCKS",
-        "MEPHVAC",
-        "MEPHVACCONFIG",
-        "MEPHVACDRAW",
-        "MEPHVACSMOKE",
-        "MEPSELAYER"
-    ];
+    public static readonly string[] SubFeatures = PluginFeatureCatalog.SubItems
+        .Select(x => x.Code)
+        .ToArray();
 
     public static readonly string[] All = [Entry, ..SubFeatures];
 

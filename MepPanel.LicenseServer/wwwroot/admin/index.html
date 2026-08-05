@@ -135,7 +135,7 @@
     .msg.error { background: #fdecec; border-color: #f0b4b4; color: var(--bad); }
     .checks { display: flex; gap: 14px; flex-wrap: wrap; padding-bottom: 4px; }
     .feature.entry { border-color: #0f4c5c; background: #eef6f8; }
-    .feature.sub { font-size: .82rem; }
+    .feature.sub span small { display:block; color: var(--muted); font-size: .72rem; }
     .feature-group { margin-top: 8px; }
     .feature-group-title { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 700; }
   </style>
@@ -193,7 +193,13 @@
     const statsEl = document.getElementById("stats");
     const usersEl = document.getElementById("users");
     const createFeaturesEl = document.getElementById("createFeatures");
-    let catalog = { entryFeature: "MEPDB", subFeatures: [], availableFeatures: ["MEPDB"] };
+    let catalog = {
+      entryFeature: "MEPDB",
+      subFeatures: [],
+      availableFeatures: ["MEPDB"],
+      featureLabels: {},
+      featureCatalog: []
+    };
 
     apiKeyInput.value = localStorage.getItem(KEY) || apiKeyInput.value;
 
@@ -238,42 +244,56 @@
       `;
     }
 
+    function labelVi(code) {
+      return (catalog.featureLabels && catalog.featureLabels[code]) || code;
+    }
+
     function featureToggle(user, code, enabled, cssClass) {
+      const name = labelVi(code);
       return `
-        <label class="feature ${cssClass || ""}">
+        <label class="feature ${cssClass || ""}" title="${code}">
           <input type="checkbox" data-user="${user.id}" data-feature="${code}" ${enabled ? "checked" : ""} />
-          <span>${code}</span>
+          <span>${name}<small>${code}</small></span>
         </label>`;
+    }
+
+    function renderFeatureGroup(title, items, attrName) {
+      if (!items.length) return "";
+      return `
+        <div class="feature-group">
+          <div class="feature-group-title">${title}</div>
+          <div class="features">${items.join("")}</div>
+        </div>`;
     }
 
     function renderCreateFeatures() {
       const entry = catalog.entryFeature || "MEPDB";
-      const subs = catalog.subFeatures || [];
-      createFeaturesEl.innerHTML = `
-        <div class="feature-group">
-          <div class="feature-group-title">Vào plugin</div>
-          <label class="feature entry"><input type="checkbox" data-create-feature="${entry}" checked /> ${entry}</label>
-        </div>
-        <div class="feature-group">
-          <div class="feature-group-title">Chức năng phụ trong panel</div>
-          ${subs.map(code => `<label class="feature sub"><input type="checkbox" data-create-feature="${code}" checked /> ${code}</label>`).join("")}
-        </div>`;
+      let html = renderFeatureGroup("Vào plugin", [
+        `<label class="feature entry" title="${entry}"><input type="checkbox" data-create-feature="${entry}" checked /> <span>${labelVi(entry)}<small>${entry}</small></span></label>`
+      ], "create");
+
+      (catalog.featureCatalog || []).forEach(group => {
+        const boxes = (group.items || []).map(it =>
+          `<label class="feature sub" title="${it.code}"><input type="checkbox" data-create-feature="${it.code}" checked /> <span>${it.labelVi}<small>${it.code}</small></span></label>`
+        );
+        html += renderFeatureGroup(group.group, boxes);
+      });
+
+      createFeaturesEl.innerHTML = html;
     }
 
     function renderUserFeatures(u, flags) {
       const entry = catalog.entryFeature || "MEPDB";
-      const subs = catalog.subFeatures || [];
-      const entryHtml = featureToggle(u, entry, !!flags[entry], "entry");
-      const subsHtml = subs.map(code => featureToggle(u, code, !!flags[code], "sub")).join("");
-      return `
-        <div class="feature-group">
-          <div class="feature-group-title">Vào plugin</div>
-          <div class="features">${entryHtml}</div>
-        </div>
-        <div class="feature-group">
-          <div class="feature-group-title">Chức năng phụ</div>
-          <div class="features">${subsHtml}</div>
-        </div>`;
+      let html = renderFeatureGroup("Vào plugin", [featureToggle(u, entry, !!flags[entry], "entry")]);
+
+      (catalog.featureCatalog || []).forEach(group => {
+        const boxes = (group.items || []).map(it =>
+          featureToggle(u, it.code, !!flags[it.code], "sub")
+        );
+        html += renderFeatureGroup(group.group, boxes);
+      });
+
+      return html;
     }
 
     function renderUsers(users) {
@@ -328,7 +348,9 @@
         catalog = {
           entryFeature: (data.totals && data.totals.entryFeature) || "MEPDB",
           subFeatures: (data.totals && data.totals.subFeatures) || [],
-          availableFeatures: (data.totals && data.totals.availableFeatures) || ["MEPDB"]
+          availableFeatures: (data.totals && data.totals.availableFeatures) || ["MEPDB"],
+          featureLabels: (data.totals && data.totals.featureLabels) || {},
+          featureCatalog: (data.totals && data.totals.featureCatalog) || []
         };
         renderCreateFeatures();
         renderStats(data.totals);
@@ -379,7 +401,7 @@
             method: "PUT",
             body: JSON.stringify({ enabled: el.checked })
           });
-          showMsg(`${feature} của user #${userId}: ${el.checked ? "ON" : "OFF"}`);
+          showMsg(`${labelVi(feature)} (#${userId}): ${el.checked ? "ON" : "OFF"}`);
         } catch (err) {
           el.checked = !el.checked;
           showMsg(err.message, true);

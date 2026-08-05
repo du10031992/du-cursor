@@ -28,5 +28,11 @@ namespace MepPanel.Core
         public const string HvacDraw = "MEPHVACDRAW";
         public const string HvacSmoke = "MEPHVACSMOKE";
         public const string SeLayer = "MEPSELAYER";
+        public const string Draw = "MEPDBDRAW";
+        public const string Water = "MEPDBWATER";
+        public const string Excel = "MEPDBEXCEL";
+        public const string ThreePhase4W = "MEPDB3P4W";
+        public const string Edit = "MEPDBEDIT";
+        public const string Help = "MEPDBHELP";
     }
 }
