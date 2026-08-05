@@ -87,6 +87,10 @@ if (Test-Path $TypesPatch) {
 if (Test-Path $SingleEntryPatch) {
     & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot
 }
+$SubFeaturePatch = Join-Path $Root "scripts\apply-subfeature-guard-patch.ps1"
+if (Test-Path $SubFeaturePatch) {
+    & $SubFeaturePatch -PluginSourceRoot $PluginSourceRoot
+}
 if (Test-Path $FeaturePatch) {
     & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
 }
