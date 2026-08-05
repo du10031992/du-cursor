@@ -1,5 +1,5 @@
-# Build plugin + copy DLL vào bundle, rồi cài vào AutoCAD ApplicationPlugins.
-# Chạy trên Windows (PowerShell) tại thư mục repo.
+# Build plugin, copy DLLs into bundle, install to AutoCAD ApplicationPlugins.
+# Run from repo root on Windows PowerShell.
 
 param(
     [ValidateSet("Debug", "Release")]
@@ -30,11 +30,11 @@ $required = @(
 foreach ($file in $required) {
     $path = Join-Path $OutDir $file
     if (-not (Test-Path $path)) {
-        throw "Thiếu file build: $path"
+        throw "Missing build output: $path"
     }
 }
 
-Write-Host "==> Copy DLL vào bundle"
+Write-Host "==> Copy DLLs to bundle"
 New-Item -ItemType Directory -Force -Path $BundleContents | Out-Null
 foreach ($file in $required) {
     Copy-Item (Join-Path $OutDir $file) (Join-Path $BundleContents $file) -Force
@@ -47,11 +47,11 @@ if (Test-Path $coreDll) {
 }
 
 if ($SkipInstall) {
-    Write-Host "==> Bỏ qua cài đặt (-SkipInstall). Bundle sẵn tại: $BundleRoot"
+    Write-Host "==> Skip install (-SkipInstall). Bundle ready at: $BundleRoot"
     exit 0
 }
 
-Write-Host "==> Cài bundle vào $InstallDir"
+Write-Host "==> Install bundle to $InstallDir"
 if (Test-Path $InstallDir) {
     Remove-Item $InstallDir -Recurse -Force
 }
@@ -59,10 +59,10 @@ Copy-Item $BundleRoot $InstallDir -Recurse -Force
 
 $oldBundle = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanelMvp.bundle"
 if (Test-Path $oldBundle) {
-    Write-Host "==> Đổi tên bundle cũ MepPanelMvp.bundle -> .OFF"
+    Write-Host "==> Disable old bundle: MepPanelMvp.bundle -> .OFF"
     Rename-Item $oldBundle "MepPanelMvp.bundle.OFF" -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""
-Write-Host "Xong! Mở lại AutoCAD — plugin tự load, không popup đăng nhập."
-Write-Host "Gõ MEPSTATUS / MEPDB / MEPHVAC để dùng."
+Write-Host "Done! Restart AutoCAD - plugin loads automatically (no login popup on startup)."
+Write-Host "Commands: MEPSTATUS, MEPLOGIN, MEPDB, MEPHVAC, MEPLOGOUT"
