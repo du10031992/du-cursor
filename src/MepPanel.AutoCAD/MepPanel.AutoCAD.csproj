@@ -22,19 +22,31 @@
       <HintPath>$(AutoCadDir)\AcMgd.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <ProjectReference Include="..\MepPanel.Core\MepPanel.Core.csproj" />
   </ItemGroup>
 
-  <!-- Build licensing trước, copy cạnh DLL chính — AutoCAD chỉ NETLOAD file chính. -->
   <ItemGroup>
     <ProjectReference Include="..\MepPanel.AutoCAD.Licensing\MepPanel.AutoCAD.Licensing.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
-  <Target Name="CopyLicensingDll" AfterTargets="Build">
+  <Target Name="CopyPluginDependencies" AfterTargets="Build">
     <Copy
       SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.AutoCAD.Licensing\bin\$(Configuration)\MepPanel.AutoCAD.Licensing.dll"
       DestinationFolder="$(TargetDir)"
       SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.Blocks.AutoCAD\bin\$(Configuration)\MepPanel.Blocks.AutoCAD.dll"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\netstandard2.0\MepPanel.Core.dll"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true"
+      Condition="Exists('$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\netstandard2.0\MepPanel.Core.dll')" />
   </Target>
 </Project>

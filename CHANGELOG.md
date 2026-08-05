@@ -10,6 +10,26 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
+## [0.3.0] - 2026-08-05 — Tool panels + bundle tự load
+
+### Thêm mới
+- Panel AutoCAD **MEPDB** / **MEPHVAC** (`MepPanel.Blocks.AutoCAD`)
+- Bundle `MepPanel.Plugin.bundle` — AutoCAD tự load (không NETLOAD thủ công)
+- Script `scripts/install-plugin-bundle.ps1`
+
+### Sửa lỗi
+- Thông báo khóa user/feature rõ ràng hơn
+
+---
+
+## [0.2.4] - 2026-08-05 — Refresh feature từ server
+
+### Sửa lỗi
+- Mỗi lệnh `MEPDB`/`MEPHVAC` hỏi server cập nhật quyền feature
+- API `/api/Devices/check` cho phép không JWT (DeviceKey)
+
+---
+
 ## [0.2.3] - 2026-08-05 — Sửa đơ/lag sau đăng nhập
 
 ### Sửa lỗi

@@ -63,10 +63,8 @@ namespace MepPanel.AutoCAD.Licensing
             {
                 if (requireFreshServerFeatures)
                 {
-                    Application.ShowAlertDialog(
-                        "Không kiểm tra được giấy phép với máy chủ.\n" +
-                        "Admin vừa đổi quyền — cần kết nối server để cập nhật.\n\n" +
-                        ex.Message);
+                    LicenseSession.Clear();
+                    Application.ShowAlertDialog(ex.Message);
                     return false;
                 }
 

@@ -1,12 +1,13 @@
 using Autodesk.AutoCAD.ApplicationServices.Core;
 using Autodesk.AutoCAD.Runtime;
+using MepPanel.Core;
 
 [assembly: CommandClass(typeof(MepPanel.Plugin.LoaderCommands))]
 
 namespace MepPanel.Plugin
 {
     /// <summary>
-    /// Lệnh loader — cấu trúc giống MepPanel.LoadTest (đã chứng minh NETLOAD OK).
+    /// Lệnh loader — giống LoadTest (NETLOAD ổn định), gọi licensing/tools qua reflection.
     /// </summary>
     public class LoaderCommands
     {
@@ -14,7 +15,7 @@ namespace MepPanel.Plugin
         public void Status()
         {
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel v0.2.3 loader OK. Gõ MEPLOGIN / MEPDB / MEPHVAC.");
+                "\nMepPanel v0.3.0 OK. MEPLOGIN / MEPDB / MEPHVAC.");
         }
 
         [CommandMethod("MEPLOGIN", CommandFlags.Modal)]
@@ -26,25 +27,27 @@ namespace MepPanel.Plugin
         [CommandMethod("MEPDB", CommandFlags.Modal)]
         public void OpenMepDb()
         {
-            if (!LicensingBridge.InvokeHostBool("EnsureFeature", "MEPDB"))
+            if (!LicensingBridge.InvokeHostBool("EnsureFeature", PluginFeatures.MepDb))
             {
                 return;
             }
 
+            ToolBridge.ShowMepDb();
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPDB đã được mở khóa cho tài khoản này.");
+                "\nMEPDB panel đã mở.");
         }
 
         [CommandMethod("MEPHVAC", CommandFlags.Modal)]
         public void OpenMepHvac()
         {
-            if (!LicensingBridge.InvokeHostBool("EnsureFeature", "MEPHVAC"))
+            if (!LicensingBridge.InvokeHostBool("EnsureFeature", PluginFeatures.MepHvac))
             {
                 return;
             }
 
+            ToolBridge.ShowMepHvac();
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPHVAC đã được mở khóa cho tài khoản này.");
+                "\nMEPHVAC panel đã mở.");
         }
 
         [CommandMethod("MEPLOGOUT", CommandFlags.Modal)]
