@@ -12,7 +12,7 @@ namespace MepPanel.AutoCAD.Licensing
         // HTTP dev: http://localhost:5268 · HTTPS/admin: https://localhost:7024
         public const string LicenseServerBaseUrl = "https://localhost:7024/";
 
-        public static bool EnsureAuthorized()
+        public static bool EnsureAuthorized(bool requireFreshServerFeatures = false)
         {
             if (!LicenseSession.IsAuthorized)
             {
@@ -59,8 +59,17 @@ namespace MepPanel.AutoCAD.Licensing
 
                 return true;
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
+                if (requireFreshServerFeatures)
+                {
+                    Application.ShowAlertDialog(
+                        "Không kiểm tra được giấy phép với máy chủ.\n" +
+                        "Admin vừa đổi quyền — cần kết nối server để cập nhật.\n\n" +
+                        ex.Message);
+                    return false;
+                }
+
                 // Mất mạng: cho phép trong cửa sổ offline nếu cache còn hạn.
                 LicenseCacheData cache;
                 string message;

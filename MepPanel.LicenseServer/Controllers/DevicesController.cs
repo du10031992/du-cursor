@@ -221,9 +221,10 @@ public class DevicesController : ControllerBase
 
     /// <summary>
     /// Kiểm tra quyền chạy plugin + trả danh sách chức năng được mở.
+    /// Cho phép không JWT — xác thực bằng SĐT + DeviceKey (cache offline vẫn check được server).
     /// </summary>
     [HttpPost("check")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> Check(CheckDeviceRequest request)
     {
         var now = DateTime.UtcNow;
