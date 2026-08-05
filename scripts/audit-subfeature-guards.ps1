@@ -47,7 +47,7 @@ Write-Host "CO GUARD ($($guarded.Count)):"
 $guarded | Sort-Object | ForEach-Object { Write-Host "  [OK] $_" }
 
 Write-Host ""
-Write-Host "CHUA CO GUARD ($($unguarded.Count)) — can bo sung vao apply-subfeature-guard-patch.ps1:"
+Write-Host "CHUA CO GUARD ($($unguarded.Count)) - can bo sung vao apply-subfeature-guard-patch.ps1:"
 $unguarded | Sort-Object | ForEach-Object { Write-Host "  [!!] $_" }
 
 if ($unguarded.Count -gt 0) {

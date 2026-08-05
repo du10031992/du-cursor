@@ -101,7 +101,7 @@ if (Test-Path $AuditGuards) {
     Write-Host "==> Audit subfeature guards (canh bao neu thieu)"
     & $AuditGuards -PluginSourceRoot $PluginSourceRoot
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "   CANH BAO: Mot so handler panel chua co guard — xem danh sach [!!] o tren."
+        Write-Host "   CANH BAO: Mot so handler panel chua co guard - xem danh sach [!!] o tren."
         Write-Host "   Them ten method vao scripts/apply-subfeature-guard-patch.ps1 roi build lai."
     }
 }
@@ -200,7 +200,7 @@ foreach ($item in $outputs) {
     $dest = Join-Path $BundleContents $item.Name
     Copy-Item $src $dest -Force
     Unblock-File $dest -ErrorAction SilentlyContinue
-    Write-Host "   OK $($item.Name) <- $src"
+    Write-Host ("   OK " + $item.Name + " from " + $src)
     if ($item.Name -eq "MepPanel.AutoCAD.dll") { $anyOk = $true }
 }
 
@@ -224,7 +224,8 @@ if ($Version) {
     }
     if (Test-Path $PackageContentsPath) {
         $xml = Get-Content $PackageContentsPath -Raw
-        $xml = $xml -replace 'AppVersion="[^"]*"', "AppVersion=`"$Version`""
+        $replacement = 'AppVersion="' + $Version + '"'
+        $xml = $xml -replace 'AppVersion="[^"]*"', $replacement
         Set-Content $PackageContentsPath $xml -Encoding UTF8
     }
 }
