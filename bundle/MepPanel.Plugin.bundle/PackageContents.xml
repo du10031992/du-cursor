@@ -4,8 +4,8 @@
   AutodeskProduct="AutoCAD"
   ProductType="Application"
   Name="MepPanel"
-  AppVersion="0.3.0"
-  Description="MepPanel MEP tools with server licensing"
+  AppVersion="0.13.0"
+  Description="MepPanel MEP tools (MEPDB/MEPHVAC) with server licensing"
   Author="MepPanel">
   <CompanyDetails Name="MepPanel" />
   <Components Description="MepPanel plugin">
@@ -14,6 +14,6 @@
       Platform="AutoCAD*"
       SeriesMin="R24.0"
       SeriesMax="R24.0" />
-    <ComponentEntry AppName="MepPanel" ModuleName="./Contents/MepPanel.Plugin.dll" AppDescription="MepPanel MEP Plugin" LoadOnAutoCADStartup="True" />
+    <ComponentEntry AppName="MepPanel" ModuleName="./Contents/MepPanel.AutoCAD.dll" AppDescription="MepPanel MEP Plugin v0.13" LoadOnAutoCADStartup="True" />
   </Components>
 </ApplicationPackage>

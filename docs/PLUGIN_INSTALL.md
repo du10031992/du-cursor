@@ -3,10 +3,9 @@
 ## Yêu cầu
 
 - Windows + AutoCAD 2021
-- .NET SDK + Visual Studio (build)
-- License Server chạy khi đăng nhập
+- License Server chạy khi đăng nhập / dùng lệnh tool
 
-## Cài bundle (khuyến nghị)
+## Cài bundle (plugin release v0.13)
 
 PowerShell tại thư mục repo:
 
@@ -15,56 +14,61 @@ git pull origin cursor/license-admin-device-control-cc24
 .\scripts\install-plugin-bundle.ps1
 ```
 
-Script sẽ:
+Script cài **plugin thật** từ bundle (không build lại):
 
-1. Build `MepPanel.Plugin.dll` + dependencies
-2. Copy vào `bundle/MepPanel.Plugin.bundle/Contents/`
-3. Cài vào `%ProgramData%\Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle`
-4. Đổi tên bundle cũ `MepPanelMvp.bundle` → `.OFF` (nếu có)
-
-**Mở lại AutoCAD** → plugin tự load, **không** popup đăng nhập lúc khởi động.
-
-## Cấu trúc bundle (4 DLL)
-
-Plugin cài tại `%ProgramData%\Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents\`:
-
-| DLL | Vai trò |
+| File | Vai trò |
 |---|---|
-| `MepPanel.Plugin.dll` | Loader — lệnh AutoCAD |
-| `MepPanel.AutoCAD.Licensing.dll` | Kiểm soát license (login, check server) |
-| `MepPanel.Blocks.AutoCAD.dll` | Panel MEPDB / MEPHVAC |
-| `MepPanel.Core.dll` | Mã feature dùng chung |
+| `MepPanel.AutoCAD.dll` | Plugin chính — MEPDB, MEPHVAC, UI, licensing |
+| `MepPanel.Core.dll` | Core services |
 
-Kiểm tra: gõ **`MEPSTATUS`** — hiện đường dẫn bundle, trạng thái đăng nhập, feature được cấp.
+Đường dẫn cài:  
+`%ProgramData%\Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents\`
 
-Admin kiểm soát trên **`https://localhost:7024/admin`**: khóa user, khóa máy, bật/tắt MEPDB/MEPHVAC.
+**Mở lại AutoCAD** → plugin tự load.
 
-## Lệnh
+## Kiểm soát license (Admin)
 
-| Lệnh | Mô tả |
+Plugin **v0.13** đã tích hợp `LicenseGuard` + `AutoCadCommandDispatcher`:
+
+- Mỗi lệnh MEPDB/MEPHVAC → check server (user, máy, feature)
+- Admin tại **`https://localhost:7024/admin`**:
+  - Khóa/mở **user** theo SĐT
+  - Khóa/mở **máy** (1 SĐT = 1 máy)
+  - Bật/tắt **MEPDB** / **MEPHVAC**
+
+Test user (seed): `0912345678` hoặc tạo mới trên Admin. OTP test: **`123456`**.
+
+## Lệnh plugin (v0.13)
+
+| Nhóm | Lệnh ví dụ |
 |---|---|
-| `MEPSTATUS` | Kiểm tra plugin |
-| `MEPLOGIN` | Đăng nhập |
-| `MEPDB` | Mở panel MEPDB |
-| `MEPHVAC` | Mở panel MEPHVAC |
-| `MEPLOGOUT` | Đăng xuất |
+| MEPDB | `MEPDB`, `MEPDBDRAW`, `MEPDBCABINET2D`, `MEPDBREALWIRING`, ... |
+| MEPHVAC | `MEPHVAC`, `MEPHVACDRAW`, `MEPHVACCONFIG`, ... |
 
-## NETLOAD thủ công (dev)
+Khi chưa đăng nhập, chạy lệnh tool → cửa sổ login OTP.
 
-```text
-(command "_.NETLOAD" "C:/path/to/MepPanel.Plugin.dll")
+## Dev loader (tùy chọn)
+
+Build loader đơn giản từ source (v0.3 stub):
+
+```powershell
+.\scripts\install-plugin-bundle.ps1 -BuildDevLoader
 ```
 
-Cần 3 DLL cùng thư mục: `MepPanel.Plugin.dll`, `MepPanel.AutoCAD.Licensing.dll`, `MepPanel.Blocks.AutoCAD.dll`.
+## Cấu hình server
 
-## Cấu hình server production
-
-Copy `MepPanel.config.json.example` → `MepPanel.config.json` trong `Contents/`:
+File `MepPanel.config.json` trong `Contents/` (nếu plugin hỗ trợ):
 
 ```json
 {
-  "licenseServerUrl": "https://license.your-domain.com/"
+  "licenseServerUrl": "https://localhost:7024/"
 }
 ```
 
-Xem thêm: `docs/DEPLOY_VPS.md`
+## NETLOAD thủ công
+
+```text
+(command "_.NETLOAD" "C:/ProgramData/Autodesk/ApplicationPlugins/MepPanel.Plugin.bundle/Contents/MepPanel.AutoCAD.dll")
+```
+
+Cần `MepPanel.Core.dll` cùng thư mục.
