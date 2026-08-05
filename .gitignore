@@ -11,3 +11,4 @@ mep-panel-license.db*
 *.log
 dist/
 releases/**/*.zip
+plugin.local.json

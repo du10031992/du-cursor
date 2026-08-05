@@ -1,6 +1,9 @@
-# MepPanel MVP — License control
+# MepPanel — License control + Plugin AutoCAD
 
-Phiên bản hiện tại: **v0.2.0** ([CHANGELOG](CHANGELOG.md) · [cách đóng gói](docs/VERSIONING.md))
+| Thành phần | Version | Build |
+|---|---|---|
+| License Server + Admin | v0.3.0 | `dotnet run` / F5 |
+| Plugin AutoCAD (release) | v0.13.0 | Source MepPanelMvp trên Windows |
 
 Plugin AutoCAD 2021 + License Server để Admin:
 
@@ -12,32 +15,53 @@ Plugin AutoCAD 2021 + License Server để Admin:
 
 | Project | Vai trò |
 |---|---|
-| `MepPanel.LicenseServer` | Máy chủ kiểm soát (Swagger) |
-| `src/MepPanel.AutoCAD` | Plugin + license gate |
-| `src/MepPanel.Core` | Shared constants |
+| `MepPanel.LicenseServer` | Máy chủ kiểm soát + `/admin` |
+| `src/MepPanel.AutoCAD` | Dev loader stub (`MepPanel.Plugin.dll`) — **không** phải plugin release |
+| `bundle/.../MepPanel.AutoCAD.dll` | **Plugin thật v0.13** (Cabinet, HVAC, WPF) |
 | `tests/MepPanel.Tests` | Kiểm thử luật license |
 
-## Quick start (máy bạn)
+## Quick start — License Server
 
-1. Mở `MepPanelMvp.sln` bằng Visual Studio  
-2. F5 project `MepPanel.LicenseServer`  
-3. Mở trang điều khiển: `https://localhost:7024/admin`  
-   - Tạo SĐT bất kỳ  
-   - Tắt/bật user, máy, chức năng `MEPDB` / `MEPHVAC`  
-4. Swagger (nếu cần): `https://localhost:7024/swagger`  
-5. Build `MepPanel.AutoCAD` → AutoCAD `NETLOAD` → login SĐT vừa tạo / OTP `123456`
+1. Mở `MepPanelMvp.sln` → F5 `MepPanel.LicenseServer`
+2. Admin: `https://localhost:7024/admin`
+3. Tạo SĐT, bật/tắt MEPDB / MEPHVAC
 
-## Đóng gói theo phiên bản
+## Quick start — Cài plugin (release)
 
-```bash
-./scripts/pack-release.sh          # dùng VERSION hiện tại
-./scripts/pack-release.sh 0.1.0    # chỉ định version
+```powershell
+git pull origin cursor/license-admin-device-control-cc24
+.\scripts\install-plugin-bundle.ps1
 ```
 
-Kết quả trong `dist/`:
+Khởi động lại AutoCAD → `MEPDB` / `MEPHVAC` → OTP test `123456`.
 
-- `MepPanel-LicenseServer-v0.1.0.zip`
-- `MepPanel-v0.1.0.zip`
-- `SHA256-v0.1.0.txt`
+## Phát triển & build plugin (cập nhật tính năng)
 
-Chi tiết Admin API: [docs/LICENSE_ADMIN_GUIDE.md](docs/LICENSE_ADMIN_GUIDE.md)
+Xem **[docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md)**.
+
+Tóm tắt:
+
+```powershell
+copy plugin.local.json.example plugin.local.json
+# Sua pluginSourceRoot -> thu muc MepPanelMvp source tren may ban
+
+.\scripts\build-plugin-release.ps1
+```
+
+## Tài liệu
+
+| File | Nội dung |
+|---|---|
+| [docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md) | Build, sửa tính năng, workflow dev |
+| [docs/PLUGIN_INSTALL.md](docs/PLUGIN_INSTALL.md) | Cài bundle AutoCAD |
+| [docs/LICENSE_ADMIN_GUIDE.md](docs/LICENSE_ADMIN_GUIDE.md) | Admin API & test |
+| [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) | Deploy server lên VPS |
+| [CHANGELOG.md](CHANGELOG.md) | Lịch sử thay đổi |
+
+## Đóng gói release
+
+```bash
+./scripts/pack-release.sh
+```
+
+Kết quả trong `dist/`.
