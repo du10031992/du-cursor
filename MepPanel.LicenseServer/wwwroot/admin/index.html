@@ -280,7 +280,7 @@
                   <div>
                     <strong>${d.deviceName || ("Device #" + d.id)}</strong>
                     ${badge(d.status)}
-                    <div class="sub">ID ${d.id} · last seen ${d.lastSeenAtUtc || "-"}</div>
+                    <div class="sub">ID ${d.id} · plugin ${d.pluginVersion || "-"} · AutoCAD ${d.autoCadVersion || "-"} · last seen ${d.lastSeenAtUtc || "-"}</div>
                   </div>
                   <div class="actions" style="margin:0">
                     <button type="button" class="ok" data-action="device-active" data-id="${d.id}">Mở máy</button>

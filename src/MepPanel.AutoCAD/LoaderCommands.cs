@@ -14,8 +14,7 @@ namespace MepPanel.Plugin
         [CommandMethod("MEPSTATUS", CommandFlags.Modal)]
         public void Status()
         {
-            Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel v0.3.0 OK. MEPLOGIN / MEPDB / MEPHVAC.");
+            PluginBundleControl.WriteStatusToCommandLine();
         }
 
         [CommandMethod("MEPLOGIN", CommandFlags.Modal)]

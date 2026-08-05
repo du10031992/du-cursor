@@ -24,6 +24,21 @@ Script sẽ:
 
 **Mở lại AutoCAD** → plugin tự load, **không** popup đăng nhập lúc khởi động.
 
+## Cấu trúc bundle (4 DLL)
+
+Plugin cài tại `%ProgramData%\Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents\`:
+
+| DLL | Vai trò |
+|---|---|
+| `MepPanel.Plugin.dll` | Loader — lệnh AutoCAD |
+| `MepPanel.AutoCAD.Licensing.dll` | Kiểm soát license (login, check server) |
+| `MepPanel.Blocks.AutoCAD.dll` | Panel MEPDB / MEPHVAC |
+| `MepPanel.Core.dll` | Mã feature dùng chung |
+
+Kiểm tra: gõ **`MEPSTATUS`** — hiện đường dẫn bundle, trạng thái đăng nhập, feature được cấp.
+
+Admin kiểm soát trên **`https://localhost:7024/admin`**: khóa user, khóa máy, bật/tắt MEPDB/MEPHVAC.
+
 ## Lệnh
 
 | Lệnh | Mô tả |

@@ -47,9 +47,15 @@ if (Test-Path $coreDll) {
 }
 
 $configExample = Join-Path $BundleContents "MepPanel.config.json.example"
-if (Test-Path $configExample) {
-    Write-Host "==> Config example: $configExample"
-    Write-Host "    Production: copy to MepPanel.config.json and set licenseServerUrl"
+$configPath = Join-Path $BundleContents "MepPanel.config.json"
+if (-not (Test-Path $configPath) -and (Test-Path $configExample)) {
+    Copy-Item $configExample $configPath
+    Write-Host "==> Created MepPanel.config.json from example (edit licenseServerUrl for production)"
+}
+
+$manifest = Join-Path $BundleContents "plugin.manifest.json"
+if (Test-Path $manifest) {
+    Write-Host "==> Bundle manifest: plugin.manifest.json (4 DLL license control)"
 }
 
 if ($SkipInstall) {
