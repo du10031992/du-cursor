@@ -33,10 +33,8 @@ namespace MepPanel.AutoCAD.Licensing
                     .Version
                     .ToString();
 
-                CheckLicenseResponse response = client
-                    .CheckLicenseAsync(LicenseSession.PhoneNumber, pluginVersion)
-                    .GetAwaiter()
-                    .GetResult();
+                CheckLicenseResponse response = AsyncRunner.Run(
+                    () => client.CheckLicenseAsync(LicenseSession.PhoneNumber, pluginVersion));
 
                 if (response == null || !response.Valid)
                 {
