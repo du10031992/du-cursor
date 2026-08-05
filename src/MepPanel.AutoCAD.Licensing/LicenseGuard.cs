@@ -9,8 +9,8 @@ namespace MepPanel.AutoCAD.Licensing
     /// </summary>
     public static class LicenseGuard
     {
-        // Khớp với LicenseServer đang chạy local.
-        public const string LicenseServerBaseUrl = "http://localhost:7024/";
+        // HTTP dev: http://localhost:5268 · HTTPS/admin: https://localhost:7024
+        public const string LicenseServerBaseUrl = "https://localhost:7024/";
 
         public static bool EnsureAuthorized()
         {
