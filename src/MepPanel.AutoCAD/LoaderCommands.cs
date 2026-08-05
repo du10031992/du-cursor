@@ -11,6 +11,11 @@ namespace MepPanel.Plugin
     /// </summary>
     public class LoaderCommands
     {
+        static LoaderCommands()
+        {
+            PluginBundleControl.InitializeOnLoad();
+        }
+
         [CommandMethod("MEPSTATUS", CommandFlags.Modal)]
         public void Status()
         {
