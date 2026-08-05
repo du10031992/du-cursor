@@ -53,7 +53,9 @@ public class AdminController : ControllerBase
                 blockedUsers = users.Count(x => x.Status == UserStatuses.Blocked),
                 devices = users.Sum(x => x.Devices.Count),
                 activeDevices = users.Sum(x => x.Devices.Count(d => d.Status == DeviceStatuses.Active)),
-                availableFeatures = PluginFeatures.All
+                availableFeatures = PluginFeatures.All,
+                entryFeature = PluginFeatures.Entry,
+                subFeatures = PluginFeatures.SubFeatures
             },
             users = mapped
         });
@@ -116,7 +118,7 @@ public class AdminController : ControllerBase
         var defaultFeatures = _configuration
             .GetSection("LicenseSettings:DefaultFeatures")
             .Get<string[]>()
-            ?? [PluginFeatures.MepDb, PluginFeatures.MepHvac];
+            ?? PluginFeatures.All;
 
         var features = request.Features is { Length: > 0 }
             ? FeatureParser.NormalizeKnown(request.Features)

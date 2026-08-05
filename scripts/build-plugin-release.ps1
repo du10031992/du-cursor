@@ -65,15 +65,27 @@ $CoreProj = Join-Path $PluginSourceRoot "src\MepPanel.Core\MepPanel.Core.csproj"
 $PatchLicensing = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Licensing"
 $TargetLicensing = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Licensing"
 if (Test-Path $PatchLicensing) {
-    Write-Host "==> Apply patch Licensing (LicenseGuard + AsyncRunner)"
+    Write-Host "==> Apply patch Licensing (LicenseGuard, PluginFeatureGate, ...)"
     New-Item -ItemType Directory -Force -Path $TargetLicensing | Out-Null
     Copy-Item (Join-Path $PatchLicensing "*") $TargetLicensing -Force
 }
 
+$PatchCoreFeatures = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Core\PluginFeatures.cs"
+$TargetCoreFeatures = Join-Path $PluginSourceRoot "src\MepPanel.Core\PluginFeatures.cs"
+if (Test-Path $PatchCoreFeatures) {
+    Write-Host "==> Apply patch PluginFeatures (MEPDB entry + sub-features)"
+    New-Item -ItemType Directory -Force -Path (Split-Path $TargetCoreFeatures) | Out-Null
+    Copy-Item $PatchCoreFeatures $TargetCoreFeatures -Force
+}
+
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
+$SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
 $TypesPatch = Join-Path $Root "scripts\apply-licensing-types-patch.ps1"
 if (Test-Path $TypesPatch) {
     & $TypesPatch -PluginSourceRoot $PluginSourceRoot
+}
+if (Test-Path $SingleEntryPatch) {
+    & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot
 }
 if (Test-Path $FeaturePatch) {
     & $FeaturePatch -PluginSourceRoot $PluginSourceRoot

@@ -18,7 +18,7 @@ public static class DbSeeder
         var defaultFeatures = configuration
             .GetSection("LicenseSettings:DefaultFeatures")
             .Get<string[]>()
-            ?? [PluginFeatures.MepDb, PluginFeatures.MepHvac];
+            ?? PluginFeatures.All;
 
         var maxDevices = int.TryParse(
             configuration["LicenseSettings:DefaultMaxDevices"],

@@ -11,6 +11,67 @@ namespace MepPanel.AutoCAD.Licensing
         private const string LicenseServerBaseUrl =
             "http://192.168.1.7:5268/";
 
+        private const string EntryFeature = "MEPDB";
+
+        /// <summary>
+        /// Lenh MEPDB duy nhat: dang nhap + kiem tra quyen vao plugin.
+        /// </summary>
+        public static bool EnsureEntry()
+        {
+            if (!LicenseSession.IsAuthorized)
+            {
+                if (!TryShowLoginDialog())
+                {
+                    return false;
+                }
+            }
+
+            if (!EnsureAuthorized(requireFreshServerFeatures: true))
+            {
+                return false;
+            }
+
+            if (!LicenseSession.HasFeature(EntryFeature))
+            {
+                AcApp.ShowAlertDialog(
+                    "Tai khoan chua duoc mo quyen vao plugin (MEPDB).\n" +
+                    "Lien he Admin de Active.");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Chuc nang phu trong panel — khong goi server lai (da refresh o EnsureEntry).
+        /// </summary>
+        public static bool EnsureSubFeature(string subFeatureCode)
+        {
+            if (!LicenseSession.IsAuthorized || !LicenseSession.HasFeature(EntryFeature))
+            {
+                AcApp.ShowAlertDialog(
+                    "Chua dang nhap hoac chua co quyen vao plugin.\n" +
+                    "Hay goi lenh MEPDB de dang nhap.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(subFeatureCode))
+            {
+                return false;
+            }
+
+            if (LicenseSession.HasFeature(subFeatureCode))
+            {
+                return true;
+            }
+
+            AcApp.ShowAlertDialog(
+                "Chuc nang phu chua duoc mo: " + subFeatureCode + "\n" +
+                "Lien he Admin de bat tren trang /admin.");
+
+            return false;
+        }
+
         public static bool EnsureAuthorized(bool requireFreshServerFeatures = false)
         {
             if (!LicenseSession.IsAuthorized)
@@ -77,26 +138,16 @@ namespace MepPanel.AutoCAD.Licensing
             }
         }
 
-        /// <summary>
-        /// Hoi server moi lan va chan neu Admin da tat chuc nang (MEPDB/MEPHVAC).
-        /// </summary>
+        /// <summary>Giữ tương thích build cũ — map về EnsureEntry hoặc EnsureSubFeature.</summary>
         public static bool EnsureFeature(string featureCode)
         {
-            if (!EnsureAuthorized(requireFreshServerFeatures: true))
+            if (string.IsNullOrWhiteSpace(featureCode) ||
+                string.Equals(featureCode, EntryFeature, StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                return EnsureEntry();
             }
 
-            if (LicenseSession.HasFeature(featureCode))
-            {
-                return true;
-            }
-
-            AcApp.ShowAlertDialog(
-                "Tai khoan cua ban chua duoc mo chuc nang: " + featureCode + "\n" +
-                "Lien he Admin de Active chuc nang nay.");
-
-            return false;
+            return EnsureSubFeature(featureCode);
         }
 
         private static bool TryShowLoginDialog()

@@ -15,11 +15,15 @@
       "description": "Core domain va services"
     }
   ],
-  "controlledFeatures": ["MEPDB", "MEPHVAC"],
+  "controlledFeatures": ["MEPDB"],
+  "subFeatures": [
+    "MEPDBCABINET2D", "MEPDBCABINET3D", "MEPHVAC", "MEPHVACDRAW", "MEPDBREALWIRING"
+  ],
   "licenseControl": {
+    "entryCommand": "MEPDB",
     "dispatcher": "AutoCadCommandDispatcher",
     "guard": "LicenseGuard",
-    "features": ["MEPDB", "MEPHVAC"]
+    "features": ["MEPDB"]
   },
   "configFile": "MepPanel.config.json"
 }

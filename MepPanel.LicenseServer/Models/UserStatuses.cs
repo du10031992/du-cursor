@@ -22,12 +22,41 @@ public static class DeviceStatuses
 
 public static class PluginFeatures
 {
-    public const string MepDb = "MEPDB";
-    public const string MepHvac = "MEPHVAC";
+    /// <summary>Lenh duy nhat vao plugin (MEPDB).</summary>
+    public const string Entry = "MEPDB";
+    public const string MepDb = Entry;
 
-    public static readonly string[] All =
+    /// <summary>Chuc nang phu — khoa/mo trong panel plugin.</summary>
+    public static readonly string[] SubFeatures =
     [
-        MepDb,
-        MepHvac
+        "MEPDBCABINET2D",
+        "MEPDBCABINET3D",
+        "MEPDBCABINETVIEWS",
+        "MEPDBCONFIG",
+        "MEPDBDUPLICATE",
+        "MEPDBEXPORT",
+        "MEPDBKNOWLEDGE",
+        "MEPDBPOWER",
+        "MEPDBREALRENDER",
+        "MEPDBREALWIRING",
+        "MEPDBRENDER",
+        "MEPDBSMOKE",
+        "MEPDBUNFOLD",
+        "MEPDBUPDATE",
+        "MEPDEVICEBLOCKS",
+        "MEPHVAC",
+        "MEPHVACCONFIG",
+        "MEPHVACDRAW",
+        "MEPHVACSMOKE",
+        "MEPSELAYER"
     ];
+
+    public static readonly string[] All = [Entry, ..SubFeatures];
+
+    public static bool IsEntry(string? code) =>
+        string.Equals(code?.Trim(), Entry, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsSubFeature(string? code) =>
+        !string.IsNullOrWhiteSpace(code) &&
+        SubFeatures.Contains(code.Trim(), StringComparer.OrdinalIgnoreCase);
 }

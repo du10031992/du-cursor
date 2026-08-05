@@ -134,13 +134,16 @@
     }
     .msg.error { background: #fdecec; border-color: #f0b4b4; color: var(--bad); }
     .checks { display: flex; gap: 14px; flex-wrap: wrap; padding-bottom: 4px; }
-    .checks label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: .92rem; }
+    .feature.entry { border-color: #0f4c5c; background: #eef6f8; }
+    .feature.sub { font-size: .82rem; }
+    .feature-group { margin-top: 8px; }
+    .feature-group-title { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 700; }
   </style>
 </head>
 <body>
   <header>
     <h1>MepPanel Admin Control</h1>
-    <div class="sub">Tắt/bật user · thiết bị · chức năng tool theo số điện thoại</div>
+    <div class="sub">MEPDB = lệnh duy nhất vào plugin · chức năng phụ khóa/mở bên trong panel</div>
   </header>
 
   <main>
@@ -168,12 +171,9 @@
           <label>Tên hiển thị</label>
           <input id="newName" type="text" placeholder="Ky su A" />
         </div>
-        <div class="field">
-          <label>Chức năng mở</label>
-          <div class="checks">
-            <label><input id="featDb" type="checkbox" checked /> MEPDB</label>
-            <label><input id="featHvac" type="checkbox" checked /> MEPHVAC</label>
-          </div>
+        <div class="field" style="flex:2">
+          <label>Chức năng mở (MEPDB bắt buộc để vào plugin)</label>
+          <div class="checks" id="createFeatures"></div>
         </div>
         <button id="btnCreate" class="ok" type="button">Tạo &amp; Active</button>
       </div>
@@ -191,6 +191,8 @@
     const toast = document.getElementById("toast");
     const statsEl = document.getElementById("stats");
     const usersEl = document.getElementById("users");
+    const createFeaturesEl = document.getElementById("createFeatures");
+    let catalog = { entryFeature: "MEPDB", subFeatures: [], availableFeatures: ["MEPDB"] };
 
     apiKeyInput.value = localStorage.getItem(KEY) || apiKeyInput.value;
 
@@ -235,12 +237,42 @@
       `;
     }
 
-    function featureToggle(user, code, enabled) {
+    function featureToggle(user, code, enabled, cssClass) {
       return `
-        <label class="feature">
+        <label class="feature ${cssClass || ""}">
           <input type="checkbox" data-user="${user.id}" data-feature="${code}" ${enabled ? "checked" : ""} />
           <span>${code}</span>
         </label>`;
+    }
+
+    function renderCreateFeatures() {
+      const entry = catalog.entryFeature || "MEPDB";
+      const subs = catalog.subFeatures || [];
+      createFeaturesEl.innerHTML = `
+        <div class="feature-group">
+          <div class="feature-group-title">Vào plugin</div>
+          <label class="feature entry"><input type="checkbox" data-create-feature="${entry}" checked /> ${entry}</label>
+        </div>
+        <div class="feature-group">
+          <div class="feature-group-title">Chức năng phụ trong panel</div>
+          ${subs.map(code => `<label class="feature sub"><input type="checkbox" data-create-feature="${code}" checked /> ${code}</label>`).join("")}
+        </div>`;
+    }
+
+    function renderUserFeatures(u, flags) {
+      const entry = catalog.entryFeature || "MEPDB";
+      const subs = catalog.subFeatures || [];
+      const entryHtml = featureToggle(u, entry, !!flags[entry], "entry");
+      const subsHtml = subs.map(code => featureToggle(u, code, !!flags[code], "sub")).join("");
+      return `
+        <div class="feature-group">
+          <div class="feature-group-title">Vào plugin</div>
+          <div class="features">${entryHtml}</div>
+        </div>
+        <div class="feature-group">
+          <div class="feature-group-title">Chức năng phụ</div>
+          <div class="features">${subsHtml}</div>
+        </div>`;
     }
 
     function renderUsers(users) {
@@ -262,10 +294,7 @@
               ${badge(u.status)}
             </div>
 
-            <div class="features">
-              ${featureToggle(u, "MEPDB", !!flags.MEPDB)}
-              ${featureToggle(u, "MEPHVAC", !!flags.MEPHVAC)}
-            </div>
+            ${renderUserFeatures(u, flags)}
 
             <div class="actions">
               <button type="button" class="ok" data-action="user-active" data-id="${u.id}">Mở user</button>
@@ -295,6 +324,12 @@
     async function reload() {
       try {
         const data = await api("/api/Admin/overview");
+        catalog = {
+          entryFeature: (data.totals && data.totals.entryFeature) || "MEPDB",
+          subFeatures: (data.totals && data.totals.subFeatures) || [],
+          availableFeatures: (data.totals && data.totals.availableFeatures) || ["MEPDB"]
+        };
+        renderCreateFeatures();
         renderStats(data.totals);
         renderUsers(data.users || []);
         showMsg("Đã tải " + (data.users || []).length + " user.");
@@ -313,8 +348,13 @@
       const phoneNumber = document.getElementById("newPhone").value.trim();
       const displayName = document.getElementById("newName").value.trim();
       const features = [];
-      if (document.getElementById("featDb").checked) features.push("MEPDB");
-      if (document.getElementById("featHvac").checked) features.push("MEPHVAC");
+      createFeaturesEl.querySelectorAll("input[data-create-feature]:checked").forEach(el => {
+        features.push(el.getAttribute("data-create-feature"));
+      });
+      if (!features.includes(catalog.entryFeature || "MEPDB")) {
+        showMsg("User mới phải bật MEPDB để vào plugin.", true);
+        return;
+      }
       try {
         await api("/api/Admin/users", {
           method: "POST",
