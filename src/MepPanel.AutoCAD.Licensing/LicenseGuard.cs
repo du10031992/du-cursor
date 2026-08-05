@@ -9,8 +9,8 @@ namespace MepPanel.AutoCAD.Licensing
     /// </summary>
     public static class LicenseGuard
     {
-        // HTTP dev: http://localhost:5268 · HTTPS/admin: https://localhost:7024
-        public const string LicenseServerBaseUrl = "https://localhost:7024/";
+        // Mac dinh dev; production dat trong MepPanel.config.json cạnh plugin.
+        public static string LicenseServerBaseUrl => LicenseConfig.LicenseServerBaseUrl;
 
         public static bool EnsureAuthorized(bool requireFreshServerFeatures = false)
         {

@@ -1,0 +1,39 @@
+services:
+  license-server:
+    build:
+      context: ..
+      dockerfile: MepPanel.LicenseServer/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Data Source=/data/mep-panel-license.db
+      Jwt__Key: ${JWT_KEY}
+      Admin__ApiKey: ${ADMIN_API_KEY}
+      LicenseSettings__TestMode: "false"
+      Sms__WebhookUrl: ${SMS_WEBHOOK_URL}
+      Sms__ApiKey: ${SMS_API_KEY}
+    volumes:
+      - license-data:/data
+    networks:
+      - meppanel
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - license-server
+    networks:
+      - meppanel
+
+volumes:
+  license-data:
+
+networks:
+  meppanel:

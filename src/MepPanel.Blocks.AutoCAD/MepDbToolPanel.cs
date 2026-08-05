@@ -1,5 +1,7 @@
+using System;
 using System.Drawing;
 using System.Windows.Forms;
+using MepPanel.Blocks.AutoCAD.Drawing;
 
 namespace MepPanel.Blocks.AutoCAD
 {
@@ -9,38 +11,62 @@ namespace MepPanel.Blocks.AutoCAD
         {
             BackColor = Color.White;
             Padding = new Padding(12);
+            AutoScroll = true;
 
-            var title = new Label
+            AddTitle("MEPDB - Drawing Database");
+            AddHint("Tao layer, chen block thiet bi, ve vung MEPDB.");
+            AddButton("Tao layer MEPDB", (s, e) => RunSafe(MepDbDrawingService.EnsureLayer));
+            AddButton("Chen block thiet bi (MEPDB_EQUIP)", (s, e) => RunSafe(MepDbDrawingService.InsertEquipmentMarker));
+            AddButton("Ve vung thiet bi (hinh chu nhat)", (s, e) => RunSafe(MepDbDrawingService.DrawEquipmentZone));
+        }
+
+        private void AddTitle(string text)
+        {
+            Controls.Add(new Label
             {
-                Text = "MEPDB — Drawing Database",
+                Text = text,
                 Font = new Font(Font.FontFamily, 11f, FontStyle.Bold),
                 Dock = DockStyle.Top,
-                AutoSize = true
-            };
+                AutoSize = true,
+                Padding = new Padding(0, 0, 0, 6)
+            });
+        }
 
-            var hint = new Label
+        private void AddHint(string text)
+        {
+            Controls.Add(new Label
             {
-                Text = "Panel công cụ MEPDB. Gắn lệnh vẽ/block thật của bạn vào đây.",
+                Text = text,
                 Dock = DockStyle.Top,
                 AutoSize = true,
                 MaximumSize = new Size(280, 0),
-                Padding = new Padding(0, 8, 0, 8)
-            };
+                Padding = new Padding(0, 0, 0, 8)
+            });
+        }
 
-            var sampleButton = new Button
+        private void AddButton(string text, EventHandler click)
+        {
+            var button = new Button
             {
-                Text = "Chèn block mẫu (placeholder)",
+                Text = text,
                 Dock = DockStyle.Top,
-                Height = 32
+                Height = 32,
+                Margin = new Padding(0, 0, 0, 6)
             };
-            sampleButton.Click += (s, e) =>
-                MessageBox.Show(
-                    "Đây là placeholder MEPDB.\nThay bằng logic block/drawing thật.",
-                    "MepPanel MEPDB");
+            button.Click += click;
+            Controls.Add(button);
+        }
 
-            Controls.Add(sampleButton);
-            Controls.Add(hint);
-            Controls.Add(title);
+        private static void RunSafe(Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "MepPanel MEPDB");
+            }
         }
     }
 }

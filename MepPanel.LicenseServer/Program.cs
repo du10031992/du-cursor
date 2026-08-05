@@ -71,6 +71,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<ISmsGateway, WebhookSmsGateway>();
+builder.Services.AddHttpClient("SmsWebhook");
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Chưa cấu hình Jwt:Key.");

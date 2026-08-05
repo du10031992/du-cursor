@@ -6,8 +6,8 @@ cd "$ROOT"
 
 VERSION="${1:-$(tr -d '[:space:]' < VERSION)}"
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Version không hợp lệ: $VERSION"
-  echo "Dùng: ./scripts/pack-release.sh 0.1.0"
+  echo "Version khong hop le: $VERSION"
+  echo "Dung: ./scripts/pack-release.sh 0.3.0"
   exit 1
 fi
 
@@ -17,15 +17,17 @@ export PATH="$DOTNET_ROOT:$PATH"
 DIST="$ROOT/dist"
 STAGE="$DIST/staging/MepPanel-v$VERSION"
 SERVER_OUT="$STAGE/LicenseServer"
+BUNDLE_OUT="$STAGE/PluginBundle"
 DOCS_OUT="$STAGE/docs"
+DEPLOY_OUT="$STAGE/deploy"
 PLUGIN_SRC_OUT="$STAGE/PluginSource"
 ZIP_SERVER="$DIST/MepPanel-LicenseServer-v$VERSION.zip"
 ZIP_FULL="$DIST/MepPanel-v$VERSION.zip"
 
-echo "==> Đóng gói MepPanel v$VERSION"
+echo "==> Dong goi MepPanel v$VERSION"
 
 rm -rf "$STAGE"
-mkdir -p "$SERVER_OUT" "$DOCS_OUT" "$PLUGIN_SRC_OUT"
+mkdir -p "$SERVER_OUT" "$BUNDLE_OUT" "$DOCS_OUT" "$DEPLOY_OUT" "$PLUGIN_SRC_OUT"
 
 echo "==> Build LicenseServer (Release)"
 dotnet publish "$ROOT/MepPanel.LicenseServer/MepPanel.LicenseServer.csproj" \
@@ -34,75 +36,83 @@ dotnet publish "$ROOT/MepPanel.LicenseServer/MepPanel.LicenseServer.csproj" \
   -p:MepPanelVersion="$VERSION" \
   -p:Version="$VERSION"
 
-echo "==> Copy tài liệu + source plugin"
+echo "==> Copy bundle + tai lieu + deploy"
+cp -R "$ROOT/bundle/MepPanel.Plugin.bundle/." "$BUNDLE_OUT/"
 cp "$ROOT/README.md" "$STAGE/"
 cp "$ROOT/CHANGELOG.md" "$STAGE/"
 cp "$ROOT/VERSION" "$STAGE/"
 cp "$ROOT/docs/LICENSE_ADMIN_GUIDE.md" "$DOCS_OUT/"
-cp -R "$ROOT/src/MepPanel.AutoCAD/." "$PLUGIN_SRC_OUT/MepPanel.AutoCAD/"
-cp -R "$ROOT/src/MepPanel.Core/." "$PLUGIN_SRC_OUT/MepPanel.Core/"
+cp "$ROOT/docs/PLUGIN_INSTALL.md" "$DOCS_OUT/"
+cp "$ROOT/docs/DEPLOY_VPS.md" "$DOCS_OUT/"
+cp -R "$ROOT/deploy/." "$DEPLOY_OUT/"
+
+echo "==> Copy plugin source (build tren Windows + AutoCAD 2021)"
+for proj in MepPanel.AutoCAD MepPanel.AutoCAD.Licensing MepPanel.Blocks.AutoCAD MepPanel.Core; do
+  cp -R "$ROOT/src/$proj/." "$PLUGIN_SRC_OUT/$proj/"
+done
 
 cat > "$STAGE/RELEASE_NOTES.md" <<EOF
 # MepPanel v$VERSION
 
-Ngày đóng gói: $(date -u +%Y-%m-%d)
+Ngay dong goi: $(date -u +%Y-%m-%d)
 
-## Thành phần trong gói
+## Thanh phan trong goi
 
-| Thư mục | Mô tả |
+| Thu muc | Mo ta |
 |---|---|
-| \`LicenseServer/\` | Máy chủ kiểm soát (chạy được) |
-| \`PluginSource/\` | Source plugin AutoCAD (build trên máy có AutoCAD 2021) |
-| \`docs/\` | Hướng dẫn Admin/test |
+| \`LicenseServer/\` | May chu kiem soat (chay duoc) |
+| \`PluginBundle/\` | Bundle AutoCAD (can build DLL tren Windows) |
+| \`PluginSource/\` | Source plugin (build tren may co AutoCAD 2021) |
+| \`deploy/\` | Docker + nginx cho VPS |
+| \`docs/\` | Huong dan Admin, cai plugin, deploy VPS |
 
-## Chạy License Server
+## License Server
 
 \`\`\`bash
 cd LicenseServer
 dotnet MepPanel.LicenseServer.dll
 \`\`\`
 
-Hoặc trên Windows: mở solution, F5 project \`MepPanel.LicenseServer\`.
+Hoac VPS: xem \`docs/DEPLOY_VPS.md\`
 
-Swagger mặc định: \`https://localhost:7024/swagger\`
+- Admin: \`/admin\`
+- Admin key: \`appsettings.json\` hoac env \`Admin__ApiKey\`
+- OTP test (TestMode=true): \`123456\`
 
-- Admin key: xem \`LicenseServer/appsettings.json\` → \`Admin:ApiKey\`
-- OTP test: \`123456\`
-- User seed: \`0900000001\`, \`0900000002\`
+## Plugin AutoCAD
 
-Chi tiết: \`docs/LICENSE_ADMIN_GUIDE.md\`
+Windows PowerShell:
+
+\`\`\`powershell
+.\\scripts\\install-plugin-bundle.ps1
+\`\`\`
+
+Production: dat \`MepPanel.config.json\` trong bundle Contents (xem \`docs/DEPLOY_VPS.md\`).
+
+Lenh: \`MEPSTATUS\`, \`MEPLOGIN\`, \`MEPDB\`, \`MEPHVAC\`, \`MEPLOGOUT\`
 EOF
 
-echo "==> Tạo zip"
+echo "==> Tao zip"
 rm -f "$ZIP_SERVER" "$ZIP_FULL"
 mkdir -p "$DIST"
 
 (
-  cd "$SERVER_OUT/.."
-  # STAGE/LicenseServer -> zip server-only from parent of LicenseServer... 
-  true
-)
-
-# Server-only zip
-(
   cd "$STAGE"
-  zip -qr "$ZIP_SERVER" LicenseServer RELEASE_NOTES.md VERSION CHANGELOG.md docs
+  zip -qr "$ZIP_SERVER" LicenseServer RELEASE_NOTES.md VERSION CHANGELOG.md docs deploy
 )
 
-# Full zip
 (
   cd "$DIST/staging"
   zip -qr "$ZIP_FULL" "MepPanel-v$VERSION"
 )
 
-# checksums
 (
   cd "$DIST"
   sha256sum "MepPanel-LicenseServer-v$VERSION.zip" "MepPanel-v$VERSION.zip" > "SHA256-v$VERSION.txt"
 )
 
 echo
-echo "Đã đóng gói:"
+echo "Da dong goi:"
 echo "  - $ZIP_SERVER"
 echo "  - $ZIP_FULL"
 echo "  - $DIST/SHA256-v$VERSION.txt"

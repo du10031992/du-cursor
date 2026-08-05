@@ -10,12 +10,16 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
-## [0.3.0] - 2026-08-05 — Tool panels + bundle tự load
+## [0.3.0] - 2026-08-05 — Tool panels + bundle tự load + logic vẽ + VPS
 
 ### Thêm mới
 - Panel AutoCAD **MEPDB** / **MEPHVAC** (`MepPanel.Blocks.AutoCAD`)
+- Logic vẽ thật: layer, block thiết bị, vùng MEPDB; duct + elbow MEPHVAC
 - Bundle `MepPanel.Plugin.bundle` — AutoCAD tự load (không NETLOAD thủ công)
 - Script `scripts/install-plugin-bundle.ps1`
+- `MepPanel.config.json` — cấu hình URL server production
+- SMS OTP production: `OtpService`, `WebhookSmsGateway`
+- Deploy VPS: Docker, nginx, `docs/DEPLOY_VPS.md`
 
 ### Sửa lỗi
 - Thông báo khóa user/feature rõ ràng hơn

@@ -46,6 +46,12 @@ if (Test-Path $coreDll) {
     Copy-Item $coreDll (Join-Path $BundleContents "MepPanel.Core.dll") -Force
 }
 
+$configExample = Join-Path $BundleContents "MepPanel.config.json.example"
+if (Test-Path $configExample) {
+    Write-Host "==> Config example: $configExample"
+    Write-Host "    Production: copy to MepPanel.config.json and set licenseServerUrl"
+}
+
 if ($SkipInstall) {
     Write-Host "==> Skip install (-SkipInstall). Bundle ready at: $BundleRoot"
     exit 0

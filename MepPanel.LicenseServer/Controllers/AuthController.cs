@@ -11,22 +11,19 @@ namespace MepPanel.LicenseServer.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IConfiguration _configuration;
-    private readonly IWebHostEnvironment _environment;
     private readonly JwtTokenService _jwtTokenService;
+    private readonly OtpService _otpService;
     private readonly AuditService _auditService;
 
     public AuthController(
         AppDbContext db,
-        IConfiguration configuration,
-        IWebHostEnvironment environment,
         JwtTokenService jwtTokenService,
+        OtpService otpService,
         AuditService auditService)
     {
         _db = db;
-        _configuration = configuration;
-        _environment = environment;
         _jwtTokenService = jwtTokenService;
+        _otpService = otpService;
         _auditService = auditService;
     }
 
@@ -55,26 +52,21 @@ public class AuthController : ControllerBase
                 new { message = "Tài khoản đang bị khóa." });
         }
 
-        var testMode = _configuration.GetValue("LicenseSettings:TestMode", true);
-        var testOtp = _configuration["LicenseSettings:TestOtp"] ?? "123456";
-
-        if (testMode || _environment.IsDevelopment())
+        try
         {
-            await _auditService.WriteAsync(
-                "request-otp",
-                $"OTP thử nghiệm cho {phoneNumber}",
-                user.Id);
-
+            OtpRequestResult result = await _otpService.RequestOtpAsync(phoneNumber, user.Id);
             return Ok(new
             {
-                message = "OTP thử nghiệm đã được tạo.",
-                testOtp
+                message = result.Message,
+                testOtp = result.TestOtp
             });
         }
-
-        return StatusCode(
-            StatusCodes.Status501NotImplemented,
-            new { message = "Dịch vụ SMS thật chưa được cấu hình." });
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = ex.Message });
+        }
     }
 
     [HttpPost("verify-otp")]
@@ -82,7 +74,6 @@ public class AuthController : ControllerBase
     {
         var phoneNumber = NormalizePhone(request.PhoneNumber);
         var otp = (request.Otp ?? string.Empty).Trim();
-        var testOtp = _configuration["LicenseSettings:TestOtp"] ?? "123456";
 
         if (phoneNumber.Length == 0)
         {
@@ -93,12 +84,12 @@ public class AuthController : ControllerBase
             });
         }
 
-        if (!string.Equals(otp, testOtp, StringComparison.Ordinal))
+        if (!_otpService.VerifyOtp(phoneNumber, otp))
         {
             return Unauthorized(new
             {
                 authenticated = false,
-                message = "Mã OTP không chính xác."
+                message = "Mã OTP không chính xác hoặc đã hết hạn."
             });
         }
 

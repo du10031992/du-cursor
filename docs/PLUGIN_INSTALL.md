@@ -41,3 +41,15 @@ Script sẽ:
 ```
 
 Cần 3 DLL cùng thư mục: `MepPanel.Plugin.dll`, `MepPanel.AutoCAD.Licensing.dll`, `MepPanel.Blocks.AutoCAD.dll`.
+
+## Cấu hình server production
+
+Copy `MepPanel.config.json.example` → `MepPanel.config.json` trong `Contents/`:
+
+```json
+{
+  "licenseServerUrl": "https://license.your-domain.com/"
+}
+```
+
+Xem thêm: `docs/DEPLOY_VPS.md`
