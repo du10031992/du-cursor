@@ -10,6 +10,13 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
+## [0.2.3] - 2026-08-05 — Sửa đơ/lag sau đăng nhập
+
+### Sửa lỗi
+- Gọi API license trên thread pool (`AsyncRunner`) — tránh deadlock luồng AutoCAD sau khi bấm Đăng nhập
+
+---
+
 ## [0.2.2] - 2026-08-04 — Sửa NETLOAD (MepPanel.Plugin.dll)
 
 ### Sửa lỗi

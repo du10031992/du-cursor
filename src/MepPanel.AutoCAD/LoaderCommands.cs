@@ -14,7 +14,7 @@ namespace MepPanel.Plugin
         public void Status()
         {
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMepPanel v0.2.2 loader OK. Gõ MEPLOGIN / MEPDB / MEPHVAC.");
+                "\nMepPanel v0.2.3 loader OK. Gõ MEPLOGIN / MEPDB / MEPHVAC.");
         }
 
         [CommandMethod("MEPLOGIN", CommandFlags.Modal)]
