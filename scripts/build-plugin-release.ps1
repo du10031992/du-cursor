@@ -100,31 +100,71 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 
-$AutoCadOut = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\bin\$Configuration"
-$CoreOut = Join-Path $PluginSourceRoot "src\MepPanel.Core\bin\$Configuration\net48"
+$AutoCadOut = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\bin\x64\$Configuration"
+if (-not (Test-Path (Join-Path $AutoCadOut "MepPanel.AutoCAD.dll"))) {
+    $AutoCadOut = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\bin\$Configuration"
+}
+
+# MepPanelMvp co the output thang vao ApplicationPlugins (output path custom)
+# Tim them o day neu bin\ khong co
+$AutoCadAlt = "$env:ProgramData\Autodesk\ApplicationPlugins\MepPanelMvp.bundle\Contents\Windows"
+
+$CoreOut = Join-Path $PluginSourceRoot "src\MepPanel.Core\bin\x64\$Configuration\net48"
+if (-not (Test-Path (Join-Path $CoreOut "MepPanel.Core.dll"))) {
+    $CoreOut = Join-Path $PluginSourceRoot "src\MepPanel.Core\bin\$Configuration\net48"
+}
+if (-not (Test-Path (Join-Path $CoreOut "MepPanel.Core.dll"))) {
+    $CoreOut = Join-Path $PluginSourceRoot "src\MepPanel.Core\bin\x64\$Configuration"
+}
 if (-not (Test-Path (Join-Path $CoreOut "MepPanel.Core.dll"))) {
     $CoreOut = Join-Path $PluginSourceRoot "src\MepPanel.Core\bin\$Configuration"
 }
 
+function Find-Dll {
+    param([string]$Name, [string[]]$Dirs)
+    foreach ($dir in $Dirs) {
+        $p = Join-Path $dir $Name
+        if (Test-Path $p) { return $p }
+    }
+    return $null
+}
+
+$acadDirs = @($AutoCadOut, $AutoCadAlt)
+$coreDirs  = @($CoreOut)
+
 $outputs = @(
-    @{ Name = "MepPanel.AutoCAD.dll"; SourceDir = $AutoCadOut },
-    @{ Name = "MepPanel.AutoCAD.pdb"; SourceDir = $AutoCadOut },
-    @{ Name = "MepPanel.Core.dll"; SourceDir = $CoreOut },
-    @{ Name = "MepPanel.Core.pdb"; SourceDir = $CoreOut }
+    @{ Name = "MepPanel.AutoCAD.dll"; Dirs = $acadDirs },
+    @{ Name = "MepPanel.AutoCAD.pdb"; Dirs = $acadDirs },
+    @{ Name = "MepPanel.Core.dll";   Dirs = $coreDirs  },
+    @{ Name = "MepPanel.Core.pdb";   Dirs = $coreDirs  }
 )
 
 Write-Host "==> Copy DLL vao bundle"
 New-Item -ItemType Directory -Force -Path $BundleContents | Out-Null
+$anyOk = $false
 foreach ($item in $outputs) {
-    $src = Join-Path $item.SourceDir $item.Name
-    if (-not (Test-Path $src)) {
-        Write-Host "   (bo qua - khong co) $src"
+    $src = Find-Dll -Name $item.Name -Dirs $item.Dirs
+    if (-not $src) {
+        Write-Host "   (bo qua - khong tim thay) $($item.Name)"
+        Write-Host "   Da tim trong: $($item.Dirs -join ', ')"
         continue
     }
     $dest = Join-Path $BundleContents $item.Name
     Copy-Item $src $dest -Force
     Unblock-File $dest -ErrorAction SilentlyContinue
-    Write-Host "   OK $($item.Name)"
+    Write-Host "   OK $($item.Name) <- $src"
+    if ($item.Name -eq "MepPanel.AutoCAD.dll") { $anyOk = $true }
+}
+
+if (-not $anyOk) {
+    throw @"
+Khong tim thay MepPanel.AutoCAD.dll sau khi build.
+
+Tim trong:
+  $($acadDirs -join "`n  ")
+
+Kiem tra OutputPath trong MepPanel.AutoCAD.csproj cua MepPanelMvp.
+"@
 }
 
 if ($Version) {
