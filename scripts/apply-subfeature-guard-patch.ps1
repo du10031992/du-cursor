@@ -93,6 +93,7 @@ function Test-ShouldScanFile {
     if ($FullName -match '\\Licensing\\') { return $false }
     if ($FullName -notmatch '\\src\\MepPanel\.AutoCAD\\') { return $false }
     if ($FullName -match 'LoginWindow|LoginPalette') { return $false }
+    if ($FullName -match 'PanelConfigurationWindow|ConfigurationWindow') { return $false }
     return $true
 }
 
