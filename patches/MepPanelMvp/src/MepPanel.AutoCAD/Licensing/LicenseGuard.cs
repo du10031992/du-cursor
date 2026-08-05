@@ -100,7 +100,7 @@ namespace MepPanel.AutoCAD.Licensing
                 {
                     Interval = TimeSpan.FromMilliseconds(200)
                 };
-                closeTimer.Tick += (_, _) =>
+                closeTimer.Tick += (sender, args) =>
                 {
                     if (!LicenseSession.IsAuthorized)
                     {
@@ -113,7 +113,7 @@ namespace MepPanel.AutoCAD.Licensing
                     {
                         Interval = TimeSpan.FromMilliseconds(600)
                     };
-                    delayTimer.Tick += (_, _) =>
+                    delayTimer.Tick += (sender2, args2) =>
                     {
                         delayTimer.Stop();
                         window.Close();
