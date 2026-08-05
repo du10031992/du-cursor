@@ -34,5 +34,5 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
 
 Write-Host "   Da sua $files file, xoa tong $removed dong guard loi."
 if ($removed -eq 0) {
-    Write-Host "   (Khong tim thay dong guard — source co the da sach.)"
+    Write-Host "   (Khong tim thay dong guard - source co the da sach.)"
 }
