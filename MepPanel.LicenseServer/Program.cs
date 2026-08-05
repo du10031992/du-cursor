@@ -132,7 +132,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Trang điều khiển Admin: https://localhost:7024/admin/
+// Admin UI — phuc vu ro rang /admin va /admin/
+var adminIndex = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "admin", "index.html");
+app.MapGet("/admin", () => Results.Redirect("/admin/"));
+app.MapGet("/admin/", () =>
+{
+    if (!File.Exists(adminIndex))
+    {
+        return Results.NotFound("Khong tim thay wwwroot/admin/index.html. Hay git pull repo du-cursor.");
+    }
+
+    return Results.File(adminIndex, "text/html");
+});
+app.MapGet("/admin/index.html", () => Results.File(adminIndex, "text/html"));
+
+// Trang mac dinh
 app.MapGet("/", () => Results.Redirect("/admin/"));
 
 app.Run();
