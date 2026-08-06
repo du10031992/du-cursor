@@ -76,6 +76,11 @@ DEVICE_PNG_MAP = {
     "RELAY":      ["device_relay_ls.png", "device_relay.png"],
     "TIMER":      ["device_timer_schneider.png", "device_timer.png"],
     "METER":      ["device_meter_pm5560.png", "device_meter.png"],
+    "PILOT":      ["device_pilot_3phase.png", "device_pilot.png"],
+    "INDICATOR":  ["device_pilot_3phase.png", "device_pilot.png"],
+    "DEN BAO":    ["device_pilot_3phase.png"],
+    "SPD":        ["device_spd.png", "device_surge.png"],
+    "SURGE":      ["device_spd.png", "device_surge.png"],
 }
 
 DEVICE_MODULES = {
@@ -672,7 +677,24 @@ def main():
     parser.add_argument("--input", "-i")
     parser.add_argument("--output", "-o", default="cabinet.png")
     parser.add_argument("--demo", action="store_true")
+    parser.add_argument("--mode", choices=("interior", "layout"), default="interior",
+                        help="interior = tu mo that (mac dinh), layout = bang DIN UI")
     args = parser.parse_args()
+
+    if args.mode == "interior":
+        from render_cabinet_interior import render_interior
+        if args.demo or not args.input:
+            spec = make_demo()
+            spec.name = "DB-01"
+            spec.size = "H600xW500xD225"
+        elif args.input.lower().endswith(".json"):
+            spec = parse_json(args.input)
+        else:
+            spec = parse_csv(args.input)
+        img = render_interior(spec)
+        img.save(args.output, "PNG", dpi=(150, 150))
+        print(f"OK {args.output}  ({img.width}x{img.height}px) [interior]")
+        return
 
     if args.demo or not args.input:
         spec = make_demo()

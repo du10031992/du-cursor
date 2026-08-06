@@ -14,6 +14,9 @@ pip install -r requirements.txt
 python3 render_cabinet.py --demo --output cabinet.png
 ```
 
+Che do mac dinh: `--mode interior` (tu mo that, 3 den bao pha L1/L2/L3).
+Che do cu: `--mode layout` (bang DIN + sidebar UI).
+
 ## Ảnh thiết bị AI (`devices/`)
 
 | File | Loại thiết bị |
@@ -25,6 +28,8 @@ python3 render_cabinet.py --demo --output cabinet.png
 | `device_relay_ls.png` | Relay nhiệt |
 | `device_timer_schneider.png` | Timer |
 | `device_meter_pm5560.png` | Đồng hồ đo |
+| `device_pilot_3phase.png` | **Đèn báo pha 3P** (L1/L2/L3 đỏ/vàng/xanh) |
+| `device_spd.png` | Chống sét SPD |
 | `cabinet-render-reference.png` | Tham chiếu tủ mở (full panel) |
 
 Ảnh được tạo bằng AI theo phong cách **catalog Schneider / tủ điện thực tế** (nền trắng, dễ tách nền tự động).

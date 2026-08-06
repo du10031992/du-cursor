@@ -29,6 +29,8 @@ Write-Host "==> Cai anh thiet bi AI ($pngCount file PNG)"
 New-Item -ItemType Directory -Force -Path $DstDevices | Out-Null
 Copy-Item (Join-Path $SrcDevices "*.png") $DstDevices -Force
 Copy-Item (Join-Path $Root "renderer\render_cabinet.py") $DstScript -Force
+$DstInterior = Join-Path $BundleContents "render_cabinet_interior.py"
+Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") $DstInterior -Force
 Write-Host "   -> bundle: $DstDevices"
 
 $installDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents"
@@ -37,6 +39,7 @@ if (Test-Path $installDir) {
     New-Item -ItemType Directory -Force -Path $autoDevices | Out-Null
     Copy-Item (Join-Path $SrcDevices "*.png") $autoDevices -Force
     Copy-Item (Join-Path $Root "renderer\render_cabinet.py") (Join-Path $installDir "render_cabinet.py") -Force
+    Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") (Join-Path $installDir "render_cabinet_interior.py") -Force
     Write-Host "   -> AutoCAD: $autoDevices"
 }
 else {
