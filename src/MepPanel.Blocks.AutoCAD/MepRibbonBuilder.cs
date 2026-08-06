@@ -4,7 +4,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 using Autodesk.Windows;
-using Autodesk.AutoCAD.ApplicationServices.Core;
+using AcCore = Autodesk.AutoCAD.ApplicationServices.Core;
 using MepPanel.Blocks.AutoCAD.Drawing;
 using MepPanel.Core;
 using MepPanel.Core.Standards;
@@ -204,13 +204,16 @@ namespace MepPanel.Blocks.AutoCAD
     {
         private readonly string _cmd;
         public RibbonCmdHandler(string cmd) { _cmd = cmd; }
+#pragma warning disable 67
         public event EventHandler CanExecuteChanged;
+#pragma warning restore 67
         public bool CanExecute(object parameter) => true;
         public void Execute(object parameter)
         {
             try
             {
-                var doc = Application.DocumentManager.MdiActiveDocument;
+                var doc = Autodesk.AutoCAD.ApplicationServices.Core.Application
+                    .DocumentManager.MdiActiveDocument;
                 if (doc != null)
                     doc.SendStringToExecute(_cmd + " ", true, false, true);
             }
