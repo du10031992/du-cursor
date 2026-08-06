@@ -61,11 +61,21 @@ else {
 Write-Host ""
 Write-Host "Xong! Khoi dong lai AutoCAD, thu Render tu dien."
 Write-Host ""
-Write-Host "Test render ngoai AutoCAD (tuy chon):"
-Write-Host '  py -m pip install pillow'
-Write-Host ""
-Write-Host 'Render 3D (can Blender - xem scripts\install-blender-render.ps1):'
-Write-Host '  py renderer\render_cabinet.py --demo --quality blender --samples 256 --output cabinet.png'
-Write-Host ""
-Write-Host 'Fallback nhanh (Pillow, khong can Blender):'
-Write-Host '  py renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png'
+
+# Tim python de in lenh dung
+. (Join-Path $PSScriptRoot "Find-MepPython.ps1")
+$py = Get-MepPython
+if ($py) {
+    $run = if ($py.Prefix) { "$($py.Exe) $($py.Prefix)".Trim() } else { $py.Exe }
+    Write-Host "Python: $run"
+    Write-Host "Test render Blender:"
+    Write-Host ("  {0}renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png" -f ($run + " "))
+    Write-Host "Fallback Pillow:"
+    Write-Host ("  {0}renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png" -f ($run + " "))
+}
+else {
+    Write-Host "CHUA tim thay Python. Cai tu https://www.python.org/downloads/"
+    Write-Host "Khi cai: tick 'Add python.exe to PATH'"
+    Write-Host "Sau do thu:"
+    Write-Host '  python renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png'
+}

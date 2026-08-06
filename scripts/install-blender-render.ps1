@@ -29,11 +29,14 @@ if ($blender) {
     Write-Host "Blender: $blender"
     & $blender --version
     Write-Host ""
-    Write-Host 'Test render (128 samples, khoang 1-3 phut):'
-    Write-Host "  py renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png"
+    . (Join-Path $PSScriptRoot "Find-MepPython.ps1")
+    $py = Get-MepPython
+    $run = if ($py) { if ($py.Prefix) { "$($py.Exe) $($py.Prefix)".Trim() } else { $py.Exe } } else { "python" }
+    Write-Host "Test render (128 samples, khoang 1-3 phut):"
+    Write-Host ("  {0} renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png" -f $run)
     Write-Host ""
     Write-Host "V-Ray (tuy chon, can license + addon):"
-    Write-Host "  py renderer\render_cabinet.py --demo --quality blender --engine vray --samples 256 --output cabinet_vray.png"
+    Write-Host ("  {0} renderer\render_cabinet.py --demo --quality blender --engine vray --samples 256 --output cabinet_vray.png" -f $run)
 }
 else {
     Write-Host "Blender CHUA cai."
@@ -45,7 +48,7 @@ else {
     Write-Host "Plugin se tu fallback Cycles neu chua co V-Ray."
     Write-Host ""
     Write-Host "Trong thoi gian cho, dung Pillow fallback:"
-    Write-Host "  py renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png"
+    Write-Host "  python renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png"
 }
 
 Write-Host ""
