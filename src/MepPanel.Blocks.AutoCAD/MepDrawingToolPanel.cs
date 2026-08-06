@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using MepPanel.Blocks.AutoCAD.Drawing;
 using MepPanel.Core;
+using MepPanel.Core.Standards;
 
 namespace MepPanel.Blocks.AutoCAD;
 
@@ -68,6 +69,18 @@ public sealed class MepDrawingToolPanel : UserControl
             ("Chọn cùng layer", PluginFeatures.SeLayer, () => Run(PluginFeatures.SeLayer, MepCommonDrawingService.SelectSameLayer)),
             ("Cấu hình tủ", PluginFeatures.Config, () => Run(PluginFeatures.Config, MepCommonDrawingService.ShowConfigHint)),
             ("Xuất CSV", PluginFeatures.Export, () => Run(PluginFeatures.Export, MepCommonDrawingService.ExportCsvHint))
+        }));
+
+        layout.Controls.Add(BuildGroup("Tiêu chuẩn & Tính toán", new (string, string, Action)[]
+        {
+            ("TC + CT — Hệ điện", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, () => MepKnowledgeService.ShowStandards(MepSystemKind.Electrical))),
+            ("Tính toán — Hệ điện", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, () => MepKnowledgeService.RunQuickCalculation(MepSystemKind.Electrical))),
+            ("TC + CT — Hệ nước", PluginFeatures.Water, () => Run(PluginFeatures.Water, () => MepKnowledgeService.ShowStandards(MepSystemKind.Water))),
+            ("Tính toán — Hệ nước", PluginFeatures.Water, () => Run(PluginFeatures.Water, () => MepKnowledgeService.RunQuickCalculation(MepSystemKind.Water))),
+            ("TC + CT — PCCC", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, () => MepKnowledgeService.ShowStandards(MepSystemKind.Fire))),
+            ("Tính toán — PCCC", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, () => MepKnowledgeService.RunQuickCalculation(MepSystemKind.Fire))),
+            ("TC + CT — Điều hòa", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, () => MepKnowledgeService.ShowStandards(MepSystemKind.Hvac))),
+            ("Tính toán — Điều hòa", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, () => MepKnowledgeService.RunQuickCalculation(MepSystemKind.Hvac)))
         }));
 
         layout.Controls.Add(BuildGroup("Tủ điện / DB", new (string, string, Action)[]

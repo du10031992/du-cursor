@@ -11,7 +11,7 @@ param(
     [string]$AutoCadDir,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
-    [string]$Version = "0.14.0",
+    [string]$Version = "0.15.0",
     [switch]$SkipInstall
 )
 
