@@ -1,16 +1,12 @@
-# Sua PanelCommands.cs / HvacCommands.cs bi vo (CS1519) bang cach gan lai [CommandMethod].
-# Map method -> lenh lay tu MepPanel.AutoCAD.dll trong bundle (nguon goc plugin).
+# Sua PanelCommands.cs / HvacCommands.cs bi vo (CS1519).
+# Quet lui tu moi method command: xoa dong rac, chen [CommandMethod].
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot,
-    [string]$BundleDll
+    [switch]$TryGitRestoreFirst
 )
 
 $ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent $PSScriptRoot
-if (-not $BundleDll) {
-    $BundleDll = Join-Path $Root "bundle\MepPanel.Plugin.bundle\Contents\MepPanel.AutoCAD.dll"
-}
 
 $CommandMaps = @{
     'PanelCommands.cs' = [ordered]@{
@@ -49,54 +45,37 @@ function Get-LeadingIndent {
     return '        '
 }
 
-function Test-IsOrphanAttributeLine {
+function Test-IsSkippableBeforeMethod {
     param([string]$Line)
-    if ([string]::IsNullOrWhiteSpace($Line)) { return $false }
-    return $Line -match '^\s*//\s*SINGLE_ENTRY_PATCH' -or
-           $Line -match '^\s*//\s*\[CommandMethod' -or
-           $Line -match '^\s*"[^"]+"\s*,?\s*$' -or
-           $Line -match '^\s*[\w\.]*CommandFlags\.' -or
-           ($Line -match '\)\]\s*$' -and $Line -notmatch '\[CommandMethod') -or
-           ($Line -match '^\s*\]\s*$')
+
+    if ([string]::IsNullOrWhiteSpace($Line)) { return $true }
+    if ($Line -match '^\s*//') { return $true }
+    if ($Line -match '^\s*"[^"]+"\s*,?\s*$') { return $true }
+    if ($Line -match '^\s*\[CommandMethod\b') { return $true }
+    if ($Line -match '^\s*CommandFlags\.') { return $true }
+    if ($Line -match '^\s*Modal\b') { return $true }
+    if ($Line -match '\)\]\s*$') { return $true }
+    if ($Line -match '^\s*\]\s*$') { return $true }
+    if ($Line -match '^\s*\#region') { return $true }
+    if ($Line -match '^\s*\#endregion') { return $true }
+
+    return $false
 }
 
-function Test-IsValidCommandMethodFor {
-    param([string]$Line, [string]$CommandName)
-    return $Line -match "\[CommandMethod\s*\(\s*`"$([regex]::Escape($CommandName))`""
+function Test-HasValidCommandMethod {
+    param(
+        [string]$Line,
+        [string]$CommandName
+    )
+    return $Line -match "\[CommandMethod\s*\(\s*`"$([regex]::Escape($CommandName))`"[^\]]*\)\]\s*$"
 }
 
 function Test-IsMethodDeclaration {
-    param([string]$Line)
-    return $Line -match '^\s*(public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?(?:void|[\w<>\[\]?,\s]+)\s+(?<name>\w+)\s*\('
-}
-
-function Remove-TrailingOrphanLines {
-    param($OutList)
-
-    while ($OutList.Count -gt 0) {
-        $last = $OutList[$OutList.Count - 1]
-        if ([string]::IsNullOrWhiteSpace($last)) {
-            $OutList.RemoveAt($OutList.Count - 1)
-            continue
-        }
-        if (Test-IsOrphanAttributeLine -Line $last) {
-            $OutList.RemoveAt($OutList.Count - 1)
-            continue
-        }
-        if ($last -match '^\s*\[CommandMethod' -and $last -notmatch '\)\]\s*$') {
-            $OutList.RemoveAt($OutList.Count - 1)
-            continue
-        }
-        break
-    }
-}
-
-function Test-FileLooksCorrupted {
-    param([string]$Text)
-    return $Text -match '(?m)^\s*"[^"]+"\s*,\s*$' -or
-           $Text -match '(?m)^\s*[\w\.]*CommandFlags\.[^\r\n]*\)\]\s*$' -or
-           $Text -match 'SINGLE_ENTRY_PATCH' -or
-           ($Text -match '(?m)\)\]\s*$' -and $Text -match '(?m)^\s*\]\s*$')
+    param(
+        [string]$Line,
+        [string]$MethodName
+    )
+    return $Line -match "^\s*(public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?[\w<>\[\]?,\s]+\s+$([regex]::Escape($MethodName))\s*\("
 }
 
 function Try-GitRestoreCommandFile {
@@ -124,116 +103,100 @@ function Try-GitRestoreCommandFile {
     }
 }
 
-function Repair-CommandFileByMethodMap {
+function Test-IsAnyMethodDeclaration {
+    param([string]$Line)
+    return $Line -match '^\s*(public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?[\w<>\[\]?,\s]+\s+(?<name>\w+)\s*\('
+}
+
+function Repair-CommandFile {
     param(
         [string]$Path,
         [hashtable]$MethodMap
     )
 
-    $text = Get-Content $Path -Raw -Encoding UTF8
-    if (-not (Test-FileLooksCorrupted -Text $text)) { return 0 }
-
-    $lines = Get-Content $Path -Encoding UTF8
-    $out = New-Object System.Collections.Generic.List[string]
-    $fixed = 0
+    $lines = [System.Collections.Generic.List[string]](Get-Content $Path -Encoding UTF8)
+    $removed = 0
+    $inserted = 0
     $changed = $false
 
-    foreach ($line in $lines) {
-        if (-not (Test-IsMethodDeclaration -Line $line)) {
-            $out.Add($line)
-            continue
-        }
-
-        if ($line -notmatch '^\s*(public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?(?:void|[\w<>\[\]?,\s]+)\s+(?<name>\w+)\s*\(') {
-            $out.Add($line)
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if (-not (Test-IsAnyMethodDeclaration -Line $lines[$i])) { continue }
+        if ($lines[$i] -notmatch '^\s*(public|private|protected|internal)\s+(?:static\s+)?(?:async\s+)?[\w<>\[\]?,\s]+\s+(?<name>\w+)\s*\(') {
             continue
         }
 
         $methodName = $Matches['name']
         $commandName = $MethodMap[$methodName]
-        $indent = Get-LeadingIndent $line
+        $indent = Get-LeadingIndent $lines[$i]
+        $j = $i - 1
+        $deleteIndexes = New-Object System.Collections.Generic.List[int]
+        $needsInsert = [bool]$commandName
 
-        Remove-TrailingOrphanLines -OutList $out
+        while ($j -ge 0) {
+            if ($commandName -and (Test-HasValidCommandMethod -Line $lines[$j] -CommandName $commandName)) {
+                $needsInsert = $false
+                break
+            }
 
-        $needsAttribute = $false
-        if ($commandName) {
-            $hasValid = $false
-            if ($out.Count -gt 0) {
-                $prev = $out[$out.Count - 1]
-                if (Test-IsValidCommandMethodFor -Line $prev -CommandName $commandName) {
-                    $hasValid = $true
+            if (Test-IsSkippableBeforeMethod -Line $lines[$j]) {
+                if (-not [string]::IsNullOrWhiteSpace($lines[$j])) {
+                    $deleteIndexes.Add($j)
                 }
-                elseif ($prev -match '^\s*\[CommandMethod' -and -not (Test-IsValidCommandMethodFor -Line $prev -CommandName $commandName)) {
-                    $out.RemoveAt($out.Count - 1)
-                    $changed = $true
-                    $needsAttribute = $true
-                }
+                $j--
+                continue
             }
-            else {
-                $needsAttribute = $true
-            }
-
-            if (-not $hasValid -and -not $needsAttribute) {
-                if ($out.Count -eq 0 -or $out[$out.Count - 1] -notmatch '\[CommandMethod') {
-                    $needsAttribute = $true
-                }
-            }
-
-            if ($needsAttribute) {
-                $out.Add("${indent}[CommandMethod(`"$commandName`", CommandFlags.Modal)]")
-                $fixed++
-                $changed = $true
-            }
+            break
         }
 
-        $out.Add($line)
+        if ($deleteIndexes.Count -gt 0) {
+            $changed = $true
+            $removed += $deleteIndexes.Count
+            foreach ($idx in ($deleteIndexes | Sort-Object -Descending)) {
+                $lines.RemoveAt($idx)
+            }
+            $i -= $deleteIndexes.Count
+        }
+
+        if ($needsInsert -and $commandName) {
+            $lines.Insert($i, "${indent}[CommandMethod(`"$commandName`", CommandFlags.Modal)]")
+            $inserted++
+            $changed = $true
+            $i++
+        }
     }
 
     if ($changed) {
-        Set-Content -Path $Path -Value ($out -join "`r`n") -Encoding UTF8
+        Set-Content -Path $Path -Value ($lines -join "`r`n") -Encoding UTF8
     }
 
-    return $fixed
+    return @{ Removed = $removed; Inserted = $inserted }
 }
 
-Write-Host "==> Repair: gan lai [CommandMethod] theo ten method (sua CS1519)"
-if (-not (Test-Path $BundleDll)) {
-    Write-Host "   CANH BAO: Khong tim thay $BundleDll"
-}
+Write-Host "==> Repair: xoa dong rac + gan lai [CommandMethod] (PanelCommands/HvacCommands)"
 
 $commandDir = Join-Path $PluginSourceRoot 'src\MepPanel.AutoCAD\Commands'
-$totalFixed = 0
-$totalFiles = 0
+$any = $false
 
 foreach ($entry in $CommandMaps.GetEnumerator()) {
     $fileName = $entry.Key
     $map = $entry.Value
     $path = Join-Path $commandDir $fileName
-    if (-not (Test-Path $path)) { continue }
-
-    $raw = Get-Content $path -Raw -Encoding UTF8
-    if (-not (Test-FileLooksCorrupted -Text $raw)) { continue }
-
-    if (Try-GitRestoreCommandFile -Path $path) {
-        Write-Host "   git restore -> $fileName"
-        $totalFiles++
+    if (-not (Test-Path $path)) {
+        Write-Host "   (bo qua - khong tim thay $fileName)"
         continue
     }
 
-    $count = Repair-CommandFileByMethodMap -Path $path -MethodMap $map
-    if ($count -gt 0) {
-        Write-Host "   gan lai $count [CommandMethod] -> $fileName"
-        $totalFixed += $count
-        $totalFiles++
+    if ($TryGitRestoreFirst) {
+        if (Try-GitRestoreCommandFile -Path $path) {
+            Write-Host "   git restore -> $fileName"
+        }
     }
-    elseif (Test-FileLooksCorrupted -Text (Get-Content $path -Raw -Encoding UTF8)) {
-        Write-Host "   CANH BAO: $fileName van co dau hieu hong - can xem tay"
-    }
+
+    $result = Repair-CommandFile -Path $path -MethodMap $map
+    Write-Host "   $fileName : xoa $($result.Removed) dong rac, chen $($result.Inserted) [CommandMethod]"
+    if ($result.Removed -gt 0 -or $result.Inserted -gt 0) { $any = $true }
 }
 
-if ($totalFiles -eq 0) {
-    Write-Host "   (Khong phat hien file Commands bi hong.)"
-}
-else {
-    Write-Host "   Da sua $totalFixed attribute trong $totalFiles file."
+if (-not $any) {
+    Write-Host "   Da quet xong. Neu van loi CS1519, gui 10 dong quanh line 286 trong PanelCommands.cs"
 }
