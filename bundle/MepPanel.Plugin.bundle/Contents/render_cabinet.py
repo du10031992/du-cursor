@@ -66,16 +66,20 @@ DEVICE_IMG_DIRS = [
 ]
 
 DEVICE_PNG_MAP = {
-    "MCCB":       ["device_mccb_schneider.png", "device_mccb.png"],
-    "MCB 1P":     ["device_mcb1p_schneider.png", "device_mcb1p.png"],
-    "MCB 2P":     ["device_mcb1p_schneider.png"],
-    "MCB 3P":     ["device_mcb3p_schneider.png", "device_mcb3p.png"],
-    "MCB 4P":     ["device_mcb3p_schneider.png"],
-    "ELCB":       ["device_mcb3p_schneider.png"],
-    "CONTACTOR":  ["device_contactor_ls.png", "device_contactor.png"],
-    "RELAY":      ["device_relay_ls.png", "device_relay.png"],
-    "TIMER":      ["device_timer_schneider.png", "device_timer.png"],
-    "METER":      ["device_meter_pm5560.png", "device_meter.png"],
+    "MCCB":         ["device_mccb_schneider.png", "device_mccb.png"],
+    "MCB 1P":       ["device_mcb1p_schneider.png", "device_mcb1p.png"],
+    "MCB 2P":       ["device_mcb1p_schneider.png"],
+    "MCB 3P":       ["device_mcb3p_schneider.png", "device_mcb3p.png"],
+    "MCB 4P":       ["device_mcb3p_schneider.png"],
+    "ELCB":         ["device_mcb3p_schneider.png"],
+    "CONTACTOR":    ["device_contactor_ls.png", "device_contactor.png"],
+    "RELAY":        ["device_relay_ls.png", "device_relay.png"],
+    "TIMER":        ["device_timer_schneider.png", "device_timer.png"],
+    "METER":        ["device_meter_pm5560.png", "device_meter.png"],
+    "BUSBAR":       ["device_busbar_3phase.png", "device_busbar.png"],
+    "BUSBAR_COMB":  ["device_busbar_comb.png"],
+    "BUSBAR_N":     ["device_busbar_3phase.png"],
+    "BUSBAR_PE":    ["device_busbar_3phase.png"],
 }
 
 DEVICE_MODULES = {
@@ -83,8 +87,23 @@ DEVICE_MODULES = {
     "MCCB": 4, "ELCB": 2,
     "CONTACTOR": 4, "RELAY": 3,
     "TIMER": 4, "METER": 6, "PILOT": 1,
-    "SWITCH": 1, "SURGE": 2, "BUSBAR": 6,
+    "SWITCH": 1, "SURGE": 2,
+    "BUSBAR": 12, "BUSBAR_COMB": 12, "BUSBAR_N": 4, "BUSBAR_PE": 4,
 }
+
+# ── Busbar phase colors ──────────────────────────────────────────────────
+PHASE_COLORS = {
+    "L1": (180, 30, 30),   # Đỏ
+    "L2": (180, 160, 20),  # Vàng
+    "L3": (30, 80, 160),   # Lam
+    "N":  (70, 70, 70),    # Xám/Đen
+    "PE": (50, 130, 50),   # Xanh lá
+}
+COPPER_COLOR     = (184, 115, 51)
+COPPER_SHINE     = (220, 170, 90)
+COPPER_SHADOW    = (140, 80, 30)
+INSULATOR_COLOR  = (230, 230, 235)
+INSULATOR_BASE   = (50, 52, 58)
 
 
 def find_device_image(device_type: str) -> Optional[Image.Image]:
@@ -601,6 +620,13 @@ class CabinetRenderer:
                 dw = m * MX
                 dh = MY
 
+                # ── Busbar được vẽ đặc biệt (không paste ảnh đơn thuần) ──
+                dtype_up = dev.device_type.upper()
+                if "BUSBAR" in dtype_up:
+                    self._draw_busbar(draw, img, dev, dx, dy, dw, dh, bay_mods, dev_x)
+                    cur_slot += m
+                    continue
+
                 dev_img = self.dev_img_cache.get(dev.device_type)
                 if dev_img:
                     paste_device_image(img, dev_img, dx, dy, dw, dh)
@@ -621,6 +647,124 @@ class CabinetRenderer:
                 cur_slot += m
 
             cy += bay_h + BAY_GAP
+
+    # ── Busbar drawing ────────────────────────────────────────────────────
+    def _draw_busbar(self, draw: ImageDraw.ImageDraw, img: Image.Image,
+                     dev, dx: int, dy: int, dw: int, dh: int,
+                     bay_mods: int, dev_x: int):
+        """Vẽ thanh cái đồng 3P+N+PE với insulator, tap lines, nhãn pha."""
+        dtype = dev.device_type.upper()
+
+        # Phân loại: comb busbar hay thanh đồng đứng
+        is_comb  = "COMB" in dtype
+        is_n_bar = dtype in ("BUSBAR_N",)
+        is_pe    = dtype in ("BUSBAR_PE",)
+
+        # Xác định các pha cần vẽ
+        if is_n_bar:
+            phases = ["N"]
+        elif is_pe:
+            phases = ["PE"]
+        elif is_comb:
+            phases = ["L1"]   # comb = 1 pha mỗi cái
+        else:
+            phases = ["L1", "L2", "L3", "N"]  # thanh đồng 3P+N
+
+        n_phases = len(phases)
+        bar_h     = max(10, dh // (n_phases * 2 + 2))   # chiều cao mỗi thanh
+        bar_gap   = dh // (n_phases + 1)                 # khoảng cách giữa thanh
+        insul_r   = max(5, bar_h // 2 + 2)              # bán kính insulator
+
+        # Nền hộp busbar
+        draw.rectangle([dx + 2, dy + 2, dx + dw - 2, dy + dh - 2],
+                        fill=(42, 44, 50), outline=(60, 62, 70), width=1)
+        draw.text((dx + 4, dy + 4), "BUSBAR", fill=TEXT3, font=self.f_sm)
+
+        # Vẽ từng thanh
+        for i, phase in enumerate(phases):
+            bar_y = dy + bar_gap * (i + 1) - bar_h // 2
+            pc    = PHASE_COLORS.get(phase, COPPER_COLOR)
+
+            # Insulator tại đầu trái
+            ins_x = dx + 8
+            ins_y = bar_y + bar_h // 2
+            draw.ellipse([ins_x - insul_r, ins_y - insul_r,
+                          ins_x + insul_r, ins_y + insul_r],
+                         fill=INSULATOR_COLOR, outline=(120, 120, 128), width=2)
+            draw.ellipse([ins_x - insul_r + 4, ins_y - insul_r + 4,
+                          ins_x + insul_r - 4, ins_y + insul_r - 4],
+                         fill=(180, 180, 185))
+
+            # Insulator tại đầu phải
+            ins_x2 = dx + dw - 12
+            draw.ellipse([ins_x2 - insul_r, ins_y - insul_r,
+                          ins_x2 + insul_r, ins_y + insul_r],
+                         fill=INSULATOR_COLOR, outline=(120, 120, 128), width=2)
+            draw.ellipse([ins_x2 - insul_r + 4, ins_y - insul_r + 4,
+                          ins_x2 + insul_r - 4, ins_y + insul_r - 4],
+                         fill=(180, 180, 185))
+
+            # Thanh đồng (highlight + shadow = 3D)
+            bx1 = dx + 8 + insul_r
+            bx2 = dx + dw - 12 - insul_r
+
+            if bx2 > bx1:
+                # Shadow
+                draw.rectangle([bx1, bar_y + 3, bx2, bar_y + bar_h + 2],
+                               fill=COPPER_SHADOW)
+                # Body (gradient thủ công)
+                for yy in range(bar_h):
+                    t = yy / bar_h
+                    if t < 0.25:
+                        c = lerp(COPPER_SHINE, COPPER_COLOR, t / 0.25)
+                    elif t < 0.75:
+                        c = COPPER_COLOR
+                    else:
+                        c = lerp(COPPER_COLOR, COPPER_SHADOW, (t - 0.75) / 0.25)
+                    draw.line([bx1, bar_y + yy, bx2, bar_y + yy], fill=c)
+                # Color stripe (pha)
+                draw.rectangle([bx1, bar_y, bx1 + 6, bar_y + bar_h], fill=pc)
+                # Outline
+                draw.rectangle([bx1, bar_y, bx2, bar_y + bar_h],
+                               outline=COPPER_SHADOW, width=1)
+
+                # Tap holes (vị trí đầu nối cho từng thiết bị)
+                hole_spacing = MX
+                hx = bx1 + hole_spacing // 2
+                while hx < bx2:
+                    hw = 5
+                    draw.ellipse([hx - hw, bar_y + bar_h // 2 - hw,
+                                  hx + hw, bar_y + bar_h // 2 + hw],
+                                 fill=COPPER_SHADOW, outline=COPPER_SHADOW)
+                    draw.ellipse([hx - 2, bar_y + bar_h // 2 - 2,
+                                  hx + 2, bar_y + bar_h // 2 + 2],
+                                 fill=(30, 25, 20))
+                    hx += hole_spacing
+
+            # Nhãn pha
+            draw.text((dx + dw - 26, bar_y + 1), phase,
+                      fill=pc, font=self.f_sm)
+
+        # Tap wires từ thanh cái xuống DIN rail (cho 3P busbar)
+        if not is_n_bar and not is_pe and not is_comb:
+            self._draw_busbar_tap_wires(draw, dx, dy, dw, dh, phases, bar_gap,
+                                        bay_mods, dev_x)
+
+    def _draw_busbar_tap_wires(self, draw, dx, dy, dw, dh, phases, bar_gap,
+                                bay_mods, dev_x):
+        """Vẽ dây tap từ thanh cái xuống terminal MCB."""
+        tap_y_bottom = dy + dh + RAIL_H + 4
+        for sl in range(0, bay_mods, 1):
+            tap_x = dev_x + sl * MX + MX // 2
+            if tap_x < dx or tap_x > dx + dw:
+                continue
+            for i, phase in enumerate(phases):
+                pc = PHASE_COLORS.get(phase, COPPER_COLOR)
+                bar_y_center = dy + bar_gap * (i + 1)
+                # Dây mảnh xuống dưới thanh cái
+                draw.line([tap_x + i * 3 - 3, bar_y_center,
+                           tap_x + i * 3 - 3, tap_y_bottom],
+                          fill=pc, width=2)
 
     def _draw_footer(self, draw: ImageDraw.ImageDraw):
         fy = self.img_h - FTR_H
