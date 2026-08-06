@@ -81,25 +81,45 @@ function Test-IsMethodDeclaration {
 function Try-GitRestoreCommandFile {
     param([string]$Path)
 
-    $gitRoot = $PluginSourceRoot
-    for ($n = 0; $n -lt 6; $n++) {
-        if (Test-Path (Join-Path $gitRoot '.git')) { break }
-        $parent = Split-Path $gitRoot -Parent
-        if ($parent -eq $gitRoot) { return $false }
-        $gitRoot = $parent
-    }
-    if (-not (Test-Path (Join-Path $gitRoot '.git'))) { return $false }
-
-    $rel = $Path.Substring($gitRoot.Length).TrimStart('\', '/')
-    Push-Location $gitRoot
     try {
-        git cat-file -e "HEAD:$($rel -replace '\\','/')" 2>$null | Out-Null
-        if ($LASTEXITCODE -ne 0) { return $false }
-        git checkout HEAD -- $rel 2>$null | Out-Null
-        return ($LASTEXITCODE -eq 0)
+        if (-not (Test-Path $Path)) { return $false }
+
+        $fullPath = (Resolve-Path $Path).Path
+        $gitRoot = (Resolve-Path $PluginSourceRoot).Path
+
+        for ($n = 0; $n -lt 6; $n++) {
+            if (Test-Path (Join-Path $gitRoot '.git')) { break }
+            $parent = Split-Path $gitRoot -Parent
+            if ($parent -eq $gitRoot) { return $false }
+            $gitRoot = $parent
+        }
+        if (-not (Test-Path (Join-Path $gitRoot '.git'))) { return $false }
+        if (-not $fullPath.StartsWith($gitRoot, [StringComparison]::OrdinalIgnoreCase)) {
+            return $false
+        }
+
+        $rel = $fullPath.Substring($gitRoot.Length).TrimStart('\', '/')
+        Push-Location $gitRoot
+        $pushed = $true
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & git rev-parse --is-inside-work-tree 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { return $false }
+
+            & git cat-file -e "HEAD:$($rel -replace '\\','/')" 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { return $false }
+
+            & git checkout HEAD -- $rel 2>$null | Out-Null
+            return ($LASTEXITCODE -eq 0)
+        }
+        finally {
+            $ErrorActionPreference = $prevEap
+            if ($pushed) { Pop-Location }
+        }
     }
-    finally {
-        Pop-Location
+    catch {
+        return $false
     }
 }
 

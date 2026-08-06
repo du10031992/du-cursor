@@ -17,7 +17,7 @@ if (-not $PluginSourceRoot) {
 }
 
 $Repair = Join-Path $Root "scripts\repair-corrupted-command-methods.ps1"
-& $Repair -PluginSourceRoot $PluginSourceRoot -TryGitRestoreFirst
+& $Repair -PluginSourceRoot $PluginSourceRoot
 
 Write-Host ""
 Write-Host "Tiep theo: dong AutoCAD, chay .\scripts\build-plugin-release.ps1"
