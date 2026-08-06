@@ -31,6 +31,15 @@
       <HintPath>$(AutoCadDir)\AdWindows.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="PresentationCore">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="PresentationFramework">
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="WindowsBase">
+      <Private>false</Private>
+    </Reference>
     <ProjectReference Include="..\MepPanel.Core\MepPanel.Core.csproj" />
   </ItemGroup>
 </Project>

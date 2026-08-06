@@ -33,9 +33,12 @@ public static class ToolHost
             Style = PaletteSetStyles.ShowPropertiesMenu
                 | PaletteSetStyles.ShowAutoHideButton
                 | PaletteSetStyles.ShowCloseButton,
-            MinimumSize = new System.Drawing.Size(300, 420)
+            MinimumSize = new System.Drawing.Size(296, 500)
         };
 
         _drawingToolPalette.Add("MEP DRAWING TOOL", new MepDrawingToolPanel());
+
+        // Build MEP Ribbon tab
+        try { MepRibbonBuilder.BuildOrActivate(); } catch { }
     }
 }
