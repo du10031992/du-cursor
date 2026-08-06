@@ -106,7 +106,8 @@ public sealed class MepDrawingToolPanel : UserControl
             ("Xuất Excel", PluginFeatures.Excel, () => Run(PluginFeatures.Excel, MepCabinetDrawingService.ExportExcelHint)),
             ("Mặt chiếu tủ", PluginFeatures.CabinetViews, () => Run(PluginFeatures.CabinetViews, MepCabinetDrawingService.DrawCabinet2D)),
             ("Bố trí động lực", PluginFeatures.Power, () => Run(PluginFeatures.Power, MepCabinetDrawingService.DrawPowerLayout)),
-            ("Sơ đồ 3P-4D+E", PluginFeatures.ThreePhase4W, () => Run(PluginFeatures.ThreePhase4W, MepCabinetDrawingService.Draw3P4DHint))
+            ("Sơ đồ 3P-4D+E", PluginFeatures.ThreePhase4W, () => Run(PluginFeatures.ThreePhase4W, MepCabinetDrawingService.Draw3P4DHint)),
+            ("🖼 Render bố trí tủ → PNG", PluginFeatures.Cabinet2D, () => Run(PluginFeatures.Cabinet2D, MepCabinetRenderService.RenderFromDrawing))
         }));
 
         scroll.Controls.Add(layout);

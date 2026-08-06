@@ -1,0 +1,12 @@
+bay,ten_thiet_bi,device_type,in_a,poles,qty,manufacturer,ghi_chu
+NGĂN 1,MCCB tổng,MCCB,100,3,1,Schneider,MCB tổng nguồn vào
+NGĂN 1,MCB dự phòng,MCB 1P,32,1,2,,
+NGĂN 2,MCB đèn,MCB 1P,10,1,4,,Chiếu sáng
+NGĂN 2,MCB ổ cắm,MCB 1P,16,1,4,,Ổ cắm văn phòng
+NGĂN 2,MCB điều hòa,MCB 1P,20,1,3,,AC 1.5-2HP
+NGĂN 2,MCB 3P tải lớn,MCB 3P,16,3,2,LS,
+NGĂN 2,MCB 3P motor,MCB 3P,32,3,1,LS,Động cơ
+NGĂN 3,Contactor K1,CONTACTOR,25,3,2,LS,Điều khiển motor
+NGĂN 3,Relay nhiệt,RELAY,10,2,2,,
+NGĂN 3,Timer T1,TIMER,0,0,1,,
+NGĂN 3,Đồng hồ ampe,METER,0,3,1,,CT200/5
