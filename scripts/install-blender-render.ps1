@@ -29,7 +29,7 @@ if ($blender) {
     Write-Host "Blender: $blender"
     & $blender --version
     Write-Host ""
-    Write-Host "Test render (128 samples, ~1-3 phut):"
+    Write-Host 'Test render (128 samples, khoang 1-3 phut):'
     Write-Host "  py renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png"
     Write-Host ""
     Write-Host "V-Ray (tuy chon, can license + addon):"

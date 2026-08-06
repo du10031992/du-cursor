@@ -64,8 +64,8 @@ Write-Host ""
 Write-Host "Test render ngoai AutoCAD (tuy chon):"
 Write-Host '  py -m pip install pillow'
 Write-Host ""
-Write-Host "Render 3D (can Blender — xem scripts\install-blender-render.ps1):"
-Write-Host '  py renderer/render_cabinet.py --demo --quality blender --samples 256 --output cabinet.png'
+Write-Host 'Render 3D (can Blender - xem scripts\install-blender-render.ps1):'
+Write-Host '  py renderer\render_cabinet.py --demo --quality blender --samples 256 --output cabinet.png'
 Write-Host ""
-Write-Host "Fallback nhanh (Pillow, khong can Blender):"
-Write-Host '  py renderer/render_cabinet.py --demo --quality photoreal --output cabinet.png'
+Write-Host 'Fallback nhanh (Pillow, khong can Blender):'
+Write-Host '  py renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png'
