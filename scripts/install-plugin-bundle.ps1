@@ -62,18 +62,15 @@ function Install-Bundle {
 
     Write-Host "==> Install bundle to $InstallDir"
     if (Test-Path $InstallDir) {
-        # Xoa file .gitkeep truoc (co the bi khoa quyen)
+        # Xoa tung file/thu muc con, bo qua loi quyen
         Get-ChildItem $InstallDir -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -eq ".gitkeep" -or $_.Attributes -band [IO.FileAttributes]::ReadOnly } |
-            ForEach-Object { $_.Attributes = "Normal" }
-        Remove-Item $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
-        # Neu van con, copy de
-        if (Test-Path $InstallDir) {
-            Write-Host "   (Thu muc cu van ton tai, se copy de)"
-        }
+            Sort-Object FullName -Descending |
+            ForEach-Object { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue }
+        Remove-Item $InstallDir -Force -ErrorAction SilentlyContinue
     }
+    # Tao lai va copy de
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-    Copy-Item (Join-Path $BundleRoot "*") $InstallDir -Recurse -Force
+    Copy-Item (Join-Path $BundleRoot "*") $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
 
     $oldBundle = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanelMvp.bundle"
     if (Test-Path $oldBundle) {
