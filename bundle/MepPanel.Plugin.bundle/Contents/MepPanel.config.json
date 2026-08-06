@@ -1,3 +1,4 @@
 {
-  "licenseServerUrl": "http://localhost:5268/"
+  "licenseServerUrl": "http://localhost:5268/",
+  "devMode": true
 }

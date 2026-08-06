@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Autodesk.AutoCAD.ApplicationServices.Core;
+using MepPanel.Core;
 
 namespace MepPanel.AutoCAD.Licensing
 {
@@ -14,6 +15,12 @@ namespace MepPanel.AutoCAD.Licensing
 
         public static bool EnsureAuthorized(bool requireFreshServerFeatures = false)
         {
+            if (LicenseConfig.DevMode)
+            {
+                EnsureDevSession();
+                return true;
+            }
+
             if (!LicenseSession.IsAuthorized)
             {
                 // Thử dùng cache offline ngắn hạn trước khi mở cửa sổ đăng nhập.
@@ -92,6 +99,12 @@ namespace MepPanel.AutoCAD.Licensing
 
         public static bool EnsureFeature(string featureCode)
         {
+            if (LicenseConfig.DevMode)
+            {
+                EnsureDevSession();
+                return true;
+            }
+
             if (!EnsureAuthorized(requireFreshServerFeatures: true))
             {
                 return false;
@@ -107,6 +120,21 @@ namespace MepPanel.AutoCAD.Licensing
                 "Liên hệ Admin để Active chức năng này.");
 
             return false;
+        }
+
+        private static void EnsureDevSession()
+        {
+            if (LicenseSession.IsAuthorized)
+            {
+                return;
+            }
+
+            LicenseSession.Authorize(
+                "dev-mode",
+                "Che do dev (devMode=true)",
+                string.Empty,
+                PluginFeatures.All,
+                "dev");
         }
 
         private static bool TryAuthorizeFromOfflineCache()

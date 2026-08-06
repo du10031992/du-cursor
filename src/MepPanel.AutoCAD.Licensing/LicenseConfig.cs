@@ -11,6 +11,9 @@ namespace MepPanel.AutoCAD.Licensing
     {
         [DataMember(Name = "licenseServerUrl")]
         public string LicenseServerUrl { get; set; }
+
+        [DataMember(Name = "devMode")]
+        public bool DevMode { get; set; }
     }
 
     /// <summary>
@@ -22,6 +25,7 @@ namespace MepPanel.AutoCAD.Licensing
         private const string DefaultServerUrl = "https://localhost:7024/";
 
         private static string _cachedUrl;
+        private static bool _devMode;
         private static bool _loaded;
 
         public static string LicenseServerBaseUrl
@@ -30,6 +34,18 @@ namespace MepPanel.AutoCAD.Licensing
             {
                 EnsureLoaded();
                 return _cachedUrl ?? DefaultServerUrl;
+            }
+        }
+
+        /// <summary>
+        /// true = bo qua license server, mo tat ca chuc nang (dev/test tren may local).
+        /// </summary>
+        public static bool DevMode
+        {
+            get
+            {
+                EnsureLoaded();
+                return _devMode;
             }
         }
 
@@ -42,6 +58,7 @@ namespace MepPanel.AutoCAD.Licensing
 
             _loaded = true;
             _cachedUrl = DefaultServerUrl;
+            _devMode = false;
 
             try
             {
@@ -62,19 +79,25 @@ namespace MepPanel.AutoCAD.Licensing
                 using (var stream = new MemoryStream(jsonBytes))
                 {
                     var config = (LicenseConfigFile)serializer.ReadObject(stream);
-                    if (config != null && !string.IsNullOrWhiteSpace(config.LicenseServerUrl))
+                    if (config != null)
                     {
-                        _cachedUrl = config.LicenseServerUrl.Trim();
-                        if (!_cachedUrl.EndsWith("/", StringComparison.Ordinal))
+                        if (!string.IsNullOrWhiteSpace(config.LicenseServerUrl))
                         {
-                            _cachedUrl += "/";
+                            _cachedUrl = config.LicenseServerUrl.Trim();
+                            if (!_cachedUrl.EndsWith("/", StringComparison.Ordinal))
+                            {
+                                _cachedUrl += "/";
+                            }
                         }
+
+                        _devMode = config.DevMode;
                     }
                 }
             }
             catch
             {
                 _cachedUrl = DefaultServerUrl;
+                _devMode = false;
             }
         }
     }

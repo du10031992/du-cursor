@@ -1,3 +1,4 @@
 {
-  "licenseServerUrl": "https://license.your-domain.com/"
+  "licenseServerUrl": "https://localhost:7024/",
+  "devMode": true
 }

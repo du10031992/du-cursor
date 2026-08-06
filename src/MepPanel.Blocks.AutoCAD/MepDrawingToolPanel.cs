@@ -1,6 +1,7 @@
+using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Autodesk.AutoCAD.ApplicationServices;
+using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using MepPanel.Blocks.AutoCAD.Drawing;
 using MepPanel.Core;
 
@@ -133,7 +134,7 @@ public sealed class MepDrawingToolPanel : UserControl
             return;
         }
 
-        var doc = Application.DocumentManager.MdiActiveDocument;
+        var doc = AcApp.DocumentManager.MdiActiveDocument;
         if (doc == null)
         {
             SetStatus("Không có bản vẽ đang mở.");

@@ -41,6 +41,7 @@ namespace MepPanel.AutoCAD.Licensing
             editor.WriteMessage("\n--- MepPanel license control ---");
             editor.WriteMessage("\nPlugin: v" + pluginVersion);
             editor.WriteMessage("\nLicense server: " + LicenseGuard.LicenseServerBaseUrl);
+            editor.WriteMessage("\nDev mode: " + (LicenseConfig.DevMode ? "BAT (bo qua server)" : "TAT"));
 
             if (!LicenseSession.IsAuthorized)
             {

@@ -37,12 +37,13 @@
 
 ## Build & cài
 
+Xem hướng dẫn đầy đủ: **`docs/BUILD_PLUGIN_CAD.md`**
+
 ```powershell
 cd C:\Users\DU_COMPUTER\Desktop\AI
-git pull
-.\scripts\build-plugin-release.ps1
-# Đóng AutoCAD trước khi install
-.\scripts\install-plugin-bundle.ps1
+git pull origin cursor/plugin-features-cc24
+# Dong AutoCAD truoc
+.\scripts\build-plugin-from-repo.ps1
 ```
 
-Trong AutoCAD: `MEPDB` → panel 3 nhóm.
+Trong AutoCAD: `MEPDB` → panel 3 nhóm. `devMode: true` trong config → không cần license server.
