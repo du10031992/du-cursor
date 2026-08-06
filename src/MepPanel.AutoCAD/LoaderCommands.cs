@@ -36,9 +36,9 @@ namespace MepPanel.Plugin
                 return;
             }
 
-            ToolBridge.ShowMepDb();
+            ToolBridge.ShowDrawingToolPanel();
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPDB panel đã mở.");
+                "\nMEP DRAWING TOOL panel da mo.");
         }
 
         [CommandMethod("MEPHVAC", CommandFlags.Modal)]
@@ -49,9 +49,9 @@ namespace MepPanel.Plugin
                 return;
             }
 
-            ToolBridge.ShowMepHvac();
+            ToolBridge.ShowDrawingToolPanel();
             Application.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                "\nMEPHVAC panel đã mở.");
+                "\nMEP DRAWING TOOL panel da mo (he Dieu hoa).");
         }
 
         [CommandMethod("MEPLOGOUT", CommandFlags.Modal)]

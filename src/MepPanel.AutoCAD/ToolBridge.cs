@@ -23,6 +23,11 @@ namespace MepPanel.Plugin
             InvokeHost("ShowMepHvac");
         }
 
+        public static void ShowDrawingToolPanel()
+        {
+            InvokeHost("ShowDrawingToolPanel");
+        }
+
         private static void InvokeHost(string methodName)
         {
             try

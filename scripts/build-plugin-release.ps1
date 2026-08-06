@@ -100,6 +100,16 @@ if (Test-Path $SubFeaturePatch) {
     & $SubFeaturePatch -PluginSourceRoot $PluginSourceRoot
 }
 
+$WindowGuard = Join-Path $Root "scripts\apply-window-entry-guard.ps1"
+if (Test-Path $WindowGuard) {
+    & $WindowGuard -PluginSourceRoot $PluginSourceRoot
+}
+
+$ElectricalGuards = Join-Path $Root "scripts\apply-electrical-tool-guards.ps1"
+if (Test-Path $ElectricalGuards) {
+    & $ElectricalGuards -PluginSourceRoot $PluginSourceRoot
+}
+
 $AuditGuards = Join-Path $Root "scripts\audit-subfeature-guards.ps1"
 if (Test-Path $AuditGuards) {
     Write-Host "==> Audit subfeature guards (canh bao neu thieu)"
@@ -112,6 +122,11 @@ if (Test-Path $AuditGuards) {
 
 if (Test-Path $FeaturePatch) {
     & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
+}
+
+$SyncStub = Join-Path $Root "scripts\sync-plugin-stub-to-source.ps1"
+if (Test-Path $SyncStub) {
+    & $SyncStub -PluginSourceRoot $PluginSourceRoot
 }
 
 foreach ($proj in @($AutoCadProj, $CoreProj)) {

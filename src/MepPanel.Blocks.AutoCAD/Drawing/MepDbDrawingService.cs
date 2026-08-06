@@ -70,6 +70,13 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             ed.WriteMessage("\nMEPDB: Da chen block MEPDB_EQUIP.");
         }
 
+        /// <summary>Vẽ block thiết bị tủ điện (entry MEPDB trên panel).</summary>
+        public static void DrawDbBlock()
+        {
+            EnsureLayer();
+            InsertEquipmentMarker();
+        }
+
         public static void DrawEquipmentZone()
         {
             var doc = MepDrawingHelper.GetActiveDocument();
