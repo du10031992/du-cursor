@@ -1,4 +1,6 @@
 # Copy anh thiet bi AI vao bundle plugin (Windows PowerShell).
+# KHONG can pip de chay script nay — chi copy file PNG.
+# pip/pillow chi can khi test render_cabinet.py ngoai AutoCAD.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $SrcDevices = Join-Path $Root "renderer\devices"
@@ -7,22 +9,46 @@ $DstDevices = Join-Path $BundleContents "devices"
 $DstScript = Join-Path $BundleContents "render_cabinet.py"
 
 if (-not (Test-Path $SrcDevices)) {
-    throw "Khong tim thay $SrcDevices"
+    throw @"
+Khong tim thay thu muc renderer\devices.
+
+Chay:
+  git fetch origin
+  git checkout cursor/license-admin-device-control-cc24
+  git pull origin cursor/license-admin-device-control-cc24
+
+Hoac:
+  git pull origin cursor/ai-device-render-assets-cc24
+"@
 }
+
+$pngCount = (Get-ChildItem $SrcDevices -Filter *.png).Count
+if ($pngCount -eq 0) {
+    throw "Khong co file PNG trong $SrcDevices"
+}
+
+Write-Host "==> Cai anh thiet bi AI ($pngCount file PNG)"
 
 New-Item -ItemType Directory -Force -Path $DstDevices | Out-Null
 Copy-Item (Join-Path $SrcDevices "*.png") $DstDevices -Force
 Copy-Item (Join-Path $Root "renderer\render_cabinet.py") $DstScript -Force
+Write-Host "   -> bundle: $DstDevices"
 
 $installDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents"
 if (Test-Path $installDir) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $installDir "devices") | Out-Null
-    Copy-Item (Join-Path $SrcDevices "*.png") (Join-Path $installDir "devices") -Force
+    $autoDevices = Join-Path $installDir "devices"
+    New-Item -ItemType Directory -Force -Path $autoDevices | Out-Null
+    Copy-Item (Join-Path $SrcDevices "*.png") $autoDevices -Force
     Copy-Item (Join-Path $Root "renderer\render_cabinet.py") (Join-Path $installDir "render_cabinet.py") -Force
-    Write-Host "Da cap nhat devices + render_cabinet.py -> $installDir"
+    Write-Host "   -> AutoCAD: $autoDevices"
 }
 else {
-    Write-Host "Da copy vao bundle. Chay install-plugin-bundle.ps1 de cai AutoCAD."
+    Write-Host "   (Chua cai plugin AutoCAD — chay install-plugin-bundle.ps1 truoc.)"
 }
 
-Write-Host "Xong. Khoi dong lai AutoCAD va thu Render tu dien."
+Write-Host ""
+Write-Host "Xong! Khoi dong lai AutoCAD -> Render tu dien."
+Write-Host ""
+Write-Host "Neu can test render ngoai AutoCAD (tuy chon):"
+Write-Host "  py -m pip install pillow"
+Write-Host "  py renderer\render_cabinet.py --demo --output cabinet.png"

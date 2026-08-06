@@ -251,3 +251,8 @@ if ($SkipInstall) {
 }
 
 & (Join-Path $Root "scripts\install-plugin-bundle.ps1")
+
+$InstallRenderer = Join-Path $Root "scripts\install-renderer-devices.ps1"
+if (Test-Path $InstallRenderer) {
+    & $InstallRenderer
+}
