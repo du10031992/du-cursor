@@ -151,7 +151,8 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($_.FullName -match '\\(bin|obj)\\') { return }
 
     $text = Get-Content $_.FullName -Raw -Encoding UTF8
-    if ($text -notmatch 'SINGLE_ENTRY_PATCH|//\s*\[CommandMethod') { return }
+    $needsRepair = $text -match 'SINGLE_ENTRY_PATCH|//\s*\[CommandMethod|/\*\s*SINGLE_ENTRY_PATCH'
+    if (-not $needsRepair) { return }
 
     $count = Repair-CommandMethodFile -Path $_.FullName
     if ($count -gt 0) {

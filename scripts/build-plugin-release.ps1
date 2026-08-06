@@ -91,6 +91,11 @@ if (Test-Path $RestoreSingleEntry) {
     & $RestoreSingleEntry -PluginSourceRoot $PluginSourceRoot
 }
 
+$RepairCorruptedCommands = Join-Path $Root "scripts\repair-corrupted-command-methods.ps1"
+if (Test-Path $RepairCorruptedCommands) {
+    & $RepairCorruptedCommands -PluginSourceRoot $PluginSourceRoot
+}
+
 # SINGLE-ENTRY PATCH DA TAT — khong an lenh phu nua.
 # if (Test-Path $SingleEntryPatch) { & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot }
 
