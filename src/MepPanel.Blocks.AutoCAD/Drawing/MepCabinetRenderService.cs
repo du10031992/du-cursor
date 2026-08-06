@@ -9,6 +9,9 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace MepPanel.Blocks.AutoCAD.Drawing
 {
+    /// <summary>
+    /// Doc du lieu tu ban ve / file -> goi render_cabinet.py (Blender 3D / Pillow).
+    /// </summary>
     public static class MepCabinetRenderService
     {
         private const string RendererScript = "render_cabinet.py";
@@ -21,9 +24,16 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             Editor ed = doc.Editor;
 
             string quality = PromptQuality(ed);
-            if (quality == null) return;
+            if (quality == null)
+            {
+                return;
+            }
 
-            var kw = new PromptKeywordOptions("\nNguon du lieu [TuBanVe] TuFile Demo") { AllowNone = true };
+            var kw = new PromptKeywordOptions(
+                "\nNguon du lieu [TuBanVe] TuFile Demo")
+            {
+                AllowNone = true
+            };
             kw.Keywords.Add("TuBanVe");
             kw.Keywords.Add("TuFile");
             kw.Keywords.Add("Demo");
@@ -35,64 +45,132 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             string jsonPath = null;
             switch (src)
             {
-                case "Demo": break;
+                case "Demo":
+                    break;
                 case "TuFile":
-                    var filePr = ed.GetString(new PromptStringOptions("\nDuong dan file CSV/JSON: ") { AllowSpaces = true });
-                    if (filePr.Status != PromptStatus.OK || string.IsNullOrWhiteSpace(filePr.StringResult)) return;
+                    PromptResult filePr = ed.GetString(new PromptStringOptions(
+                        "\nDuong dan file CSV/JSON: ") { AllowSpaces = true });
+                    if (filePr.Status != PromptStatus.OK || string.IsNullOrWhiteSpace(filePr.StringResult))
+                    {
+                        return;
+                    }
+
                     jsonPath = filePr.StringResult.Trim();
-                    if (!File.Exists(jsonPath)) { ed.WriteMessage("\nKhong tim thay file: " + jsonPath); return; }
+                    if (!File.Exists(jsonPath))
+                    {
+                        ed.WriteMessage("\nKhong tim thay file: " + jsonPath);
+                        return;
+                    }
                     break;
                 default:
                     jsonPath = ExtractFromDrawing(doc, ed);
-                    if (jsonPath == null) { ed.WriteMessage("\nKhong doc duoc du lieu tu ban ve."); return; }
+                    if (jsonPath == null)
+                    {
+                        ed.WriteMessage("\nKhong doc duoc du lieu tu ban ve. Chon Demo hoac TuFile.");
+                        return;
+                    }
                     break;
             }
 
-            string outPng = Path.Combine(Path.GetTempPath(), "MEP_CABINET_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png");
-            if (!CallPythonRenderer(ed, jsonPath, outPng, quality)) return;
+            string outPng = Path.Combine(
+                Path.GetTempPath(),
+                "MEP_CABINET_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png");
+
+            if (!CallPythonRenderer(ed, jsonPath, outPng, quality))
+            {
+                return;
+            }
 
             ed.WriteMessage("\n[MEP] Render thanh cong: " + outPng);
-            try { Process.Start(new ProcessStartInfo(outPng) { UseShellExecute = true }); }
-            catch { ed.WriteMessage("\nFile: " + outPng); }
+            try
+            {
+                Process.Start(new ProcessStartInfo(outPng) { UseShellExecute = true });
+            }
+            catch
+            {
+                ed.WriteMessage("\nKhong mo duoc anh tu dong. File: " + outPng);
+            }
         }
 
         private static string PromptQuality(Editor ed)
         {
-            var kw = new PromptKeywordOptions("\nChe do render [Blender3D] Photoreal Nhanh") { AllowNone = true };
+            var kw = new PromptKeywordOptions(
+                "\nChe do render [Blender3D] Photoreal Nhanh")
+            {
+                AllowNone = true
+            };
             kw.Keywords.Add("Blender3D");
             kw.Keywords.Add("Photoreal");
             kw.Keywords.Add("Nhanh");
             kw.Keywords.Default = "Blender3D";
-            var pr = ed.GetKeywords(kw);
-            if (pr.Status == PromptStatus.Cancel) return null;
-            switch (pr.Status == PromptStatus.OK ? pr.StringResult : "Blender3D")
+
+            PromptResult pr = ed.GetKeywords(kw);
+            if (pr.Status == PromptStatus.Cancel)
             {
-                case "Photoreal": return "photoreal";
-                case "Nhanh": return "standard";
-                default: return "blender";
+                return null;
+            }
+
+            string choice = pr.Status == PromptStatus.OK ? pr.StringResult : "Blender3D";
+            switch (choice)
+            {
+                case "Photoreal":
+                    return "photoreal";
+                case "Nhanh":
+                    return "standard";
+                default:
+                    return "blender";
             }
         }
 
-        private static string ExtractFromDrawing(Autodesk.AutoCAD.ApplicationServices.Document doc, Editor ed)
+        private static string ExtractFromDrawing(
+            Autodesk.AutoCAD.ApplicationServices.Document doc,
+            Editor ed)
         {
             var devices = new List<CabinetDeviceJson>();
+
             using (doc.LockDocument())
-            using (var tr = doc.Database.TransactionManager.StartTransaction())
+            using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
             {
-                var bt = (BlockTable)tr.GetObject(doc.Database.BlockTableId, OpenMode.ForRead);
-                var ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                BlockTable bt = (BlockTable)tr.GetObject(doc.Database.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(
+                    bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+
                 foreach (ObjectId id in ms)
                 {
-                    if (!(tr.GetObject(id, OpenMode.ForRead) is Entity ent)) continue;
+                    Entity ent = tr.GetObject(id, OpenMode.ForRead) as Entity;
+                    if (ent == null)
+                    {
+                        continue;
+                    }
+
                     if (ent is BlockReference br && br.HasAttributes)
                     {
-                        var dev = ReadBlockAttribs(br, tr);
-                        if (dev != null) devices.Add(dev);
+                        CabinetDeviceJson dev = ReadBlockAttribs(br, tr);
+                        if (dev != null)
+                        {
+                            devices.Add(dev);
+                        }
+                    }
+
+                    if (ent is MText mtext)
+                    {
+                        CabinetDeviceJson dev = ParseMTextDevice(mtext.Contents);
+                        if (dev != null)
+                        {
+                            devices.Add(dev);
+                        }
                     }
                 }
+
                 tr.Commit();
             }
-            if (devices.Count == 0) { ed.WriteMessage("\nKhong tim thay block thiet bi."); return null; }
+
+            if (devices.Count == 0)
+            {
+                ed.WriteMessage("\nKhong tim thay block thiet bi (can attribute DEVICE_TYPE / IN_A).");
+                return null;
+            }
+
             return WriteJsonFile(devices, doc);
         }
 
@@ -101,36 +179,109 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             var attrs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (ObjectId attId in br.AttributeCollection)
             {
-                if (tr.GetObject(attId, OpenMode.ForRead) is AttributeReference att)
-                    attrs[att.Tag.Trim()] = att.TextString.Trim();
+                var attRef = tr.GetObject(attId, OpenMode.ForRead) as AttributeReference;
+                if (attRef != null)
+                {
+                    attrs[attRef.Tag.Trim()] = attRef.TextString.Trim();
+                }
             }
-            if (!attrs.ContainsKey("DEVICE_TYPE") && !attrs.ContainsKey("TYPE")) return null;
-            string dtype = attrs.TryGetValue("DEVICE_TYPE", out var dt) ? dt : attrs["TYPE"];
+
+            if (!attrs.ContainsKey("DEVICE_TYPE") && !attrs.ContainsKey("TYPE") && !attrs.ContainsKey("LOAI"))
+            {
+                return null;
+            }
+
+            string dtype = attrs.TryGetValue("DEVICE_TYPE", out string dt) ? dt
+                         : attrs.TryGetValue("TYPE", out string t) ? t
+                         : attrs.TryGetValue("LOAI", out string l) ? l : "";
+
             return new CabinetDeviceJson
             {
-                name = attrs.TryGetValue("NAME", out var n) ? n : dtype,
+                name = attrs.TryGetValue("NAME", out string n) ? n : attrs.TryGetValue("TEN", out string tn) ? tn : dtype,
                 type = dtype,
-                in_a = ParseDouble(attrs, "IN_A", "IN"),
-                poles = (int)ParseDouble(attrs, "POLES", "P"),
-                qty = Math.Max(1, (int)ParseDouble(attrs, "QTY", "SL"))
+                in_a = ParseDouble(attrs, "IN_A", "IN", "DONG"),
+                poles = (int)ParseDouble(attrs, "POLES", "PHA", "P"),
+                qty = Math.Max(1, (int)ParseDouble(attrs, "QTY", "SL", "SO_LUONG")),
+                manufacturer = attrs.TryGetValue("MANUFACTURER", out string mfr) ? mfr : attrs.TryGetValue("HANG", out string h) ? h : "",
+                note = attrs.TryGetValue("NOTE", out string note) ? note : attrs.TryGetValue("GHI_CHU", out string gc) ? gc : ""
             };
+        }
+
+        private static CabinetDeviceJson ParseMTextDevice(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            string clean = System.Text.RegularExpressions.Regex.Replace(text, @"\\[A-Za-z][^;]*;|[{}]", "").Trim();
+            if (clean.Length < 3)
+            {
+                return null;
+            }
+
+            string upper = clean.ToUpperInvariant();
+            bool isMcb = upper.Contains("MCB") || upper.Contains("MCCB") || upper.Contains("ELCB");
+            bool isCont = upper.Contains("CONTACTOR") || upper.Contains("CONT");
+            bool isMeter = upper.Contains("METER") || upper.Contains("DONG HO");
+
+            if (!isMcb && !isCont && !isMeter)
+            {
+                return null;
+            }
+
+            var dev = new CabinetDeviceJson
+            {
+                name = clean.Length > 30 ? clean.Substring(0, 30) : clean,
+                qty = 1
+            };
+
+            if (isMcb)
+            {
+                dev.type = clean.ToUpperInvariant().Contains("3P") ? "MCB 3P" : "MCB 1P";
+                dev.poles = dev.type.Contains("3P") ? 3 : 1;
+                var match = System.Text.RegularExpressions.Regex.Match(clean, @"(\d+)\s*[Aa]");
+                if (match.Success)
+                {
+                    dev.in_a = double.Parse(match.Groups[1].Value);
+                }
+            }
+            else if (isCont)
+            {
+                dev.type = "CONTACTOR";
+                dev.poles = 3;
+            }
+            else
+            {
+                dev.type = "METER";
+            }
+
+            return dev;
         }
 
         private static string WriteJsonFile(List<CabinetDeviceJson> devices, Autodesk.AutoCAD.ApplicationServices.Document doc)
         {
-            string jsonPath = Path.Combine(Path.GetDirectoryName(doc.Name) ?? Path.GetTempPath(), "mep_cabinet_export.json");
+            string dwgDir = Path.GetDirectoryName(doc.Name) ?? Path.GetTempPath();
+            string jsonPath = Path.Combine(dwgDir, "mep_cabinet_export.json");
+
             var cab = new CabinetJson
             {
                 name = Path.GetFileNameWithoutExtension(doc.Name),
                 type = "Tu phan phoi",
                 size = "H600xW500xD225",
-                bays = new List<BayJson> { new BayJson { name = "NGAN 1", label = "Phan phoi", devices = devices } }
+                bays = new List<BayJson>
+                {
+                    new BayJson { name = "NGAN 1", label = "Phan phoi", devices = devices }
+                }
             };
-            using (var ms = new MemoryStream())
+
+            using (MemoryStream ms = new MemoryStream())
             {
-                new DataContractJsonSerializer(typeof(CabinetJson[])).WriteObject(ms, new[] { cab });
+                var ser = new DataContractJsonSerializer(typeof(CabinetJson[]));
+                ser.WriteObject(ms, new[] { cab });
                 File.WriteAllBytes(jsonPath, ms.ToArray());
             }
+
             return jsonPath;
         }
 
@@ -139,111 +290,318 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             string scriptPath = FindRendererScript();
             if (scriptPath == null)
             {
-                ed.WriteMessage("\nKhong tim thay render_cabinet.py. Chay install-renderer-devices.ps1");
+                ed.WriteMessage("\nKhong tim thay render_cabinet.py trong thu muc plugin.");
+                ed.WriteMessage("\nChay: .\\scripts\\install-renderer-devices.ps1");
                 return false;
             }
-            if (!TryResolvePython(out string pythonExe, out string argPrefix))
-            {
-                ed.WriteMessage("\nKhong tim thay Python 3.");
-                return false;
-            }
-            if (quality == "blender" && FindBlender() == null)
-                ed.WriteMessage("\n[MEP] Blender chua cai - fallback Pillow photoreal.");
 
-            string args = argPrefix + BuildRenderArgs(inputPath, outputPath, quality, scriptPath);
-            ed.WriteMessage(quality == "blender"
-                ? "\n[MEP] Dang render Blender 3D... co the mat 2-5 phut."
-                : "\n[MEP] Dang render (" + quality + ")...");
+            string pythonExe;
+            string pythonArgsPrefix;
+            if (!TryResolvePython(out pythonExe, out pythonArgsPrefix))
+            {
+                ed.WriteMessage("\nKhong tim thay Python. Cai Python 3 tu python.org hoac Microsoft Store.");
+                return false;
+            }
+
+            if (quality == "blender" && FindBlender() == null)
+            {
+                ed.WriteMessage("\n[MEP] Blender chua cai - se fallback Pillow photoreal.");
+                ed.WriteMessage("\nCai Blender: https://www.blender.org/download/");
+            }
+
+            string renderArgs = BuildRenderArgs(inputPath, outputPath, quality, scriptPath);
+            string fullArgs = pythonArgsPrefix + renderArgs;
+
+            if (quality == "blender")
+            {
+                ed.WriteMessage("\n[MEP] Dang render Blender 3D (Cycles)... co the mat 2-5 phut, vui long cho.");
+            }
+            else
+            {
+                ed.WriteMessage("\n[MEP] Dang render (" + quality + ")...");
+            }
+
+            ed.WriteMessage("\n[MEP] " + pythonExe + " " + fullArgs);
 
             int timeout = quality == "blender" ? TimeoutBlenderMs : TimeoutFastMs;
+            string workDir = Path.GetDirectoryName(scriptPath) ?? "";
+
             try
             {
-                var psi = new ProcessStartInfo(pythonExe, args)
+                var psi = new ProcessStartInfo(pythonExe, fullArgs)
                 {
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(scriptPath) ?? ""
+                    WorkingDirectory = workDir
                 };
-                using (var p = Process.Start(psi))
+
+                using (Process p = Process.Start(psi))
                 {
                     string stdout = p.StandardOutput.ReadToEnd();
                     string stderr = p.StandardError.ReadToEnd();
-                    if (!p.WaitForExit(timeout)) { try { p.Kill(); } catch { } ed.WriteMessage("\n[MEP] Timeout."); return false; }
-                    if (p.ExitCode != 0) { ed.WriteMessage("\n[MEP] Loi: " + stderr); return false; }
-                    if (!string.IsNullOrWhiteSpace(stdout)) ed.WriteMessage("\n[MEP] " + stdout.Trim());
+                    if (!p.WaitForExit(timeout))
+                    {
+                        try { p.Kill(); } catch { /* ignore */ }
+                        ed.WriteMessage("\n[MEP] Render timeout sau " + (timeout / 1000) + "s.");
+                        return false;
+                    }
+
+                    if (p.ExitCode != 0)
+                    {
+                        ed.WriteMessage("\n[MEP] Loi render: " + stderr);
+                        if (!string.IsNullOrWhiteSpace(stdout))
+                        {
+                            ed.WriteMessage("\n[MEP] " + stdout.Trim());
+                        }
+                        return false;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(stdout))
+                    {
+                        ed.WriteMessage("\n[MEP] " + stdout.Trim());
+                    }
+
                     return File.Exists(outputPath);
                 }
             }
-            catch (Exception ex) { ed.WriteMessage("\n[MEP] " + ex.Message); return false; }
+            catch (Exception ex)
+            {
+                ed.WriteMessage("\n[MEP] Loi goi renderer: " + ex.Message);
+                return false;
+            }
         }
 
         private static string BuildRenderArgs(string inputPath, string outputPath, string quality, string scriptPath)
         {
-            var parts = new List<string> { Quote(scriptPath), "--mode", "interior", "--quality", quality, "--output", Quote(outputPath) };
-            if (inputPath != null) { parts.Add("--input"); parts.Add(Quote(inputPath)); } else parts.Add("--demo");
-            if (quality == "blender") { parts.Add("--engine"); parts.Add("cycles"); parts.Add("--samples"); parts.Add("256"); }
+            var parts = new List<string>
+            {
+                Quote(scriptPath),
+                "--mode", "interior",
+                "--quality", quality,
+                "--output", Quote(outputPath)
+            };
+
+            if (inputPath != null)
+            {
+                parts.Add("--input");
+                parts.Add(Quote(inputPath));
+            }
+            else
+            {
+                parts.Add("--demo");
+            }
+
+            if (quality == "blender")
+            {
+                parts.Add("--engine");
+                parts.Add("cycles");
+                parts.Add("--samples");
+                parts.Add("256");
+            }
+
             return string.Join(" ", parts);
         }
 
-        private static string Quote(string p) => "\"" + p + "\"";
-
-        private static bool TryResolvePython(out string exe, out string prefix)
+        private static string Quote(string path)
         {
-            foreach (var s in new[] { new { E = "py", P = "-3 " }, new { E = "python3", P = "" }, new { E = "python", P = "" } })
+            return "\"" + path + "\"";
+        }
+
+        private static bool TryResolvePython(out string exe, out string argPrefix)
+        {
+            foreach (var spec in new[]
+            {
+                new { Exe = "py", Args = "-3 " },
+                new { Exe = "python3", Args = "" },
+                new { Exe = "python", Args = "" },
+                new { Exe = "python3.exe", Args = "" },
+                new { Exe = "python.exe", Args = "" }
+            })
             {
                 try
                 {
-                    using (var p = Process.Start(new ProcessStartInfo(s.E, s.P + "--version") { UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true }))
+                    string testArgs = spec.Args + "--version";
+                    var psi = new ProcessStartInfo(spec.Exe, testArgs)
                     {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+                    using (Process p = Process.Start(psi))
+                    {
+                        string output = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd());
                         p.WaitForExit(5000);
-                        if (p.ExitCode == 0) { exe = s.E; prefix = s.P; return true; }
+                        if (p.ExitCode == 0 && output.IndexOf("Python", StringComparison.OrdinalIgnoreCase) >= 0
+                            && output.IndexOf("was not found", StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            exe = spec.Exe;
+                            argPrefix = spec.Args;
+                            return true;
+                        }
                     }
                 }
-                catch { }
+                catch
+                {
+                    /* try next */
+                }
             }
-            exe = null; prefix = ""; return false;
+
+            // Python di kem Blender (may khong cai Python rieng)
+            string blenderPy = FindBlenderPython();
+            if (blenderPy != null)
+            {
+                exe = blenderPy;
+                argPrefix = "";
+                return true;
+            }
+
+            exe = null;
+            argPrefix = "";
+            return false;
+        }
+
+        private static string FindBlenderPython()
+        {
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string bf = Path.Combine(pf, "Blender Foundation");
+            if (!Directory.Exists(bf))
+            {
+                return null;
+            }
+
+            try
+            {
+                foreach (string dir in Directory.GetDirectories(bf))
+                {
+                    foreach (string py in Directory.GetFiles(dir, "python.exe", SearchOption.AllDirectories))
+                    {
+                        if (py.Replace('/', '\\').IndexOf("\\python\\bin\\python.exe", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            return py;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                /* ignore */
+            }
+
+            return null;
         }
 
         private static string FindRendererScript()
         {
-            string dir = Path.GetDirectoryName(typeof(MepCabinetRenderService).Assembly.Location) ?? "";
-            foreach (string rel in new[] { RendererScript, Path.Combine("scripts", RendererScript) })
+            string pluginDir = Path.GetDirectoryName(typeof(MepCabinetRenderService).Assembly.Location) ?? "";
+            string[] candidates =
             {
-                string full = Path.GetFullPath(Path.Combine(dir, rel));
-                if (File.Exists(full)) return full;
+                Path.Combine(pluginDir, RendererScript),
+                Path.Combine(pluginDir, "scripts", RendererScript),
+                Path.Combine(pluginDir, "..", RendererScript),
+                Path.Combine(pluginDir, "..", "scripts", RendererScript)
+            };
+
+            foreach (string p in candidates)
+            {
+                string full = Path.GetFullPath(p);
+                if (File.Exists(full))
+                {
+                    return full;
+                }
             }
+
             return null;
         }
 
         private static string FindBlender()
         {
-            foreach (string n in new[] { "blender", "blender.exe" })
+            foreach (string name in new[] { "blender", "blender.exe" })
             {
                 try
                 {
-                    using (var p = Process.Start(new ProcessStartInfo(n, "--version") { UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true }))
-                    { p.WaitForExit(5000); if (p.ExitCode == 0) return n; }
+                    var psi = new ProcessStartInfo(name, "--version")
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+                    using (Process p = Process.Start(psi))
+                    {
+                        p.WaitForExit(5000);
+                        if (p.ExitCode == 0)
+                        {
+                            return name;
+                        }
+                    }
                 }
-                catch { }
+                catch
+                {
+                    /* not in PATH */
+                }
             }
-            string bf = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Blender Foundation");
+
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string bf = Path.Combine(pf, "Blender Foundation");
             if (Directory.Exists(bf))
-                foreach (string d in Directory.GetDirectories(bf))
-                    if (File.Exists(Path.Combine(d, "blender.exe"))) return Path.Combine(d, "blender.exe");
+            {
+                foreach (string dir in Directory.GetDirectories(bf))
+                {
+                    string exe = Path.Combine(dir, "blender.exe");
+                    if (File.Exists(exe))
+                    {
+                        return exe;
+                    }
+                }
+            }
+
             return null;
         }
 
         private static double ParseDouble(Dictionary<string, string> d, params string[] keys)
         {
-            foreach (var k in keys)
-                if (d.TryGetValue(k, out var v) && double.TryParse(v, out var r)) return r;
+            foreach (string k in keys)
+            {
+                if (d.TryGetValue(k, out string v) && double.TryParse(v, out double result))
+                {
+                    return result;
+                }
+            }
+
             return 0;
         }
 
-        [DataContract] private class CabinetJson { [DataMember] public string name { get; set; } [DataMember] public string type { get; set; } [DataMember] public string size { get; set; } = "H600xW500xD225"; [DataMember] public List<BayJson> bays { get; set; } }
-        [DataContract] private class BayJson { [DataMember] public string name { get; set; } [DataMember] public string label { get; set; } [DataMember] public List<CabinetDeviceJson> devices { get; set; } }
-        [DataContract] private class CabinetDeviceJson { [DataMember] public string name { get; set; } [DataMember] public string type { get; set; } [DataMember] public double in_a { get; set; } [DataMember] public int poles { get; set; } = 1; [DataMember] public int qty { get; set; } = 1; }
+        [DataContract]
+        private class CabinetJson
+        {
+            [DataMember] public string name { get; set; }
+            [DataMember] public string type { get; set; }
+            [DataMember] public string size { get; set; } = "H600xW500xD225";
+            [DataMember] public string floor { get; set; } = "";
+            [DataMember] public List<BayJson> bays { get; set; }
+        }
+
+        [DataContract]
+        private class BayJson
+        {
+            [DataMember] public string name { get; set; }
+            [DataMember] public string label { get; set; }
+            [DataMember] public List<CabinetDeviceJson> devices { get; set; }
+        }
+
+        [DataContract]
+        private class CabinetDeviceJson
+        {
+            [DataMember] public string name { get; set; }
+            [DataMember] public string type { get; set; }
+            [DataMember] public double in_a { get; set; }
+            [DataMember] public int poles { get; set; } = 1;
+            [DataMember] public int qty { get; set; } = 1;
+            [DataMember] public string manufacturer { get; set; } = "";
+            [DataMember] public string note { get; set; } = "";
+        }
     }
 }

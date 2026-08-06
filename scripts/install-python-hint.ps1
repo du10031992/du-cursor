@@ -1,0 +1,16 @@
+# Huong dan cai Python (chi can neu muon dung Pillow / plugin goi py).
+# Render Blender demo KHONG can Python: .\scripts\run-blender-demo.ps1
+Write-Host "Cach 1 (khuyen dung) - Render bang Blender, KHONG can Python:"
+Write-Host "  .\scripts\run-blender-demo.ps1"
+Write-Host ""
+Write-Host "Cach 2 - Cai Python de plugin AutoCAD goi duoc renderer:"
+Write-Host "  1. Mo: https://www.python.org/downloads/"
+Write-Host "  2. Download Python 3.12+"
+Write-Host "  3. Khi cai: BAT 'Add python.exe to PATH'"
+Write-Host "  4. BAT 'pip'"
+Write-Host "  5. Dong PowerShell, mo lai, chay: python --version"
+Write-Host "  6. python -m pip install pillow"
+Write-Host ""
+Write-Host "KHONG dung Microsoft Store shortcut (hay bao 'Python was not found')."
+Write-Host "Neu Store alias chan: Settings > Apps > Advanced app settings > App execution aliases"
+Write-Host "  -> tat 'python.exe' va 'python3.exe' cua Store, roi cai python.org."

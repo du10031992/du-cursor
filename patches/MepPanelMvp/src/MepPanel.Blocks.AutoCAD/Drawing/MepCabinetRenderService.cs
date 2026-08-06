@@ -432,8 +432,10 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                     };
                     using (Process p = Process.Start(psi))
                     {
+                        string output = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd());
                         p.WaitForExit(5000);
-                        if (p.ExitCode == 0)
+                        if (p.ExitCode == 0 && output.IndexOf("Python", StringComparison.OrdinalIgnoreCase) >= 0
+                            && output.IndexOf("was not found", StringComparison.OrdinalIgnoreCase) < 0)
                         {
                             exe = spec.Exe;
                             argPrefix = spec.Args;
@@ -447,9 +449,48 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 }
             }
 
+            // Python di kem Blender (may khong cai Python rieng)
+            string blenderPy = FindBlenderPython();
+            if (blenderPy != null)
+            {
+                exe = blenderPy;
+                argPrefix = "";
+                return true;
+            }
+
             exe = null;
             argPrefix = "";
             return false;
+        }
+
+        private static string FindBlenderPython()
+        {
+            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string bf = Path.Combine(pf, "Blender Foundation");
+            if (!Directory.Exists(bf))
+            {
+                return null;
+            }
+
+            try
+            {
+                foreach (string dir in Directory.GetDirectories(bf))
+                {
+                    foreach (string py in Directory.GetFiles(dir, "python.exe", SearchOption.AllDirectories))
+                    {
+                        if (py.Replace('/', '\\').IndexOf("\\python\\bin\\python.exe", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            return py;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                /* ignore */
+            }
+
+            return null;
         }
 
         private static string FindRendererScript()
