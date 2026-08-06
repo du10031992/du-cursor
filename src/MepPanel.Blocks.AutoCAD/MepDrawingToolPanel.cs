@@ -74,10 +74,10 @@ public sealed class MepDrawingToolPanel : UserControl
         layout.Controls.Add(BuildGroup("Ống & phụ kiện (AMC)", new (string, string, Action)[]
         {
             ("Nạp thư viện AMC", PluginFeatures.Water, () => Run(PluginFeatures.Water, MepPipeLibraryService.ImportAmcLibrary)),
-            ("Vẽ ống nước + co tự động", PluginFeatures.Water, () => Run(PluginFeatures.Water, MepWaterDrawingService.DrawPipeRun)),
-            ("Đặt phụ kiện nước", PluginFeatures.Water, () => Run(PluginFeatures.Water, MepWaterDrawingService.PlaceFitting)),
-            ("Vẽ ống PCCC + co tự động", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, MepFireDrawingService.DrawPipeRun)),
-            ("Đặt phụ kiện PCCC", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, MepFireDrawingService.PlaceFitting))
+            ("Vẽ ống nước tự động (DN+phụ kiện)", PluginFeatures.Water, () => Run(PluginFeatures.Water, () => MepPipeAutoLayoutService.DrawSmartPipeRun(MepPipeSystem.Water))),
+            ("Vẽ ống PCCC tự động (DN+phụ kiện)", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, () => MepPipeAutoLayoutService.DrawSmartPipeRun(MepPipeSystem.Fire))),
+            ("Đặt phụ kiện nước (thủ công)", PluginFeatures.Water, () => Run(PluginFeatures.Water, MepWaterDrawingService.PlaceFitting)),
+            ("Đặt phụ kiện PCCC (thủ công)", PluginFeatures.Smoke, () => Run(PluginFeatures.Smoke, MepFireDrawingService.PlaceFitting))
         }));
 
         layout.Controls.Add(BuildGroup("Chức năng chung", new (string, string, Action)[]
