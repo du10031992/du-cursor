@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MepPanel Admin Control</title>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #d9d2c5;
+      --card: #fffdf8;
+      --ok: #1f6b3a;
+      --bad: #9b1c1c;
+      --accent: #0f4c5c;
+      --accent-2: #e07a3d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #efe6d6 0%, transparent 55%),
+        linear-gradient(180deg, #f7f4ee, var(--bg));
+    }
+    header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,253,248,.9);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    h1 { margin: 0 0 4px; font-size: 1.4rem; letter-spacing: .02em; }
+    .sub { color: var(--muted); font-size: .92rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      min-width: 160px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .field { flex: 1; min-width: 160px; }
+    button, .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 14px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    button.secondary { background: #6b6458; }
+    button.danger { background: var(--bad); }
+    button.ok { background: var(--ok); }
+    button.warn { background: var(--accent-2); color: #1c1208; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+    }
+    .stat b { display: block; font-size: 1.35rem; }
+    .stat span { color: var(--muted); font-size: .82rem; }
+    .user {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #fff;
+    }
+    .user-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 700;
+      border: 1px solid var(--line);
+    }
+    .badge.active { color: var(--ok); background: #e8f6ec; border-color: #b9e0c4; }
+    .badge.blocked { color: var(--bad); background: #fdecec; border-color: #f0b4b4; }
+    .features { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #faf7f1;
+    }
+    .devices { margin-top: 10px; }
+    .device {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 0;
+      border-top: 1px dashed var(--line);
+      font-size: .92rem;
+    }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .msg {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #eef6f8;
+      border: 1px solid #c5dde3;
+      color: #184652;
+      white-space: pre-wrap;
+    }
+    .msg.error { background: #fdecec; border-color: #f0b4b4; color: var(--bad); }
+    .checks { display: flex; gap: 14px; flex-wrap: wrap; padding-bottom: 4px; }
+    .feature.entry { border-color: #0f4c5c; background: #eef6f8; }
+    .feature.sub span small { display:block; color: var(--muted); font-size: .72rem; }
+    .feature-group { margin-top: 8px; }
+    .feature-group-title { font-size: .78rem; color: var(--muted); margin: 6px 0 4px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MepPanel Admin Control</h1>
+    <div class="sub">MEPDB = lệnh duy nhất vào plugin · chức năng phụ khóa/mở bên trong panel</div>
+    <div class="sub" style="margin-top:4px;color:#0f4c5c;font-weight:600">Admin UI v2 · sub-features</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="row">
+        <div class="field">
+          <label>Admin API Key</label>
+          <input id="apiKey" type="password" value="MEP-PANEL-ADMIN-TEST-2026" />
+        </div>
+        <button id="btnSaveKey" class="secondary" type="button">Lưu key</button>
+        <button id="btnReload" type="button">Tải danh sách</button>
+        <a class="btn secondary" href="/swagger" target="_blank" rel="noreferrer">Swagger</a>
+      </div>
+      <div id="toast" class="msg" style="display:none"></div>
+    </section>
+
+    <section class="panel">
+      <h3 style="margin:0 0 10px">Tạo user / SĐT bất kỳ</h3>
+      <div class="row">
+        <div class="field">
+          <label>Số điện thoại</label>
+          <input id="newPhone" type="text" placeholder="0912345678" />
+        </div>
+        <div class="field">
+          <label>Tên hiển thị</label>
+          <input id="newName" type="text" placeholder="Ky su A" />
+        </div>
+        <div class="field" style="flex:2">
+          <label>Chức năng mở (MEPDB bắt buộc để vào plugin)</label>
+          <div class="checks" id="createFeatures"></div>
+        </div>
+        <button id="btnCreate" class="ok" type="button">Tạo &amp; Active</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="stats" id="stats"></div>
+      <div id="users"></div>
+    </section>
+  </main>
+
+  <script>
+    const KEY = "meppanel.admin.apiKey";
+    const apiKeyInput = document.getElementById("apiKey");
+    const toast = document.getElementById("toast");
+    const statsEl = document.getElementById("stats");
+    const usersEl = document.getElementById("users");
+    const createFeaturesEl = document.getElementById("createFeatures");
+    let catalog = {
+      entryFeature: "MEPDB",
+      subFeatures: [],
+      availableFeatures: ["MEPDB"],
+      featureLabels: {},
+      featureCatalog: []
+    };
+
+    apiKeyInput.value = localStorage.getItem(KEY) || apiKeyInput.value;
+
+    function showMsg(text, isError) {
+      toast.style.display = "block";
+      toast.className = "msg" + (isError ? " error" : "");
+      toast.textContent = text;
+    }
+
+    function apiKey() {
+      return apiKeyInput.value.trim();
+    }
+
+    async function api(path, options = {}) {
+      const headers = Object.assign(
+        { "Content-Type": "application/json", "X-Admin-ApiKey": apiKey() },
+        options.headers || {}
+      );
+      const res = await fetch(path, Object.assign({}, options, { headers }));
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { message: text }; }
+      if (!res.ok) {
+        throw new Error((data && data.message) || (res.status + " " + res.statusText));
+      }
+      return data;
+    }
+
+    function badge(status) {
+      const s = (status || "").toLowerCase();
+      const cls = s === "active" ? "active" : "blocked";
+      return `<span class="badge ${cls}">${status || "?"}</span>`;
+    }
+
+    function renderStats(totals) {
+      statsEl.innerHTML = `
+        <div class="stat"><b>${totals.users}</b><span>Users</span></div>
+        <div class="stat"><b>${totals.activeUsers}</b><span>User Active</span></div>
+        <div class="stat"><b>${totals.blockedUsers}</b><span>User Blocked</span></div>
+        <div class="stat"><b>${totals.activeDevices}</b><span>Máy Active</span></div>
+        <div class="stat"><b>${totals.devices}</b><span>Tổng thiết bị</span></div>
+      `;
+    }
+
+    function labelVi(code) {
+      return (catalog.featureLabels && catalog.featureLabels[code]) || code;
+    }
+
+    function featureToggle(user, code, enabled, cssClass) {
+      const name = labelVi(code);
+      return `
+        <label class="feature ${cssClass || ""}" title="${code}">
+          <input type="checkbox" data-user="${user.id}" data-feature="${code}" ${enabled ? "checked" : ""} />
+          <span>${name}<small>${code}</small></span>
+        </label>`;
+    }
+
+    function renderFeatureGroup(title, items, attrName) {
+      if (!items.length) return "";
+      return `
+        <div class="feature-group">
+          <div class="feature-group-title">${title}</div>
+          <div class="features">${items.join("")}</div>
+        </div>`;
+    }
+
+    function renderCreateFeatures() {
+      const entry = catalog.entryFeature || "MEPDB";
+      let html = renderFeatureGroup("Vào plugin", [
+        `<label class="feature entry" title="${entry}"><input type="checkbox" data-create-feature="${entry}" checked /> <span>${labelVi(entry)}<small>${entry}</small></span></label>`
+      ], "create");
+
+      (catalog.featureCatalog || []).forEach(group => {
+        const boxes = (group.items || []).map(it =>
+          `<label class="feature sub" title="${it.code}"><input type="checkbox" data-create-feature="${it.code}" checked /> <span>${it.labelVi}<small>${it.code}</small></span></label>`
+        );
+        html += renderFeatureGroup(group.group, boxes);
+      });
+
+      createFeaturesEl.innerHTML = html;
+    }
+
+    function renderUserFeatures(u, flags) {
+      const entry = catalog.entryFeature || "MEPDB";
+      let html = renderFeatureGroup("Vào plugin", [featureToggle(u, entry, !!flags[entry], "entry")]);
+
+      (catalog.featureCatalog || []).forEach(group => {
+        const boxes = (group.items || []).map(it =>
+          featureToggle(u, it.code, !!flags[it.code], "sub")
+        );
+        html += renderFeatureGroup(group.group, boxes);
+      });
+
+      return html;
+    }
+
+    function renderUsers(users) {
+      if (!users.length) {
+        usersEl.innerHTML = "<p class='sub'>Chưa có user.</p>";
+        return;
+      }
+
+      usersEl.innerHTML = users.map(u => {
+        const flags = (u.license && u.license.featureFlags) || {};
+        const devices = u.devices || [];
+        return `
+          <article class="user" data-id="${u.id}">
+            <div class="user-head">
+              <div>
+                <strong>${u.phoneNumber}</strong>
+                <div class="sub">${u.displayName || ""} · ID ${u.id}</div>
+              </div>
+              ${badge(u.status)}
+            </div>
+
+            ${renderUserFeatures(u, flags)}
+
+            <div class="actions">
+              <button type="button" class="ok" data-action="user-active" data-id="${u.id}">Mở user</button>
+              <button type="button" class="danger" data-action="user-block" data-id="${u.id}">Khóa user</button>
+              <button type="button" class="warn" data-action="release" data-id="${u.id}">Mở chuyển máy</button>
+              ${u.license ? `<button type="button" class="secondary" data-action="extend" data-license="${u.license.id}">Gia hạn +30 ngày</button>` : ""}
+            </div>
+
+            <div class="devices">
+              ${devices.length ? devices.map(d => `
+                <div class="device">
+                  <div>
+                    <strong>${d.deviceName || ("Device #" + d.id)}</strong>
+                    ${badge(d.status)}
+                    <div class="sub">ID ${d.id} · plugin ${d.pluginVersion || "-"} · AutoCAD ${d.autoCadVersion || "-"} · last seen ${d.lastSeenAtUtc || "-"}</div>
+                  </div>
+                  <div class="actions" style="margin:0">
+                    <button type="button" class="ok" data-action="device-active" data-id="${d.id}">Mở máy</button>
+                    <button type="button" class="danger" data-action="device-block" data-id="${d.id}">Khóa máy</button>
+                  </div>
+                </div>`).join("") : `<div class="sub" style="margin-top:8px">Chưa gắn thiết bị.</div>`}
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    async function reload() {
+      try {
+        const data = await api("/api/Admin/overview");
+        catalog = {
+          entryFeature: (data.totals && data.totals.entryFeature) || "MEPDB",
+          subFeatures: (data.totals && data.totals.subFeatures) || [],
+          availableFeatures: (data.totals && data.totals.availableFeatures) || ["MEPDB"],
+          featureLabels: (data.totals && data.totals.featureLabels) || {},
+          featureCatalog: (data.totals && data.totals.featureCatalog) || []
+        };
+        renderCreateFeatures();
+        renderStats(data.totals);
+        renderUsers(data.users || []);
+        showMsg("Đã tải " + (data.users || []).length + " user.");
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    document.getElementById("btnSaveKey").onclick = () => {
+      localStorage.setItem(KEY, apiKey());
+      showMsg("Đã lưu Admin API Key trên trình duyệt này.");
+    };
+    document.getElementById("btnReload").onclick = reload;
+
+    document.getElementById("btnCreate").onclick = async () => {
+      const phoneNumber = document.getElementById("newPhone").value.trim();
+      const displayName = document.getElementById("newName").value.trim();
+      const features = [];
+      createFeaturesEl.querySelectorAll("input[data-create-feature]:checked").forEach(el => {
+        features.push(el.getAttribute("data-create-feature"));
+      });
+      if (!features.includes(catalog.entryFeature || "MEPDB")) {
+        showMsg("User mới phải bật MEPDB để vào plugin.", true);
+        return;
+      }
+      try {
+        await api("/api/Admin/users", {
+          method: "POST",
+          body: JSON.stringify({ phoneNumber, displayName, maxDevices: 1, features })
+        });
+        document.getElementById("newPhone").value = "";
+        showMsg("Đã tạo user " + phoneNumber);
+        await reload();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    };
+
+    usersEl.addEventListener("change", async (e) => {
+      const el = e.target;
+      if (el.matches("input[data-feature]")) {
+        const userId = el.getAttribute("data-user");
+        const feature = el.getAttribute("data-feature");
+        const entry = catalog.entryFeature || "MEPDB";
+        if (!el.checked && feature === entry) {
+          if (!confirm("Tắt MEPDB sẽ xóa tất cả chức năng phụ của user này. Tiếp tục?")) {
+            el.checked = true;
+            return;
+          }
+        }
+        try {
+          await api(`/api/Admin/users/${userId}/features/${feature}`, {
+            method: "PUT",
+            body: JSON.stringify({ enabled: el.checked })
+          });
+          showMsg(`${labelVi(feature)} (#${userId}): ${el.checked ? "ON" : "OFF"}`);
+          if (feature === entry) {
+            await reload();
+          }
+        } catch (err) {
+          el.checked = !el.checked;
+          showMsg(err.message, true);
+        }
+      }
+    });
+
+    usersEl.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const action = btn.getAttribute("data-action");
+      const id = btn.getAttribute("data-id");
+      try {
+        if (action === "user-active") {
+          await api(`/api/Admin/users/${id}/status`, { method: "PUT", body: JSON.stringify({ status: "Active" }) });
+        } else if (action === "user-block") {
+          await api(`/api/Admin/users/${id}/status`, { method: "PUT", body: JSON.stringify({ status: "Blocked" }) });
+        } else if (action === "device-active") {
+          await api(`/api/Admin/devices/${id}/status`, { method: "PUT", body: JSON.stringify({ status: "Active" }) });
+        } else if (action === "device-block") {
+          await api(`/api/Admin/devices/${id}/status`, { method: "PUT", body: JSON.stringify({ status: "Blocked" }) });
+        } else if (action === "release") {
+          await api(`/api/Admin/users/${id}/release-device`, { method: "POST", body: "{}" });
+        } else if (action === "extend") {
+          const licenseId = btn.getAttribute("data-license");
+          await api(`/api/Admin/licenses/${licenseId}/extend`, { method: "PUT", body: JSON.stringify({ extraDays: 30 }) });
+        }
+        await reload();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    });
+
+    reload();
+  </script>
+</body>
+</html>

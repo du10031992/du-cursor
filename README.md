@@ -1,1 +1,67 @@
-# du-cursor
+# MepPanel — License control + Plugin AutoCAD
+
+| Thành phần | Version | Build |
+|---|---|---|
+| License Server + Admin | v0.3.0 | `dotnet run` / F5 |
+| Plugin AutoCAD (release) | v0.13.0 | Source MepPanelMvp trên Windows |
+
+Plugin AutoCAD 2021 + License Server để Admin:
+
+- Khóa / mở tài khoản theo số điện thoại (`Active` / `Blocked`)
+- Mỗi SĐT chỉ dùng **1 máy**; chuyển máy phải Admin `release-device`
+- Khóa / mở từng chức năng plugin (`MEPDB`, `MEPHVAC`)
+
+## Projects
+
+| Project | Vai trò |
+|---|---|
+| `MepPanel.LicenseServer` | Máy chủ kiểm soát + `/admin` |
+| `src/MepPanel.AutoCAD` | Dev loader stub (`MepPanel.Plugin.dll`) — **không** phải plugin release |
+| `bundle/.../MepPanel.AutoCAD.dll` | **Plugin thật v0.13** (Cabinet, HVAC, WPF) |
+| `tests/MepPanel.Tests` | Kiểm thử luật license |
+
+## Quick start — License Server
+
+1. Mở `MepPanelMvp.sln` → F5 `MepPanel.LicenseServer`
+2. Admin: `https://localhost:7024/admin`
+3. Tạo SĐT, bật/tắt MEPDB / MEPHVAC
+
+## Quick start — Cài plugin (release)
+
+```powershell
+git pull origin cursor/license-admin-device-control-cc24
+.\scripts\install-plugin-bundle.ps1
+```
+
+Khởi động lại AutoCAD → `MEPDB` / `MEPHVAC` → OTP test `123456`.
+
+## Phát triển & build plugin (cập nhật tính năng)
+
+Xem **[docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md)**.
+
+Tóm tắt:
+
+```powershell
+copy plugin.local.json.example plugin.local.json
+# Sua pluginSourceRoot -> thu muc MepPanelMvp source tren may ban
+
+.\scripts\build-plugin-release.ps1
+```
+
+## Tài liệu
+
+| File | Nội dung |
+|---|---|
+| [docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md) | Build, sửa tính năng, workflow dev |
+| [docs/PLUGIN_INSTALL.md](docs/PLUGIN_INSTALL.md) | Cài bundle AutoCAD |
+| [docs/LICENSE_ADMIN_GUIDE.md](docs/LICENSE_ADMIN_GUIDE.md) | Admin API & test |
+| [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) | Deploy server lên VPS |
+| [CHANGELOG.md](CHANGELOG.md) | Lịch sử thay đổi |
+
+## Đóng gói release
+
+```bash
+./scripts/pack-release.sh
+```
+
+Kết quả trong `dist/`.
