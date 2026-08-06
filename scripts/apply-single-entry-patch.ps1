@@ -57,6 +57,10 @@ function Patch-CsFile {
         if ($cmd -like 'MEP*') {
             $script:TotalCommented++
             $localCommented++
+            # Block comment khi attribute nhieu dong — tranh // chi an dong dau (loi CS1519).
+            if ($m.Value -match '[\r\n]') {
+                return "/* SINGLE_ENTRY_PATCH: $($m.Value) */"
+            }
             return "// SINGLE_ENTRY_PATCH: $($m.Value)"
         }
 
