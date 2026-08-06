@@ -54,6 +54,16 @@ def clear_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
+def _set_bsdf_input(bsdf, names, value):
+    """Set Principled BSDF input by trying several Blender version names."""
+    for name in names:
+        sock = bsdf.inputs.get(name)
+        if sock is not None:
+            sock.default_value = value
+            return True
+    return False
+
+
 def make_mat(name, base_color, roughness=0.45, metallic=0.0, emission=None, emission_strength=0.0):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
@@ -62,12 +72,14 @@ def make_mat(name, base_color, roughness=0.45, metallic=0.0, emission=None, emis
     nodes.clear()
     out = nodes.new("ShaderNodeOutputMaterial")
     bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-    bsdf.inputs["Base Color"].default_value = (*base_color, 1.0)
-    bsdf.inputs["Roughness"].default_value = roughness
-    bsdf.inputs["Metallic"].default_value = metallic
+    _set_bsdf_input(bsdf, ("Base Color",), (*base_color, 1.0))
+    _set_bsdf_input(bsdf, ("Roughness",), roughness)
+    _set_bsdf_input(bsdf, ("Metallic",), metallic)
     if emission:
-        bsdf.inputs["Emission Color"].default_value = (*emission, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = emission_strength
+        # Blender 4.x: Emission Color; older: Emission
+        if not _set_bsdf_input(bsdf, ("Emission Color", "Emission"), (*emission, 1.0)):
+            pass
+        _set_bsdf_input(bsdf, ("Emission Strength",), emission_strength)
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return mat
 
@@ -75,7 +87,17 @@ def make_mat(name, base_color, roughness=0.45, metallic=0.0, emission=None, emis
 def make_image_mat(name, img_path):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
-    mat.blend_method = "CLIP"
+    # Blender 4.2+ removed shadow_method; blend_method still exists on most builds
+    if hasattr(mat, "blend_method"):
+        try:
+            mat.blend_method = "CLIP"
+        except Exception:
+            pass
+    if hasattr(mat, "shadow_method"):
+        try:
+            mat.shadow_method = "CLIP"
+        except Exception:
+            pass
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
     nodes.clear()
@@ -87,14 +109,11 @@ def make_image_mat(name, img_path):
         tex.image.colorspace_settings.name = "sRGB"
         tex.image.alpha_mode = "STRAIGHT"
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
-    bsdf.inputs["Roughness"].default_value = 0.38
-    try:
-        bsdf.inputs["Specular IOR Level"].default_value = 0.35
-    except KeyError:
-        bsdf.inputs["Specular"].default_value = 0.35
+    if "Alpha" in bsdf.inputs:
+        links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    _set_bsdf_input(bsdf, ("Roughness",), 0.38)
+    _set_bsdf_input(bsdf, ("Specular IOR Level", "Specular"), 0.35)
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    mat.shadow_method = "CLIP"
     return mat
 
 
@@ -246,21 +265,21 @@ def setup_camera(w_mm, h_mm, d_mm):
 
 
 def setup_lights():
-    bpy.ops.object.light_add(type="AREA", location=(0.6, 0.5, 0.95))
+    bpy.ops.object.light_add(type="AREA", location=(0.55, 0.65, 0.95))
     key = bpy.context.active_object
-    key.data.energy = 220
-    key.data.size = 0.9
+    key.data.energy = 60
+    key.data.size = 1.0
 
-    bpy.ops.object.light_add(type="AREA", location=(-0.55, 0.35, 0.75))
+    bpy.ops.object.light_add(type="AREA", location=(-0.5, 0.4, 0.7))
     fill = bpy.context.active_object
-    fill.data.energy = 85
-    fill.data.size = 1.2
+    fill.data.energy = 25
+    fill.data.size = 1.4
     fill.data.color = (0.88, 0.92, 1.0)
 
-    bpy.ops.object.light_add(type="SPOT", location=(0.1, 0.7, 1.1))
+    bpy.ops.object.light_add(type="AREA", location=(0.15, 0.9, 0.55))
     rim = bpy.context.active_object
-    rim.data.energy = 180
-    rim.data.spot_size = math.radians(55)
+    rim.data.energy = 35
+    rim.data.size = 0.6
 
     world = bpy.context.scene.world
     if not world:
@@ -269,8 +288,8 @@ def setup_lights():
     world.use_nodes = True
     bg = world.node_tree.nodes.get("Background")
     if bg:
-        bg.inputs["Color"].default_value = (0.55, 0.57, 0.60, 1.0)
-        bg.inputs["Strength"].default_value = 0.25
+        bg.inputs["Color"].default_value = (0.35, 0.37, 0.40, 1.0)
+        bg.inputs["Strength"].default_value = 0.15
 
 
 def setup_render(output_path, engine_name, samples, width, height):
@@ -302,8 +321,8 @@ def setup_render(output_path, engine_name, samples, width, height):
         scene.cycles.device = "CPU"
         scene.cycles.max_bounces = 10
         scene.view_settings.view_transform = "Filmic"
-        scene.view_settings.exposure = 0.6
-        scene.view_settings.look = "Medium High Contrast"
+        scene.view_settings.exposure = -0.3
+        scene.view_settings.look = "Medium Contrast"
 
 
 def main():

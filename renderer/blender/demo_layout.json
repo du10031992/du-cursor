@@ -1,0 +1,77 @@
+{
+  "name": "DB-01",
+  "size": "H600xW500xD225",
+  "row_modules": 18,
+  "rows": [
+    {
+      "label": "Nguon vao",
+      "devices": [
+        {
+          "name": "MCCB",
+          "type": "MCCB",
+          "modules": 4,
+          "texture": "/workspace/renderer/devices/device_mccb_schneider.png",
+          "in_a": 100
+        },
+        {
+          "name": "SPD",
+          "type": "SPD",
+          "modules": 2,
+          "texture": "/workspace/renderer/devices/device_spd.png",
+          "in_a": 0
+        }
+      ]
+    },
+    {
+      "label": "Phan phoi",
+      "devices": [
+        {
+          "name": "MCB1",
+          "type": "MCB 1P",
+          "modules": 1,
+          "texture": "/workspace/renderer/devices/device_mcb1p_schneider.png",
+          "in_a": 10
+        },
+        {
+          "name": "MCB2",
+          "type": "MCB 1P",
+          "modules": 1,
+          "texture": "/workspace/renderer/devices/device_mcb1p_schneider.png",
+          "in_a": 16
+        },
+        {
+          "name": "MCB3P",
+          "type": "MCB 3P",
+          "modules": 3,
+          "texture": "/workspace/renderer/devices/device_mcb3p_schneider.png",
+          "in_a": 16
+        }
+      ]
+    },
+    {
+      "label": "Dieu khien",
+      "devices": [
+        {
+          "name": "Contactor",
+          "type": "CONTACTOR",
+          "modules": 4,
+          "texture": "/workspace/renderer/devices/device_contactor_ls.png",
+          "in_a": 25
+        },
+        {
+          "name": "Relay",
+          "type": "RELAY",
+          "modules": 3,
+          "texture": "/workspace/renderer/devices/device_relay_ls.png",
+          "in_a": 25
+        }
+      ]
+    }
+  ],
+  "render": {
+    "engine": "cycles",
+    "samples": 32,
+    "width": 1280,
+    "height": 854
+  }
+}
