@@ -1,76 +1,20 @@
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
-
 namespace MepPanel.Blocks.AutoCAD.Drawing
 {
     public static class MepFireDrawingService
     {
-        private const string LayerName = "MEP_FIRE";
-        private const string BlockName = "MEP_FIRE_DETECTOR";
+        /// <summary>Vẽ ống PCCC đa điểm — tự đặt co 90 tại góc.</summary>
+        public static void DrawPipeRun() =>
+            MepPipeLibraryService.DrawPipeRunWithFittings(MepPipeSystem.Fire);
 
-        public static void EnsureLayer()
-        {
-            var doc = MepDrawingHelper.GetActiveDocument();
-            using (doc.LockDocument())
-            using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
-            {
-                MepDrawingHelper.EnsureLayer(doc.Database, tr, LayerName, 1);
-                tr.Commit();
-            }
+        /// <summary>Đặt phụ kiện PCCC (co, T, van, sprinkler, chữa cháy, đầu báo…).</summary>
+        public static void PlaceFitting() =>
+            MepPipeLibraryService.PlaceFitting(MepPipeSystem.Fire);
 
-            doc.Editor.WriteMessage("\nDa tao/kiem tra layer MEP_FIRE.");
-        }
+        /// <summary>Đặt nhanh đầu báo (tương thích nút cũ).</summary>
+        public static void InsertDetector() =>
+            MepPipeLibraryService.PlaceFitting(MepPipeSystem.Fire, MepPipeFittingKind.Detector);
 
-        public static void InsertDetector()
-        {
-            var doc = MepDrawingHelper.GetActiveDocument();
-            Editor ed = doc.Editor;
-
-            PromptPointResult pick = ed.GetPoint("\nBao chay: Vi tri dau bao: ");
-            if (pick.Status != PromptStatus.OK)
-            {
-                return;
-            }
-
-            using (doc.LockDocument())
-            using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
-            {
-                ObjectId layerId = MepDrawingHelper.EnsureLayer(doc.Database, tr, LayerName, 1);
-                ObjectId blockId = MepDrawingHelper.EnsureBlockDefinition(
-                    doc.Database,
-                    tr,
-                    BlockName,
-                    blockDef =>
-                    {
-                        var outer = new Circle(Point3d.Origin, Vector3d.ZAxis, 200)
-                        {
-                            LayerId = layerId,
-                            ColorIndex = 1
-                        };
-                        var inner = new Circle(Point3d.Origin, Vector3d.ZAxis, 80)
-                        {
-                            LayerId = layerId,
-                            ColorIndex = 1
-                        };
-                        blockDef.AppendEntity(outer);
-                        blockDef.AppendEntity(inner);
-                        tr.AddNewlyCreatedDBObject(outer, true);
-                        tr.AddNewlyCreatedDBObject(inner, true);
-                    });
-
-                BlockTable blockTable = (BlockTable)tr.GetObject(doc.Database.BlockTableId, OpenMode.ForRead);
-                BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
-                    blockTable[BlockTableRecord.ModelSpace],
-                    OpenMode.ForWrite);
-
-                var blockRef = new BlockReference(pick.Value, blockId) { LayerId = layerId };
-                modelSpace.AppendEntity(blockRef);
-                tr.AddNewlyCreatedDBObject(blockRef, true);
-                tr.Commit();
-            }
-
-            ed.WriteMessage("\nBao chay: Da chen dau bao.");
-        }
+        public static void ImportLibrary() =>
+            MepPipeLibraryService.ImportAmcLibrary();
     }
 }

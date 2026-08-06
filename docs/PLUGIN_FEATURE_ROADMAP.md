@@ -8,8 +8,8 @@
 |------|-----------|-----|------------|
 | Chọn hệ thống | Hệ điện | MEPDBDRAW | ✅ Thông tin + nhóm DB |
 | | Điều hòa | MEPHVAC | ✅ Ống thẳng / chữ L + elbow |
-| | Hệ nước | MEPDBWATER | ✅ Ống nước polyline |
-| | Báo cháy | MEPDBSMOKE | ✅ Đặt block detector |
+| | Hệ nước | MEPDBWATER | ✅ Ống đa điểm + co tự động + phụ kiện AMC |
+| | Báo cháy | MEPDBSMOKE | ✅ Ống PCCC + sprinkler/chữa cháy/đầu báo |
 | Chức năng chung | Chọn cùng layer | MEPSELAYER | ✅ |
 | | Cấu hình tủ | MEPDBCONFIG | 🔶 Hướng dẫn (chưa WPF) |
 | | Xuất CSV | MEPDBEXPORT | 🔶 Hướng dẫn |

@@ -100,6 +100,14 @@ foreach ($file in @("MepPanel.Plugin.pdb", "MepPanel.Blocks.AutoCAD.pdb")) {
     }
 }
 
+$TemplateSrc = Join-Path $Root "samples\templates"
+$TemplateDest = Join-Path $BundleContents "samples\templates"
+if (Test-Path $TemplateSrc) {
+    Write-Host "==> Copy thu vien ong AMC vao bundle"
+    New-Item -ItemType Directory -Force -Path $TemplateDest | Out-Null
+    Copy-Item (Join-Path $TemplateSrc "*") $TemplateDest -Recurse -Force
+}
+
 $configExample = Join-Path $BundleContents "MepPanel.config.json.example"
 $configPath = Join-Path $BundleContents "MepPanel.config.json"
 if (-not (Test-Path $configPath) -and (Test-Path $configExample)) {
