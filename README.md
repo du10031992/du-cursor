@@ -1,67 +1,29 @@
-# MepPanel — License control + Plugin AutoCAD
+# MEP DRAWING TOOL v0.16
 
-| Thành phần | Version | Build |
-|---|---|---|
-| License Server + Admin | v0.3.0 | `dotnet run` / F5 |
-| Plugin AutoCAD (release) | v0.13.0 | Source MepPanelMvp trên Windows |
+Plugin AutoCAD 2021 MEP toàn diện: vẽ kỹ thuật, tính toán, tiêu chuẩn, render tủ điện, cấp phép.
 
-Plugin AutoCAD 2021 + License Server để Admin:
+| Module | Mô tả |
+|--------|-------|
+| **Plugin AutoCAD** | Panel MEP DRAWING TOOL — vẽ điện, HVAC, nước, PCCC |
+| **Python Renderer** | Render bố trí tủ điện → PNG photorealistic |
+| **License Server** | Kiểm soát bản quyền per SĐT/máy/feature |
 
-- Khóa / mở tài khoản theo số điện thoại (`Active` / `Blocked`)
-- Mỗi SĐT chỉ dùng **1 máy**; chuyển máy phải Admin `release-device`
-- Khóa / mở từng chức năng plugin (`MEPDB`, `MEPHVAC`)
-
-## Projects
-
-| Project | Vai trò |
-|---|---|
-| `MepPanel.LicenseServer` | Máy chủ kiểm soát + `/admin` |
-| `src/MepPanel.AutoCAD` | Dev loader stub (`MepPanel.Plugin.dll`) — **không** phải plugin release |
-| `bundle/.../MepPanel.AutoCAD.dll` | **Plugin thật v0.13** (Cabinet, HVAC, WPF) |
-| `tests/MepPanel.Tests` | Kiểm thử luật license |
-
-## Quick start — License Server
-
-1. Mở `MepPanelMvp.sln` → F5 `MepPanel.LicenseServer`
-2. Admin: `https://localhost:7024/admin`
-3. Tạo SĐT, bật/tắt MEPDB / MEPHVAC
-
-## Quick start — Cài plugin (release)
+## Quick Start (Windows + AutoCAD 2021)
 
 ```powershell
-git pull origin cursor/license-admin-device-control-cc24
-.\scripts\install-plugin-bundle.ps1
+# 1. Build & cài plugin
+.\scripts\build-plugin-from-repo.ps1
+
+# 2. Render tủ điện từ dữ liệu
+pip install pillow
+python3 scripts\render_cabinet_v3.py --input samples\cabinet\TD-01_full.csv --output cabinet.png
 ```
 
-Khởi động lại AutoCAD → `MEPDB` / `MEPHVAC` → OTP test `123456`.
+Trong AutoCAD: gõ **`MEPDB`** → panel MEP DRAWING TOOL.
 
-## Phát triển & build plugin (cập nhật tính năng)
+## Xem tài liệu đầy đủ
 
-Xem **[docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md)**.
-
-Tóm tắt:
-
-```powershell
-copy plugin.local.json.example plugin.local.json
-# Sua pluginSourceRoot -> thu muc MepPanelMvp source tren may ban
-
-.\scripts\build-plugin-release.ps1
-```
-
-## Tài liệu
-
-| File | Nội dung |
-|---|---|
-| [docs/PLUGIN_DEVELOPMENT.md](docs/PLUGIN_DEVELOPMENT.md) | Build, sửa tính năng, workflow dev |
-| [docs/PLUGIN_INSTALL.md](docs/PLUGIN_INSTALL.md) | Cài bundle AutoCAD |
-| [docs/LICENSE_ADMIN_GUIDE.md](docs/LICENSE_ADMIN_GUIDE.md) | Admin API & test |
-| [docs/DEPLOY_VPS.md](docs/DEPLOY_VPS.md) | Deploy server lên VPS |
-| [CHANGELOG.md](CHANGELOG.md) | Lịch sử thay đổi |
-
-## Đóng gói release
-
-```bash
-./scripts/pack-release.sh
-```
-
-Kết quả trong `dist/`.
+- `docs/00_QUICKSTART.md` — Bắt đầu nhanh
+- `docs/PROJECT_SUMMARY.md` — Tổng hợp toàn bộ dự án
+- `docs/BUILD_PLUGIN_CAD.md` — Hướng dẫn build chi tiết
+- `docs/COMMERCIAL_ROADMAP.md` — Lộ trình thương mại
