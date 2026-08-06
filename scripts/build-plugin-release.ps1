@@ -80,13 +80,20 @@ if (Test-Path $PatchCoreFeatures) {
 
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
 $SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
+$RestoreSingleEntry = Join-Path $Root "scripts\restore-single-entry-patch.ps1"
 $TypesPatch = Join-Path $Root "scripts\apply-licensing-types-patch.ps1"
 if (Test-Path $TypesPatch) {
     & $TypesPatch -PluginSourceRoot $PluginSourceRoot
 }
-if (Test-Path $SingleEntryPatch) {
-    & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot
+
+# Mo lai tat ca lenh MEP* (MEPDBDRAW, MEPDBCABINET2D, ...) — panel goi qua command line.
+if (Test-Path $RestoreSingleEntry) {
+    & $RestoreSingleEntry -PluginSourceRoot $PluginSourceRoot
 }
+
+# SINGLE-ENTRY PATCH DA TAT — khong an lenh phu nua.
+# if (Test-Path $SingleEntryPatch) { & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot }
+
 $SubFeaturePatch = Join-Path $Root "scripts\apply-subfeature-guard-patch.ps1"
 $RestoreSubFeature = Join-Path $Root "scripts\restore-subfeature-patch.ps1"
 $RepairSource = Join-Path $Root "scripts\repair-plugin-source.ps1"
@@ -107,9 +114,8 @@ if (Test-Path $RestoreSubFeature) {
 # $ElectricalGuards = Join-Path $Root "scripts\apply-electrical-tool-guards.ps1"
 # if (Test-Path $ElectricalGuards) { & $ElectricalGuards -PluginSourceRoot $PluginSourceRoot }
 
-if (Test-Path $FeaturePatch) {
-    & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
-}
+# FEATURE GUARD PATCH DA TAT khi phat trien plugin.
+# if (Test-Path $FeaturePatch) { & $FeaturePatch -PluginSourceRoot $PluginSourceRoot }
 
 foreach ($proj in @($AutoCadProj, $CoreProj)) {
     if (-not (Test-Path $proj)) {
