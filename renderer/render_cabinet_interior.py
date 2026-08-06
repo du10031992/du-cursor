@@ -25,6 +25,16 @@ from render_cabinet import (
     DEVICE_MODULES,
     SCRIPT_DIR,
 )
+from render_photoreal import (
+    paste_device_with_shadow,
+    add_emissive_glow,
+    draw_duct_wires,
+    apply_ambient_occlusion,
+    apply_studio_post,
+    composite_on_shell,
+    door_light_centers_from_layout,
+    INNER_RECT,
+)
 
 BG = (235, 237, 240)
 CAB_GRAY = (188, 192, 198)
@@ -281,22 +291,28 @@ def load_dev_cache() -> dict:
     return cache
 
 
-def draw_duct(draw: ImageDraw.ImageDraw, x: int, y: int, h: int):
-    draw.rectangle([x, y, x + DUCT_W, y + h], fill=DUCT_GRAY, outline=(90, 95, 100))
-    sy = y + 6
-    while sy < y + h - 10:
-        draw.rectangle([x + 5, sy, x + DUCT_W - 5, sy + 12], fill=(95, 100, 108))
-        sy += 20
+def draw_duct(draw: ImageDraw.ImageDraw, x: int, y: int, h: int, outline_only: bool = False):
+    if not outline_only:
+        draw.rectangle([x, y, x + DUCT_W, y + h], fill=DUCT_GRAY, outline=(90, 95, 100))
+        sy = y + 6
+        while sy < y + h - 10:
+            draw.rectangle([x + 5, sy, x + DUCT_W - 5, sy + 12], fill=(95, 100, 108))
+            sy += 20
+    else:
+        draw.rectangle([x, y, x + DUCT_W, y + h], outline=(100, 105, 112), width=1)
 
 
-def draw_blank_modules(draw: ImageDraw.ImageDraw, x: int, y: int, count: int, h: int):
+def draw_blank_modules(draw: ImageDraw.ImageDraw, x: int, y: int, count: int, h: int, subtle: bool = False):
     for i in range(count):
         bx = x + i * MX
-        draw.rectangle([bx + 1, y + 2, bx + MX - 2, y + h - 2], fill=BLANK_MOD, outline=(200, 205, 210))
+        if subtle:
+            draw.rectangle([bx + 1, y + 2, bx + MX - 2, y + h - 2], outline=(180, 185, 190))
+        else:
+            draw.rectangle([bx + 1, y + 2, bx + MX - 2, y + h - 2], fill=BLANK_MOD, outline=(200, 205, 210))
 
 
 def draw_din_row(img: Image.Image, draw: ImageDraw.ImageDraw, row: DinRow,
-                 x: int, y: int, row_mods: int, cache: dict) -> int:
+                 x: int, y: int, row_mods: int, cache: dict, photoreal: bool = False) -> int:
     """Ve 1 hang DIN, tra ve chieu cao hang."""
     draw.text((x, y), row.label, fill=(55, 55, 55), font=load_font(10))
     dy = y + LABEL_H
@@ -312,20 +328,24 @@ def draw_din_row(img: Image.Image, draw: ImageDraw.ImageDraw, row: DinRow,
         dx = x + slot * MX
         png = resolve_dev_image(dev, cache)
         if png:
-            paste_device_image(img, png, dx, dy, m * MX, MY)
+            if photoreal:
+                paste_device_with_shadow(img, png, dx, dy, m * MX, MY)
+            else:
+                paste_device_image(img, png, dx, dy, m * MX, MY)
         else:
             draw.rectangle([dx + 2, dy + 2, dx + m * MX - 2, dy + MY - 2],
                            fill=(245, 246, 248), outline=(180, 185, 190))
             draw.text((dx + 4, dy + MY // 2 - 5), dev.device_type[:6], fill=(70, 70, 70), font=load_font(9))
 
-        tag = (dev.name or dev.device_type)[:8]
-        if dev.in_a:
-            tag = f"{int(dev.in_a)}A"
-        draw.text((dx + 3, dy + MY - 13), tag, fill=(90, 90, 90), font=load_font(8))
+        if not photoreal:
+            tag = (dev.name or dev.device_type)[:8]
+            if dev.in_a:
+                tag = f"{int(dev.in_a)}A"
+            draw.text((dx + 3, dy + MY - 13), tag, fill=(90, 90, 90), font=load_font(8))
         slot += m
 
     if slot < row_mods:
-        draw_blank_modules(draw, x + slot * MX, dy, row_mods - slot, MY)
+        draw_blank_modules(draw, x + slot * MX, dy, row_mods - slot, MY, subtle=photoreal)
 
     return LABEL_H + MY + RAIL_H + ROW_GAP
 
@@ -371,7 +391,8 @@ def draw_terminals(draw: ImageDraw.ImageDraw, x: int, y: int, width: int):
     draw.text((px + 4, y + 30), "PE", fill=(30, 120, 50), font=load_font(10))
 
 
-def render_interior(spec: CabinetSpec) -> Image.Image:
+def render_interior(spec: CabinetSpec, quality: str = "standard") -> Image.Image:
+    photoreal = quality == "photoreal"
     name, size, row_mods, din_rows = build_din_layout(spec)
     cache = load_dev_cache()
 
@@ -382,36 +403,54 @@ def render_interior(spec: CabinetSpec) -> Image.Image:
     img_w = inner_w + DOOR_W + MARGIN * 2
     img_h = inner_h + MARGIN * 2 + 40
 
-    img = Image.new("RGB", (img_w, img_h), BG)
+    img = Image.new("RGB", (img_w, img_h), (40, 42, 46) if photoreal else BG)
     draw = ImageDraw.Draw(img)
 
     cab_x, cab_y = MARGIN, MARGIN + 28
     cab_w, cab_h = inner_w + 16, inner_h + 16
 
-    draw.text((cab_x, cab_y - 22), f"{name} - {size}", fill=(30, 30, 30), font=load_font(15))
-    draw.rectangle([cab_x, cab_y, cab_x + cab_w + DOOR_W, cab_y + cab_h], fill=CAB_GRAY, outline=CAB_DARK, width=2)
+    if not photoreal:
+        draw.text((cab_x, cab_y - 22), f"{name} - {size}", fill=(30, 30, 30), font=load_font(15))
+        draw.rectangle([cab_x, cab_y, cab_x + cab_w + DOOR_W, cab_y + cab_h], fill=CAB_GRAY, outline=CAB_DARK, width=2)
 
     door_x = cab_x + cab_w
-    draw.rectangle([door_x, cab_y, door_x + DOOR_W, cab_y + cab_h], fill=(178, 182, 190), outline=CAB_DARK, width=2)
-    draw_phase_lights_on_door(img, draw, door_x, cab_y, DOOR_W, cab_h, cache)
+    if not photoreal:
+        draw.rectangle([door_x, cab_y, door_x + DOOR_W, cab_y + cab_h], fill=(178, 182, 190), outline=CAB_DARK, width=2)
+        draw_phase_lights_on_door(img, draw, door_x, cab_y, DOOR_W, cab_h, cache)
 
     ix = cab_x + 8 + DUCT_W
     iy = cab_y + 8
-    draw.rectangle([cab_x + 6, cab_y + 6, cab_x + cab_w - 6, cab_y + cab_h - 6], fill=CAB_INNER, outline=(170, 175, 180))
-    draw_duct(draw, cab_x + 8, cab_y + 8, cab_h - 16)
-    draw_duct(draw, cab_x + cab_w - DUCT_W - 8, cab_y + 8, cab_h - 16)
+    if not photoreal:
+        draw.rectangle([cab_x + 6, cab_y + 6, cab_x + cab_w - 6, cab_y + cab_h - 6], fill=CAB_INNER, outline=(170, 175, 180))
+    draw_duct(draw, cab_x + 8, cab_y + 8, cab_h - 16, outline_only=photoreal)
+    draw_duct(draw, cab_x + cab_w - DUCT_W - 8, cab_y + 8, cab_h - 16, outline_only=photoreal)
 
     ry = iy
     for din_row in din_rows:
-        rh = draw_din_row(img, draw, din_row, ix, ry, row_mods, cache)
+        rh = draw_din_row(img, draw, din_row, ix, ry, row_mods, cache, photoreal=photoreal)
         ry += rh
 
     term_y = cab_y + cab_h - TERM_H - 10
     draw_terminals(draw, ix, term_y, rail_area_w)
 
-    for i, col in enumerate([WIRE_R, WIRE_Y, WIRE_B]):
-        wx = ix - DUCT_W + 8 + i * 10
-        draw.line([(wx, iy + LABEL_H), (wx, term_y)], fill=col, width=2)
+    if photoreal:
+        draw_duct_wires(draw, cab_x + 8, iy + LABEL_H, term_y, duct_w=DUCT_W)
+        draw_duct_wires(draw, cab_x + cab_w - DUCT_W - 8, iy + LABEL_H, term_y, duct_w=DUCT_W)
+    else:
+        for i, col in enumerate([WIRE_R, WIRE_Y, WIRE_B]):
+            wx = ix - DUCT_W + 8 + i * 10
+            draw.line([(wx, iy + LABEL_H), (wx, term_y)], fill=col, width=2)
+
+    if photoreal:
+        # Cat vung noi that de ghep len vo tu AI
+        crop = img.crop((cab_x, cab_y, cab_x + cab_w, cab_y + cab_h))
+        shell_img = composite_on_shell(crop)
+        glow_pts = door_light_centers_from_layout(crop, door_x - cab_x, 0, DOOR_W)
+        if glow_pts:
+            shell_img = add_emissive_glow(shell_img, glow_pts, radius=32, intensity=0.62)
+        cab_rect = INNER_RECT
+        shell_img = apply_ambient_occlusion(shell_img, cab_rect)
+        return shell_img
 
     img = ImageEnhance.Contrast(img).enhance(1.03)
     img = ImageEnhance.Sharpness(img).enhance(1.08)
@@ -424,6 +463,8 @@ def main(argv=None):
     parser.add_argument("--input", "-i")
     parser.add_argument("--output", "-o", default="cabinet_interior.png")
     parser.add_argument("--demo", action="store_true")
+    parser.add_argument("--quality", choices=("standard", "photoreal"), default="photoreal",
+                        help="photoreal = vo tu AI + bong/glow (mac dinh)")
     args = parser.parse_args(argv)
 
     if args.demo or not args.input:
@@ -433,7 +474,7 @@ def main(argv=None):
     else:
         spec = parse_csv(args.input)
 
-    img = render_interior(spec)
+    img = render_interior(spec, quality=args.quality)
     img.save(args.output, "PNG", dpi=(150, 150))
     print(f"OK {args.output} ({img.width}x{img.height}px)")
 

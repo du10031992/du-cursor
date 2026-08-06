@@ -679,6 +679,8 @@ def main():
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--mode", choices=("interior", "layout"), default="interior",
                         help="interior = tu mo that (mac dinh), layout = bang DIN UI")
+    parser.add_argument("--quality", choices=("standard", "photoreal"), default="photoreal",
+                        help="photoreal = vo tu AI + bong/glow (chi ap dung mode interior)")
     args = parser.parse_args()
 
     if args.mode == "interior":
@@ -689,9 +691,9 @@ def main():
             spec = parse_json(args.input)
         else:
             spec = parse_csv(args.input)
-        img = render_interior(spec)
+        img = render_interior(spec, quality=args.quality)
         img.save(args.output, "PNG", dpi=(150, 150))
-        print(f"OK {args.output}  ({img.width}x{img.height}px) [interior]")
+        print(f"OK {args.output}  ({img.width}x{img.height}px) [interior/{args.quality}]")
         return
 
     if args.demo or not args.input:
