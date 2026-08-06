@@ -1,76 +1,90 @@
-# MEP Cabinet Renderer — ảnh thiết bị AI photorealistic
+# MEP Cabinet Renderer — Blender 3D + Pillow fallback
 
-Renderer ghép **ảnh PNG thiết bị thật** (AI-generated) lên layout tủ DIN trong plugin.
+Renderer tủ điện cho plugin AutoCAD. **Mặc định dùng Blender Cycles** (3D photorealistic).
 
-## Công cụ tạo ảnh tham chiếu (như ảnh bạn gửi)
+## Chế độ render
 
-Ảnh tủ điện photorealistic kiểu catalog thường được tạo bằng một trong các cách:
+| `--quality` | Công cụ | Thời gian | Chất lượng |
+|-------------|---------|-----------|------------|
+| **`blender`** (mặc định) | Blender Cycles / V-Ray | 1–5 phút | Cao nhất — 3D thật |
+| `photoreal` | Pillow + AI shell | vài giây | Tốt — composite 2D |
+| `standard` | Pillow phẳng | vài giây | Nhanh — layout kỹ thuật |
 
-| Công cụ | Vai trò |
-|---------|---------|
-| **AI image generation** (Midjourney, DALL·E, Cursor Generate) | Vỏ tủ mở, ánh sáng studio, đèn báo pha phát sáng |
-| **Blender + V-Ray/Octane** | Render 3D PBR đầy đủ (GI, AO, emissive) |
-| **Plugin (pipeline này)** | AI assets + **Python/Pillow composite** — không cần GPU 3D |
+## Cài Blender (Windows)
 
-Plugin **không chạy Blender/V-Ray** trong AutoCAD. Thay vào đó:
+1. Tải Blender: https://www.blender.org/download/
+2. Kiểm tra:
+   ```powershell
+   .\scripts\install-blender-render.ps1
+   ```
+3. Cài assets vào plugin:
+   ```powershell
+   .\scripts\install-renderer-devices.ps1
+   ```
 
-1. **Ảnh AI** — vỏ tủ (`cabinet_shell_template.png`) + từng thiết bị (`device_*.png`)
-2. **Layout DIN** — xếp thiết bị theo dữ liệu CSV/JSON
-3. **Post-processing** — bóng đổ, glow đèn L1/L2/L3, dây trong máng, AO, vignette
+### V-Ray (tùy chọn)
 
-## Cài đặt
+V-Ray for Blender cần **license riêng**: https://www.chaos.com/vray/blender
 
-```bash
-pip install -r requirements.txt
+```powershell
+py renderer/render_cabinet.py --demo --quality blender --engine vray --samples 512 --output cabinet_vray.png
 ```
 
-## Demo nhanh
+Nếu chưa cài V-Ray addon → tự fallback **Cycles**.
+
+## Demo
 
 ```bash
-# Photoreal (mặc định) — giống ảnh catalog 3D
-python3 render_cabinet.py --demo --quality photoreal --output cabinet.png
+# Blender Cycles 3D (256 samples, ~2-4 phut)
+python3 render_cabinet.py --demo --quality blender --samples 256 --output cabinet.png
 
-# Phẳng, nhanh — không ghép vỏ AI
-python3 render_cabinet.py --demo --quality standard --output cabinet_flat.png
+# Nhanh hon (128 samples)
+python3 render_cabinet.py --demo --quality blender --samples 128 --output cabinet.png
+
+# Fallback Pillow (khong can Blender)
+python3 render_cabinet.py --demo --quality photoreal --output cabinet_flat.png
 ```
 
-Chế độ mặc định: `--mode interior` + `--quality photoreal`.
+## Pipeline Blender
+
+```
+CSV/JSON → export_blender_layout() → layout.json
+         → blender --background --python blender/build_scene.py
+         → Cycles/V-Ray render → PNG 1920×1280
+```
+
+Scene 3D gồm:
+- Vỏ tủ + cửa mở 48°
+- Thanh DIN + máng dây
+- Thiết bị texture từ `devices/*.png`
+- Đèn báo pha L1/L2/L3 phát sáng (emission)
+- Studio lighting + Filmic color grade
 
 ## Ảnh thiết bị AI (`devices/`)
 
-| File | Loại thiết bị |
-|------|----------------|
-| `cabinet_shell_template.png` | **Vỏ tủ trống** (nền photoreal cho `--quality photoreal`) |
-| `device_mccb_schneider.png` | MCCB tổng (Aptomat) |
+| File | Loại |
+|------|------|
+| `device_mccb_schneider.png` | MCCB tổng |
 | `device_mcb1p_schneider.png` | MCB 1P |
 | `device_mcb3p_schneider.png` | MCB 3P |
 | `device_contactor_ls.png` | Contactor |
-| `device_relay_ls.png` | Relay nhiệt |
-| `device_timer_schneider.png` | Timer |
-| `device_meter_pm5560.png` | Đồng hồ đo |
-| `device_pilot_3phase.png` | **Đèn báo pha 3P** (L1/L2/L3 đỏ/vàng/xanh) |
-| `device_spd.png` | Chống sét SPD |
-| `cabinet-render-reference.png` | Tham chiếu tủ mở (full panel) |
+| `device_pilot_3phase.png` | Đèn báo pha |
+| `cabinet_shell_template.png` | Vỏ tủ AI (Pillow photoreal) |
 
-Ảnh được tạo bằng AI theo phong cách **catalog Schneider / tủ điện thực tế**.
+## Plugin AutoCAD
 
-## Dùng trong plugin AutoCAD
-
-```powershell
-.\scripts\install-renderer-devices.ps1
+Sau `install-renderer-devices.ps1`, bundle chứa:
+```
+Contents/
+  render_cabinet.py
+  render_blender.py
+  render_cabinet_interior.py
+  render_photoreal.py
+  blender/build_scene.py
+  devices/*.png
 ```
 
-Copy `devices/` + `render_cabinet.py` + `render_cabinet_interior.py` + `render_photoreal.py` vào bundle.
-
-Trong AutoCAD: **Render tủ điện** → script gọi `--mode interior --quality photoreal`.
-
-## Thêm loại thiết bị mới
-
-1. Tạo PNG nền trắng, góc chính diện (AI prompt mẫu):
-
-   > Photorealistic product photo of [thiết bị], front view, pure white background, DIN rail electrical component, studio catalog photography, ultra realistic, isolated cutout, no text
-
-2. Đặt vào `devices/` và thêm mapping trong `render_cabinet.py` → `DEVICE_PNG_MAP`.
+Trong AutoCAD: **Render tủ điện** → gọi `--quality blender` (cần Blender trong PATH).
 
 ## Format CSV
 
