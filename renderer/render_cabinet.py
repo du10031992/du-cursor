@@ -682,11 +682,9 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "interior":
-        from render_cabinet_interior import render_interior
+        from render_cabinet_interior import render_interior, make_db01_demo
         if args.demo or not args.input:
-            spec = make_demo()
-            spec.name = "DB-01"
-            spec.size = "H600xW500xD225"
+            spec = make_db01_demo()
         elif args.input.lower().endswith(".json"):
             spec = parse_json(args.input)
         else:
