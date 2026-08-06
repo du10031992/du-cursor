@@ -1,7 +1,7 @@
 {
   "applicationId": "mep-drawing-tool",
   "name": "MEP DRAWING TOOL",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "tagline": "Plugin AutoCAD MEP — vẽ, tính toán, tiêu chuẩn thi công",
   "modules": [
     {
