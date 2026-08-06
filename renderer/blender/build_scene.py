@@ -87,17 +87,11 @@ def make_mat(name, base_color, roughness=0.45, metallic=0.0, emission=None, emis
 def make_image_mat(name, img_path):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
-    # Blender 4.2+ removed shadow_method; blend_method still exists on most builds
-    if hasattr(mat, "blend_method"):
-        try:
-            mat.blend_method = "CLIP"
-        except Exception:
-            pass
-    if hasattr(mat, "shadow_method"):
-        try:
-            mat.shadow_method = "CLIP"
-        except Exception:
-            pass
+    # KHONG dung mat.shadow_method - da bi go bo tren Blender 4.2+
+    try:
+        mat.blend_method = "CLIP"
+    except Exception:
+        pass
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
     nodes.clear()
