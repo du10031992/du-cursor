@@ -47,6 +47,22 @@ public sealed class MepDrawingToolPanel : UserControl
         };
         layout.Controls.Add(title);
 
+        layout.Controls.Add(BuildGroup("Hệ điện — Máng & Trunking", new (string, string, Action)[]
+        {
+            ("Vẽ máng cáp", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, MepElectricalRoutingService.DrawCableTrayRun)),
+            ("Vẽ trunking", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, MepElectricalRoutingService.DrawTrunkingRun)),
+            ("Co 90° máng cáp", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, MepElectricalRoutingService.PlaceTrayElbow90)),
+            ("Co 90° trunking", PluginFeatures.Draw, () => Run(PluginFeatures.Draw, MepElectricalRoutingService.PlaceTrunkingElbow90))
+        }));
+
+        layout.Controls.Add(BuildGroup("HVAC — Ống gió nâng cao", new (string, string, Action)[]
+        {
+            ("Ống gió thông minh (co 45/90, reducer)", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, MepHvacAdvancedService.DrawSmartDuctRun)),
+            ("Ống gió mềm (flex)", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, MepHvacAdvancedService.DrawFlexibleDuct)),
+            ("Reducer thủ công (lớn → nhỏ)", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, MepHvacAdvancedService.DrawDuctReducerManual)),
+            ("Ống gió cơ bản (L)", PluginFeatures.MepHvac, () => Run(PluginFeatures.MepHvac, MepHvacDrawingService.DrawDuctRun))
+        }));
+
         layout.Controls.Add(BuildGroup("Chọn hệ thống", new (string, string, Action)[]
         {
             ("Hệ điện", PluginFeatures.Draw, () => ShowInfo("Hệ điện", "Dùng nhóm Tủ điện / DB bên dưới.")),
