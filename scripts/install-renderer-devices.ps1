@@ -1,5 +1,5 @@
 # Copy anh thiet bi AI vao bundle plugin (Windows PowerShell).
-# KHONG can pip de chay script nay — chi copy file PNG.
+# KHONG can pip de chay script nay - chi copy file PNG.
 # pip/pillow chi can khi test render_cabinet.py ngoai AutoCAD.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
@@ -16,9 +16,6 @@ Chay:
   git fetch origin
   git checkout cursor/license-admin-device-control-cc24
   git pull origin cursor/license-admin-device-control-cc24
-
-Hoac:
-  git pull origin cursor/ai-device-render-assets-cc24
 "@
 }
 
@@ -43,12 +40,12 @@ if (Test-Path $installDir) {
     Write-Host "   -> AutoCAD: $autoDevices"
 }
 else {
-    Write-Host "   (Chua cai plugin AutoCAD — chay install-plugin-bundle.ps1 truoc.)"
+    Write-Host "   (Chua cai plugin AutoCAD - chay install-plugin-bundle.ps1 truoc.)"
 }
 
 Write-Host ""
-Write-Host "Xong! Khoi dong lai AutoCAD -> Render tu dien."
+Write-Host "Xong! Khoi dong lai AutoCAD, thu Render tu dien."
 Write-Host ""
-Write-Host "Neu can test render ngoai AutoCAD (tuy chon):"
-Write-Host "  py -m pip install pillow"
-Write-Host "  py renderer\render_cabinet.py --demo --output cabinet.png"
+Write-Host "Test render ngoai AutoCAD (tuy chon):"
+Write-Host '  py -m pip install pillow'
+Write-Host '  py renderer/render_cabinet.py --demo --output cabinet.png'
