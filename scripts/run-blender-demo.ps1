@@ -65,7 +65,10 @@ foreach ($row in $obj.rows) {
         }
     }
 }
-$obj | ConvertTo-Json -Depth 8 | Set-Content $layoutDemo -Encoding UTF8
+# Ghi UTF-8 KHONG BOM (tranh JSONDecodeError trong Blender)
+$jsonText = $obj | ConvertTo-Json -Depth 8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($layoutDemo, $jsonText, $utf8NoBom)
 Write-Host "Layout: $layoutDemo"
 
 $blender = Get-MepBlender

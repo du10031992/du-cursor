@@ -308,7 +308,8 @@ def setup_render(output_path, engine_name, samples, width, height):
 
 def main():
     args = parse_args()
-    with open(args["input"], encoding="utf-8") as f:
+    # utf-8-sig: PowerShell Set-Content -Encoding UTF8 thuong ghi BOM
+    with open(args["input"], encoding="utf-8-sig") as f:
         layout = json.load(f)
 
     clear_scene()
