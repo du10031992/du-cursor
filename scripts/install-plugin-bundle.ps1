@@ -60,6 +60,11 @@ $releaseRequired = @(
     "MepPanel.Core.dll"
 )
 
+$blocksDll = Join-Path $BundleContents "MepPanel.Blocks.AutoCAD.dll"
+if (Test-Path $blocksDll) {
+    $releaseRequired += "MepPanel.Blocks.AutoCAD.dll"
+}
+
 $releaseMain = Join-Path $BundleContents "MepPanel.AutoCAD.dll"
 
 if ($BuildDevLoader) {

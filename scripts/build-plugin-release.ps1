@@ -78,6 +78,14 @@ if (Test-Path $PatchCoreFeatures) {
     Copy-Item $PatchCoreFeatures $TargetCoreFeatures -Force
 }
 
+$CabinetRenderPatch = Join-Path $Root "scripts\apply-cabinet-render-patch.ps1"
+if (Test-Path $CabinetRenderPatch) {
+    Write-Host "==> Apply patch MepCabinetRenderService (Blender 3D render)"
+    & $CabinetRenderPatch -PluginSourceRoot $PluginSourceRoot
+}
+
+$BlocksProj = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj"
+
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
 $SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
 $RestoreSingleEntry = Join-Path $Root "scripts\restore-single-entry-patch.ps1"
@@ -126,6 +134,19 @@ foreach ($proj in @($AutoCadProj, $CoreProj)) {
     if (-not (Test-Path $proj)) {
         throw "Khong tim thay project: $proj`nKiem tra pluginSourceRoot trong plugin.local.json"
     }
+}
+
+if (Test-Path $BlocksProj) {
+    Write-Host "==> Build MepPanel.Blocks.AutoCAD (panel + render Blender)"
+    $blocksArgs = @("build", $BlocksProj, "-c", $Configuration, "-p:Platform=x64")
+    if ($AutoCadDir) { $blocksArgs += "-p:AutoCadDir=$AutoCadDir" }
+    Push-Location $PluginSourceRoot
+    dotnet @blocksArgs
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        throw "Build MepPanel.Blocks.AutoCAD that bai."
+    }
+    Pop-Location
 }
 
 $buildArgs = @(
@@ -191,12 +212,19 @@ function Find-Dll {
 
 $acadDirs = @($AutoCadOut, $AutoCadAlt)
 $coreDirs  = @($CoreOut)
+$blocksOut = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\bin\x64\$Configuration"
+if (-not (Test-Path (Join-Path $blocksOut "MepPanel.Blocks.AutoCAD.dll"))) {
+    $blocksOut = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\bin\$Configuration"
+}
+$blocksDirs = @($blocksOut, $AutoCadOut, $AutoCadAlt)
 
 $outputs = @(
     @{ Name = "MepPanel.AutoCAD.dll"; Dirs = $acadDirs },
     @{ Name = "MepPanel.AutoCAD.pdb"; Dirs = $acadDirs },
     @{ Name = "MepPanel.Core.dll";   Dirs = $coreDirs  },
-    @{ Name = "MepPanel.Core.pdb";   Dirs = $coreDirs  }
+    @{ Name = "MepPanel.Core.pdb";   Dirs = $coreDirs  },
+    @{ Name = "MepPanel.Blocks.AutoCAD.dll"; Dirs = $blocksDirs },
+    @{ Name = "MepPanel.Blocks.AutoCAD.pdb"; Dirs = $blocksDirs }
 )
 
 Write-Host "==> Copy DLL vao bundle"

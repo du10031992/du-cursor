@@ -18,6 +18,7 @@ namespace MepPanel.Blocks.AutoCAD
             AddButton("Tao layer MEPDB", (s, e) => RunSafe(MepDbDrawingService.EnsureLayer));
             AddButton("Chen block thiet bi (MEPDB_EQUIP)", (s, e) => RunSafe(MepDbDrawingService.InsertEquipmentMarker));
             AddButton("Ve vung thiet bi (hinh chu nhat)", (s, e) => RunSafe(MepDbDrawingService.DrawEquipmentZone));
+            AddButton("Render Blender 3D -> PNG", (s, e) => RunSafe(MepCabinetRenderService.RenderFromDrawing));
         }
 
         private void AddTitle(string text)
