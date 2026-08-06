@@ -183,7 +183,7 @@ public sealed class MepDrawingToolPanel : UserControl
         try
         {
             drawAction();
-            SetStatus($"Hoàn thành: {PluginFeatures.DisplayNames.TryGetValue(feature, out var name) ? name : feature}");
+            SetStatus($"Hoàn thành: {(PluginFeatures.DisplayNames.TryGetValue(feature, out var name) ? name : feature)}");
         }
         catch (Exception ex)
         {
