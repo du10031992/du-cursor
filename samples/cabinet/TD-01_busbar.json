@@ -1,0 +1,173 @@
+[
+  {
+    "name": "TD-01",
+    "project": "TD-3P-100A",
+    "type": "Tủ điện phân phối và điều khiển",
+    "voltage": "400 VAC",
+    "frequency": "50 Hz",
+    "in_rated": 100,
+    "size": "600x800x250",
+    "floor": "FL+1.400",
+    "created": "24/05/2025",
+    "bays": [
+      {
+        "name": "NGĂN 1",
+        "label": "Nguồn vào",
+        "row_modules": 12,
+        "devices": [
+          {
+            "name": "Thanh cái đồng 3P+N",
+            "type": "BUSBAR",
+            "model": "BW63 3P+N",
+            "in_a": 100,
+            "poles": 4,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "BW63",
+            "modules": 12,
+            "note": "Thanh cái đồng 100A, 3P+N, toàn bộ ngăn 1"
+          }
+        ]
+      },
+      {
+        "name": "NGĂN 1B",
+        "label": "Cầu dao tổng",
+        "row_modules": 12,
+        "devices": [
+          {
+            "name": "MCCB tổng",
+            "type": "MCCB",
+            "model": "EasyPact CVS100F",
+            "in_a": 100,
+            "poles": 3,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "LV510347",
+            "modules": 4,
+            "note": "MCCB nguồn vào 3P 100A"
+          },
+          {
+            "name": "MCB dự phòng",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 32,
+            "poles": 1,
+            "qty": 2,
+            "manufacturer": "Schneider",
+            "modules": 1
+          }
+        ]
+      },
+      {
+        "name": "NGĂN 2",
+        "label": "Phân phối",
+        "row_modules": 24,
+        "devices": [
+          {
+            "name": "Busbar comb 1P",
+            "type": "BUSBAR_COMB",
+            "model": "PKS60F/12",
+            "in_a": 60,
+            "poles": 1,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "PKS60F12",
+            "modules": 12,
+            "note": "Comb busbar 12 cực, 1P"
+          },
+          {
+            "name": "MCB chiếu sáng",
+            "type": "MCB 1P",
+            "in_a": 10,
+            "poles": 1,
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "modules": 1
+          },
+          {
+            "name": "MCB ổ cắm",
+            "type": "MCB 1P",
+            "in_a": 16,
+            "poles": 1,
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "modules": 1
+          },
+          {
+            "name": "MCB điều hòa",
+            "type": "MCB 1P",
+            "in_a": 20,
+            "poles": 1,
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "modules": 1
+          },
+          {
+            "name": "MCB 3P phân phối",
+            "type": "MCB 3P",
+            "in_a": 16,
+            "poles": 3,
+            "qty": 2,
+            "manufacturer": "Schneider",
+            "modules": 3
+          },
+          {
+            "name": "MCB 3P 32A",
+            "type": "MCB 3P",
+            "in_a": 32,
+            "poles": 3,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "modules": 3
+          }
+        ]
+      },
+      {
+        "name": "NGĂN 3",
+        "label": "Điều khiển",
+        "row_modules": 24,
+        "devices": [
+          {
+            "name": "Contactor bơm 1",
+            "type": "CONTACTOR",
+            "model": "GMC-25",
+            "in_a": 25,
+            "poles": 3,
+            "qty": 2,
+            "manufacturer": "LS",
+            "modules": 4
+          },
+          {
+            "name": "Relay nhiệt",
+            "type": "RELAY",
+            "model": "MT-32",
+            "in_a": 25,
+            "poles": 3,
+            "qty": 2,
+            "manufacturer": "LS",
+            "modules": 3
+          },
+          {
+            "name": "Timer",
+            "type": "TIMER",
+            "model": "RE17RAMU",
+            "in_a": 0,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "modules": 4
+          },
+          {
+            "name": "Đồng hồ Ampe",
+            "type": "METER",
+            "model": "PM5560",
+            "in_a": 100,
+            "poles": 3,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "modules": 6
+          }
+        ]
+      }
+    ]
+  }
+]

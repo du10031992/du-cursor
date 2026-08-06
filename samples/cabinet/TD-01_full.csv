@@ -1,0 +1,12 @@
+bay,ten_thiet_bi,model,device_type,in_a,poles,qty,manufacturer,code,modules,ghi_chu
+NGĂN 1,MCCB tổng,EasyPact CVS100F,MCCB,100,3,1,Schneider,LV510347,4,MCCB nguồn vào 3P 100A
+NGĂN 1,MCB dự phòng,Easy9 MCB,MCB 1P,32,1,2,Schneider,EZ9F34132,1,MCB dự phòng 32A
+NGĂN 2,MCB chiếu sáng,Easy9 MCB,MCB 1P,10,1,4,Schneider,EZ9F34110,1,Chiếu sáng khu A
+NGĂN 2,MCB ổ cắm,Easy9 MCB,MCB 1P,16,1,4,Schneider,EZ9F34116,1,Ổ cắm văn phòng
+NGĂN 2,MCB điều hòa,Easy9 MCB,MCB 1P,20,1,4,Schneider,EZ9F34120,1,Điều hòa 1.5-2HP
+NGĂN 2,MCB 3P phân phối,Easy9 MCB,MCB 3P,16,3,2,Schneider,EZ9F34316,3,Phân phối tủ phụ
+NGĂN 2,MCB 3P 32A,iC60N,MCB 3P,32,3,1,Schneider,A9F74332,3,Máy bơm
+NGĂN 3,Contactor bơm,GMC-25,CONTACTOR,25,3,2,LS,MC-025a,4,Điều khiển động cơ 5.5kW
+NGĂN 3,Relay nhiệt,MT-32,RELAY,25,3,2,LS,MT-32/3H,3,Bảo vệ động cơ 17-25A
+NGĂN 3,Timer điều khiển,RE17RAMU,TIMER,0,0,1,Schneider,RE17RAMU,4,Timer trễ đóng 0.1s-100h
+NGĂN 3,Đồng hồ Ampe,PM5560,METER,100,3,1,Schneider,METSEPM5560,6,Power meter CT 100/5A

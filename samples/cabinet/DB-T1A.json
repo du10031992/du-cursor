@@ -1,0 +1,39 @@
+[
+  {
+    "name": "DB-T1A",
+    "type": "Tủ phân phối",
+    "size": "600x800x200",
+    "floor": "FL+1.400",
+    "bays": [
+      {
+        "name": "NGĂN 1",
+        "label": "Nguồn vào",
+        "devices": [
+          {"name": "MCCB tổng", "type": "MCCB",    "in_a": 100, "poles": 3, "qty": 1, "manufacturer": "Schneider", "note": "MCB tổng nguồn vào"},
+          {"name": "MCB dự phòng", "type": "MCB 1P", "in_a": 32,  "poles": 1, "qty": 2}
+        ]
+      },
+      {
+        "name": "NGĂN 2",
+        "label": "Phân phối",
+        "devices": [
+          {"name": "MCB nhánh đèn",   "type": "MCB 1P", "in_a": 10, "poles": 1, "qty": 4},
+          {"name": "MCB nhánh ổ cắm", "type": "MCB 1P", "in_a": 16, "poles": 1, "qty": 4},
+          {"name": "MCB nhánh AC",    "type": "MCB 1P", "in_a": 20, "poles": 1, "qty": 3},
+          {"name": "MCB 3P tải lớn",  "type": "MCB 3P", "in_a": 16, "poles": 3, "qty": 2},
+          {"name": "MCB 3P motor",    "type": "MCB 3P", "in_a": 32, "poles": 3, "qty": 1, "manufacturer": "LS"}
+        ]
+      },
+      {
+        "name": "NGĂN 3",
+        "label": "Điều khiển",
+        "devices": [
+          {"name": "Contactor K1", "type": "CONTACTOR", "in_a": 25, "poles": 3, "qty": 2, "manufacturer": "LS"},
+          {"name": "Relay nhiệt",  "type": "RELAY",     "in_a": 10, "poles": 2, "qty": 2},
+          {"name": "Timer T1",     "type": "TIMER",     "in_a": 0,  "poles": 0, "qty": 1},
+          {"name": "Đồng hồ A",   "type": "METER",     "in_a": 0,  "poles": 3, "qty": 1}
+        ]
+      }
+    ]
+  }
+]

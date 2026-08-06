@@ -1,0 +1,192 @@
+[
+  {
+    "name": "TD-01",
+    "project": "TD-3P-100A",
+    "type": "Tủ điện phân phối và điều khiển",
+    "voltage": "400 VAC",
+    "frequency": "50 Hz",
+    "in_rated": 100,
+    "size": "600x800x250",
+    "floor": "FL+1.400",
+    "created": "24/05/2025",
+    "modules_per_row": 12,
+    "bays": [
+      {
+        "name": "NGĂN 1",
+        "label": "Nguồn vào",
+        "row_modules": 12,
+        "devices": [
+          {
+            "name": "MCCB tổng",
+            "type": "MCCB",
+            "model": "EasyPact CVS100F",
+            "in_a": 100,
+            "voltage": 400,
+            "poles": 3,
+            "icu": "36kA",
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "LV510347",
+            "modules": 4,
+            "note": "MCCB nguồn vào 3P 100A"
+          },
+          {
+            "name": "MCB dự phòng 1",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 32,
+            "voltage": 230,
+            "poles": 1,
+            "curve": "C",
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34132",
+            "modules": 1,
+            "note": "MCB dự phòng 32A"
+          },
+          {
+            "name": "MCB dự phòng 2",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 32,
+            "voltage": 230,
+            "poles": 1,
+            "curve": "C",
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34132",
+            "modules": 1,
+            "note": "MCB dự phòng 32A"
+          }
+        ]
+      },
+      {
+        "name": "NGĂN 2",
+        "label": "Phân phối",
+        "row_modules": 24,
+        "devices": [
+          {
+            "name": "MCB chiếu sáng khu A",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 10,
+            "poles": 1,
+            "curve": "C",
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34110",
+            "modules": 1
+          },
+          {
+            "name": "MCB ổ cắm văn phòng",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 16,
+            "poles": 1,
+            "curve": "C",
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34116",
+            "modules": 1
+          },
+          {
+            "name": "MCB điều hòa",
+            "type": "MCB 1P",
+            "model": "Easy9 MCB",
+            "in_a": 20,
+            "poles": 1,
+            "curve": "C",
+            "qty": 4,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34120",
+            "modules": 1
+          },
+          {
+            "name": "MCB 3P phân phối nhỏ",
+            "type": "MCB 3P",
+            "model": "Easy9 MCB",
+            "in_a": 16,
+            "poles": 3,
+            "curve": "C",
+            "qty": 2,
+            "manufacturer": "Schneider",
+            "code": "EZ9F34316",
+            "modules": 3
+          },
+          {
+            "name": "MCB 3P tải lớn",
+            "type": "MCB 3P",
+            "model": "iC60N",
+            "in_a": 32,
+            "poles": 3,
+            "curve": "C",
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "A9F74332",
+            "modules": 3,
+            "note": "MCB 3P 32A tải máy bơm"
+          }
+        ]
+      },
+      {
+        "name": "NGĂN 3",
+        "label": "Điều khiển",
+        "row_modules": 24,
+        "devices": [
+          {
+            "name": "Contactor bơm 1",
+            "type": "CONTACTOR",
+            "model": "GMC-25",
+            "in_a": 25,
+            "voltage_coil": 220,
+            "poles": 3,
+            "qty": 2,
+            "manufacturer": "LS",
+            "code": "MC-025a",
+            "modules": 4,
+            "note": "Contactor điều khiển động cơ 5.5kW"
+          },
+          {
+            "name": "Relay nhiệt bơm",
+            "type": "RELAY",
+            "model": "MT-32",
+            "in_a": 25,
+            "range": "17-25A",
+            "poles": 3,
+            "qty": 2,
+            "manufacturer": "LS",
+            "code": "MT-32/3H",
+            "modules": 3,
+            "note": "Relay nhiệt bảo vệ động cơ"
+          },
+          {
+            "name": "Timer điều khiển",
+            "type": "TIMER",
+            "model": "RE17RAMU",
+            "in_a": 0,
+            "range": "0.1s-100h",
+            "poles": 0,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "RE17RAMU",
+            "modules": 4,
+            "note": "Timer trễ đóng"
+          },
+          {
+            "name": "Đồng hồ Ampe",
+            "type": "METER",
+            "model": "PM5560",
+            "in_a": 100,
+            "ct_ratio": "100/5",
+            "poles": 3,
+            "qty": 1,
+            "manufacturer": "Schneider",
+            "code": "METSEPM5560",
+            "modules": 6,
+            "note": "Power meter 3P đo dòng/áp/điện"
+          }
+        ]
+      }
+    ]
+  }
+]

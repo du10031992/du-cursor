@@ -1,0 +1,39 @@
+{
+  "applicationId": "mep-drawing-tool",
+  "name": "MEP DRAWING TOOL",
+  "version": "0.16.0",
+  "tagline": "Plugin AutoCAD MEP — vẽ, tính toán, tiêu chuẩn thi công",
+  "modules": [
+    {
+      "id": "drawing",
+      "titleVi": "Vẽ & bố trí",
+      "features": ["MEPDB", "MEPHVAC", "MEPDBWATER", "MEPDBSMOKE", "MEPDBCABINET2D"]
+    },
+    {
+      "id": "pipe-library",
+      "titleVi": "Thư viện ống AMC",
+      "features": ["import-amc", "auto-elbow", "place-fitting"]
+    },
+    {
+      "id": "standards",
+      "titleVi": "Tiêu chuẩn & công thức",
+      "features": ["TCVN", "QCVN", "NFPA", "ASHRAE", "IEC"]
+    },
+    {
+      "id": "calculations",
+      "titleVi": "Tính toán khoa học",
+      "systems": ["electrical", "water", "fire", "hvac"]
+    },
+    {
+      "id": "licensing",
+      "titleVi": "License & Admin",
+      "optional": true,
+      "server": "MepPanel.LicenseServer"
+    }
+  ],
+  "targetPlatform": {
+    "cad": "AutoCAD 2021",
+    "os": "Windows 64-bit",
+    "runtime": ".NET Framework 4.8"
+  }
+}

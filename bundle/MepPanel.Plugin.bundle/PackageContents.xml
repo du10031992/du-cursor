@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage
+  SchemaVersion="1.0"
+  AutodeskProduct="AutoCAD"
+  ProductType="Application"
+  Name="MepPanel"
+  AppVersion="0.13.0"
+  Description="MepPanel MEP tools (MEPDB/MEPHVAC) with server licensing"
+  Author="MepPanel">
+  <CompanyDetails Name="MepPanel" />
+  <Components Description="MepPanel plugin">
+    <RuntimeRequirements
+      OS="Win64"
+      Platform="AutoCAD*"
+      SeriesMin="R24.0"
+      SeriesMax="R24.0" />
+    <ComponentEntry AppName="MepPanel" ModuleName="./Contents/MepPanel.AutoCAD.dll" AppDescription="MepPanel MEP Plugin v0.13" LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>

@@ -1,0 +1,5 @@
+{
+  "licenseServerUrl": "https://localhost:7024/",
+  "devMode": true,
+  "pipeLibraryDwg": "samples/templates/AMC_TEMPLATE_RV29.dwg"
+}
