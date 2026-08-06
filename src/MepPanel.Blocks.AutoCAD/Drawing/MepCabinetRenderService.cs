@@ -117,16 +117,26 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                         continue;
                     }
 
-                    if (ent is BlockReference br && br.HasAttributes)
+                    var brRef = ent as BlockReference;
+                    if (brRef != null)
                     {
-                        var dev = ReadBlockAttribs(br, tr);
-                        if (dev != null)
+                        try
                         {
-                            devices.Add(dev);
+                            var attColl = brRef.AttributeCollection;
+                            if (attColl != null && attColl.Count > 0)
+                            {
+                                var dev = ReadBlockAttribs(brRef, tr);
+                                if (dev != null)
+                                {
+                                    devices.Add(dev);
+                                }
+                            }
                         }
+                        catch { }
                     }
 
-                    if (ent is MText mtext)
+                    var mtext = ent as MText;
+                    if (mtext != null)
                     {
                         var dev = ParseMTextDevice(mtext.Contents);
                         if (dev != null)
