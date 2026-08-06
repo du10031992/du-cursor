@@ -84,7 +84,11 @@ if (Test-Path $CabinetRenderPatch) {
     & $CabinetRenderPatch -PluginSourceRoot $PluginSourceRoot
 }
 
-$BlocksProj = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj"
+$RepairBlocks = Join-Path $Root "scripts\repair-blocks-cs0234.ps1"
+if (Test-Path $RepairBlocks) {
+    Write-Host "==> Repair Blocks.AutoCAD CS0234 (exclude file loi)"
+    & $RepairBlocks -PluginSourceRoot $PluginSourceRoot
+}
 
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
 $SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
@@ -136,18 +140,9 @@ foreach ($proj in @($AutoCadProj, $CoreProj)) {
     }
 }
 
-if (Test-Path $BlocksProj) {
-    Write-Host "==> Build MepPanel.Blocks.AutoCAD (panel + render Blender)"
-    $blocksArgs = @("build", $BlocksProj, "-c", $Configuration, "-p:Platform=x64")
-    if ($AutoCadDir) { $blocksArgs += "-p:AutoCadDir=$AutoCadDir" }
-    Push-Location $PluginSourceRoot
-    dotnet @blocksArgs
-    if ($LASTEXITCODE -ne 0) {
-        Pop-Location
-        throw "Build MepPanel.Blocks.AutoCAD that bai."
-    }
-    Pop-Location
-}
+# KHONG build Blocks.AutoCAD rieng - project nay thuong thieu reference (CS0234).
+# AutoCAD.csproj se build Blocks nhu dependency neu can.
+# Patch MepCabinetRenderService da apply o tren.
 
 $buildArgs = @(
     "build",
