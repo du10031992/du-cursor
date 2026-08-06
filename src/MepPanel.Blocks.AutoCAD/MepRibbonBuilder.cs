@@ -139,13 +139,13 @@ namespace MepPanel.Blocks.AutoCAD
         {
             return new RibbonButton
             {
-                Text          = label,
-                ToolTip       = tooltip,
-                ShowText      = true,
-                Size          = RibbonItemSize.Large,
-                Orientation   = System.Windows.Controls.Orientation.Vertical,
-                LargeImage    = MakeIcon(iconColor, 32),
-                SmallImage    = MakeIcon(iconColor, 16),
+                Text           = label,
+                ToolTip        = tooltip,
+                ShowText       = true,
+                Size           = RibbonItemSize.Large,
+                Orientation    = System.Windows.Controls.Orientation.Vertical,
+                LargeImage     = MakeIcon(iconColor, 32),
+                Image          = MakeIcon(iconColor, 16),
                 CommandHandler = new RibbonCmdHandler(cmd)
             };
         }
@@ -158,7 +158,7 @@ namespace MepPanel.Blocks.AutoCAD
                 ToolTip        = tooltip,
                 ShowText       = true,
                 Size           = RibbonItemSize.Standard,
-                SmallImage     = MakeIcon(iconColor, 16),
+                Image          = MakeIcon(iconColor, 16),
                 CommandHandler = new RibbonCmdHandler(cmd)
             };
         }
