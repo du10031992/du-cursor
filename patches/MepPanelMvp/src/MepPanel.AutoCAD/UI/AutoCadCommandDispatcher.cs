@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.ApplicationServices.Core;
+using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace MepPanelMvp.UI
 {
