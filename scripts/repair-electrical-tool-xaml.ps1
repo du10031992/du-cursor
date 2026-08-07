@@ -40,15 +40,34 @@ function Try-RestoreFromFile([string]$Source, [string]$Target) {
     return $true
 }
 
-function Test-GitRepo([string]$Dir) {
+# Native git + ErrorActionPreference=Stop co the throw. Dung cmd de khong crash.
+function Invoke-GitSafe {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepoRoot,
+        [Parameter(Mandatory = $true)]
+        [string[]]$GitArgs
+    )
+
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        return $false
+        return 127
     }
+    if (-not (Test-Path (Join-Path $RepoRoot ".git"))) {
+        return 128
+    }
+
+    $argLine = ($GitArgs | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    }) -join ' '
+
     $prev = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
+    $ErrorActionPreference = "Continue"
     try {
-        git -C $Dir rev-parse --is-inside-work-tree 2>$null | Out-Null
-        return ($LASTEXITCODE -eq 0)
+        cmd.exe /c "git -C `"$RepoRoot`" $argLine >nul 2>nul" | Out-Null
+        return $LASTEXITCODE
+    }
+    catch {
+        return 1
     }
     finally {
         $ErrorActionPreference = $prev
@@ -56,7 +75,7 @@ function Test-GitRepo([string]$Dir) {
 }
 
 function Try-GitCheckout([string]$RepoRoot, [string]$XamlPath) {
-    if (-not (Test-GitRepo $RepoRoot)) {
+    if (-not (Test-Path (Join-Path $RepoRoot ".git"))) {
         Write-Host "   (bo qua git - $RepoRoot khong phai git repo)"
         return $false
     }
@@ -66,17 +85,10 @@ function Try-GitCheckout([string]$RepoRoot, [string]$XamlPath) {
         return $false
     }
 
-    $prev = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
-    try {
-        git -C $RepoRoot checkout -- $rel 2>$null | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "   (git checkout that bai trong $RepoRoot)"
-            return $false
-        }
-    }
-    finally {
-        $ErrorActionPreference = $prev
+    $code = Invoke-GitSafe -RepoRoot $RepoRoot -GitArgs @('checkout', '--', $rel)
+    if ($code -ne 0) {
+        Write-Host "   (git checkout that bai trong $RepoRoot)"
+        return $false
     }
 
     $restored = Read-TextUtf8 $XamlPath
@@ -125,6 +137,13 @@ if ($parent -and (Try-GitCheckout $parent $xaml)) {
     exit 0
 }
 
+# Neu XAML hien tai van hop le -> khong can repair
+$current = Read-TextUtf8 $xaml
+if (Test-XamlLooksValid $current) {
+    Write-Host "   XAML hien tai van hop le - khong can repair"
+    exit 0
+}
+
 Write-Host ""
 Write-Host "KHONG khoi phuc duoc XAML tu backup/git." -ForegroundColor Yellow
 Write-Host ""
@@ -134,15 +153,14 @@ Write-Host "Cach sua (chon 1):"
 Write-Host "  A) Visual Studio: mo ElectricalToolControl.xaml -> chuot phai -> Undo Changes"
 Write-Host "     (hoac Local History / Previous Version neu co)"
 Write-Host ""
-Write-Host "  B) Neu MepPanelMvp co git:"
-Write-Host "     cd $PluginSourceRoot"
-Write-Host "     git checkout -- src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml"
+Write-Host "  B) Copy file .bak cung thu muc UI (neu co):"
+Write-Host "     ElectricalToolControl.xaml.pre-water-fire.bak"
+Write-Host "     doi ten/copy thanh ElectricalToolControl.xaml"
 Write-Host ""
-Write-Host "  C) Copy file XAML tu may backup / ban cu cua MepPanelMvp"
+Write-Host "  C) Copy XAML tu ban MepPanelMvp cu / may khac"
 Write-Host ""
 Write-Host "Sau do:"
-Write-Host "  cd C:\Users\DU_COMPUTER\Desktop\AI"
-Write-Host "  git pull origin cursor/water-pccc-visual-cc24"
+Write-Host "  cd C:\MepPanel\du-cursor"
 Write-Host "  .\scripts\build-plugin-release.ps1"
 Write-Host ""
 
