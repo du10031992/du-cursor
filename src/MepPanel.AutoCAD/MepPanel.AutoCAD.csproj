@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
+    <AssemblyName>MepPanel.Plugin</AssemblyName>
+    <RootNamespace>MepPanel.Plugin</RootNamespace>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AutoCadDir Condition="'$(AutoCadDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="AcCoreMgd">
+      <HintPath>$(AutoCadDir)\AcCoreMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AcMgd">
+      <HintPath>$(AutoCadDir)\AcMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <ProjectReference Include="..\MepPanel.Core\MepPanel.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MepPanel.AutoCAD.Licensing\MepPanel.AutoCAD.Licensing.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="CopyPluginDependencies" AfterTargets="Build">
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.AutoCAD.Licensing\bin\$(Configuration)\MepPanel.AutoCAD.Licensing.dll"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.Blocks.AutoCAD\bin\$(Configuration)\MepPanel.Blocks.AutoCAD.dll"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\netstandard2.0\MepPanel.Core.dll"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true"
+      Condition="Exists('$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\netstandard2.0\MepPanel.Core.dll')" />
+  </Target>
+</Project>

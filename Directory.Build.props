@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!-- Phiên bản sản phẩm MepPanel (đổi tại đây khi phát hành). -->
+    <MepPanelVersion>0.3.0</MepPanelVersion>
+
+    <Version>$(MepPanelVersion)</Version>
+    <AssemblyVersion>$(MepPanelVersion).0</AssemblyVersion>
+    <FileVersion>$(MepPanelVersion).0</FileVersion>
+    <InformationalVersion>$(MepPanelVersion)</InformationalVersion>
+    <Product>MepPanel</Product>
+    <Company>MepPanel</Company>
+    <Authors>MepPanel</Authors>
+    <Copyright>Copyright © MepPanel</Copyright>
+  </PropertyGroup>
+</Project>
