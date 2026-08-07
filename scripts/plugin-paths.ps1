@@ -59,12 +59,8 @@ function Set-AppPluginsJunction {
     }
 
     if (Test-Path -LiteralPath $LinkPath) {
-        if (Test-ReparsePoint -Path $LinkPath) {
-            Remove-Item -LiteralPath $LinkPath -Force
-        }
-        else {
-            Remove-Item -LiteralPath $LinkPath -Recurse -Force
-        }
+        # Junction/thu muc cu: luon -Recurse -Force, khong hoi Confirm (build tu dong).
+        Remove-Item -LiteralPath $LinkPath -Recurse -Force -Confirm:$false -ErrorAction Stop
     }
 
     $parent = Split-Path $LinkPath -Parent

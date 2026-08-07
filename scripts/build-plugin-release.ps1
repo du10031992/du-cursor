@@ -21,6 +21,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ConfirmPreference = "None"
 $Root = Split-Path -Parent $PSScriptRoot
 $LocalConfig = Join-Path $Root "plugin.local.json"
 $BundleContents = Join-Path $Root "bundle\MepPanel.Plugin.bundle\Contents"

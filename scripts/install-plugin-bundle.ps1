@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ConfirmPreference = "None"
 $Root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot "plugin-paths.ps1")
 
@@ -138,7 +139,7 @@ Dong AutoCAD (hoac process dang giu file) roi chay lai:
     Write-Host "==> Plugin kiem soat (1 ban): $InstallDir"
     if (Test-Path $InstallDir) {
         try {
-            Remove-Item $InstallDir -Recurse -Force -ErrorAction Stop
+            Remove-Item $InstallDir -Recurse -Force -Confirm:$false -ErrorAction Stop
         }
         catch {
             Write-Host "==> Khong xoa duoc bundle cu. Ghi de tung file..."
