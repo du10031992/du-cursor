@@ -98,9 +98,13 @@ if (Test-Path $WaterPcccPatch) {
 }
 
 $EnableWaterFireUi = Join-Path $Root "scripts\apply-enable-water-fire-ui.ps1"
+$RepairXaml = Join-Path $Root "scripts\repair-electrical-tool-xaml.ps1"
 if (Test-Path $EnableWaterFireUi) {
     Write-Host "==> Bat nut HỆ NƯỚC / BÁO CHÁY tren panel WPF"
     & $EnableWaterFireUi -PluginSourceRoot $PluginSourceRoot
+}
+elseif (Test-Path $RepairXaml) {
+    Write-Host "   (chi co repair script - bo qua enable UI)"
 }
 
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"

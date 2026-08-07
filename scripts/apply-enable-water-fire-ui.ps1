@@ -1,5 +1,4 @@
-# Bat nut HỆ NƯỚC / BÁO CHÁY trong ElectricalToolControl (WPF dang stub IsEnabled=False).
-# Chen Click -> MEPWATER / MEPFIRE + copy WaterFireCommands.cs.
+# Bat nut HỆ NƯỚC / BÁO CHÁY — patch XAML an toan (khong lam trong file).
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -17,88 +16,115 @@ function Find-FirstExisting([string[]]$Paths) {
     return $null
 }
 
+function Test-XamlLooksValid([string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+    return ($Text -match '(?is)<\s*UserControl\b') -and ($Text -match '(?is)</\s*UserControl\s*>')
+}
+
+function Write-XamlUtf8NoBom([string]$Path, [string]$Text) {
+    $enc = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Path, $Text, $enc)
+}
+
+function Read-TextUtf8([string]$Path) {
+    # Doc ca UTF-8 va UTF-16 (Visual Studio doi khi luu UTF-16)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+        return [System.Text.Encoding]::Unicode.GetString($bytes)
+    }
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        return [System.Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3)
+    }
+    return [System.Text.Encoding]::UTF8.GetString($bytes)
+}
+
+function Enable-WaterFireButton([string]$Text, [string[]]$Labels, [string]$ClickHandler) {
+    $out = $Text
+    foreach ($label in $Labels) {
+        # Bo IsEnabled=False tren Button chua nhan he thong
+        $patDisable = '(?is)(<Button\b(?=[^>]*' + [regex]::Escape($label) + ')[^>]*?)\s+IsEnabled\s*=\s*("False"|''False'')'
+        $out = [regex]::Replace($out, $patDisable, '$1')
+
+        # Them Click neu chua co (self-closing)
+        $patSelf = '(?is)(<Button\b(?=[^>]*' + [regex]::Escape($label) + ')(?![^>]*\bClick=)[^>]*?)(\s*/>)'
+        $out = [regex]::Replace($out, $patSelf, ('$1 Click="' + $ClickHandler + '"$2'))
+
+        # Them Click neu chua co (opening tag)
+        $patOpen = '(?is)(<Button\b(?=[^>]*' + [regex]::Escape($label) + ')(?![^>]*\bClick=)[^>]*?)(>)'
+        $out = [regex]::Replace($out, $patOpen, ('$1 Click="' + $ClickHandler + '"$2'))
+    }
+    return $out
+}
+
 $xaml = Find-FirstExisting @(
     (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml"),
     (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\ElectricalToolControl.xaml"),
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\electricaltoolcontrol.xaml"),
-    (Join-Path $PluginSourceRoot "UI\ElectricalToolControl.xaml")
+    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\electricaltoolcontrol.xaml")
 )
 $cs = Find-FirstExisting @(
     (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml.cs"),
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\ElectricalToolControl.xaml.cs"),
-    (Join-Path $PluginSourceRoot "UI\ElectricalToolControl.xaml.cs")
+    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\ElectricalToolControl.xaml.cs")
 )
 
 if (-not $xaml) {
     Write-Host "   (bo qua - khong tim thay ElectricalToolControl.xaml)"
-    Write-Host "   Hay mo file XAML panel, xoa IsEnabled=`"False`" o nut HỆ NƯỚC / BÁO CHÁY"
 }
 else {
-    $raw = Get-Content $xaml -Raw -Encoding UTF8
-    $orig = $raw
-
-    $raw = $raw -replace 'ELECTRICAL \+ HVAC SYSTEM\s*[·•\-]?\s*v0\.13\.0', 'ELECTRICAL + HVAC + NUOC + PCCC · v0.4.0'
-    $raw = $raw -replace 'ELECTRICAL \+ HVAC SYSTEM', 'ELECTRICAL + HVAC + NUOC + PCCC'
-
-    function Patch-Button([string]$Input, [string]$Needle, [string]$Handler) {
-        $rx = [regex]'(?is)<Button\b[^>]*?(?:/>|>.*?</Button>)'
-        $sb = New-Object System.Text.StringBuilder
-        $last = 0
-        $n = 0
-        foreach ($m in $rx.Matches($Input)) {
-            $block = $m.Value
-            if ($block -notlike "*$Needle*") {
-                continue
-            }
-
-            $newBlock = $block
-            $newBlock = [regex]::Replace($newBlock, '\sIsEnabled\s*=\s*("False"|''False'')', '', 'IgnoreCase')
-            if ($newBlock -notlike "*$Handler*") {
-                if ($newBlock -match '/>\s*$') {
-                    $newBlock = [regex]::Replace($newBlock, '\s*/>\s*$', " Click=`"$Handler`" />")
-                }
-                else {
-                    $newBlock = [regex]::Replace($newBlock, '^(?is)(<Button\b)([^>]*?)(>)', "`$1`$2 Click=`"$Handler`"`$3")
-                }
-            }
-
-            if ($newBlock -ne $block) {
-                [void]$sb.Append($Input.Substring($last, $m.Index - $last))
-                [void]$sb.Append($newBlock)
-                $last = $m.Index + $m.Length
-                $n++
-            }
+    $raw = Read-TextUtf8 $xaml
+    if (-not (Test-XamlLooksValid $raw)) {
+        $repair = Join-Path $Root "scripts\repair-electrical-tool-xaml.ps1"
+        if (Test-Path $repair) {
+            Write-Host "   XAML hong/trong -> thu repair truoc..."
+            & $repair -PluginSourceRoot $PluginSourceRoot
+            $raw = Read-TextUtf8 $xaml
         }
-        if ($n -eq 0) { return $Input }
-        [void]$sb.Append($Input.Substring($last))
-        Write-Host "   OK patch $n button(s) chua '$Needle' -> $Handler"
-        return $sb.ToString()
     }
 
-    $raw = Patch-Button $raw "NƯỚC" "HeNuoc_Click"
-    $raw = Patch-Button $raw "CHÁY" "BaoChay_Click"
-    # ASCII fallbacks neu file bi encode khac
-    $raw = Patch-Button $raw "NUOC" "HeNuoc_Click"
-    $raw = Patch-Button $raw "CHAY" "BaoChay_Click"
+    if (-not (Test-XamlLooksValid $raw)) {
+        throw @"
+ElectricalToolControl.xaml van khong hop le (MC3000 Root element is missing).
+
+Chay:
+  .\scripts\repair-electrical-tool-xaml.ps1 -PluginSourceRoot `"$PluginSourceRoot`"
+  (hoac Undo Changes file XAML trong Visual Studio / git checkout)
+
+Roi chay lai build-plugin-release.ps1
+"@
+    }
+
+    $orig = $raw
+    $bak = "$xaml.pre-water-fire.bak"
+    if (-not (Test-Path $bak)) {
+        Copy-Item $xaml $bak -Force
+        Write-Host "   Backup: $bak"
+    }
+
+    $raw = $raw -replace 'ELECTRICAL \+ HVAC SYSTEM\s*[·•\-]?\s*v0\.13\.0', 'ELECTRICAL + HVAC + NUOC + PCCC · v0.4.0'
+
+    $raw = Enable-WaterFireButton $raw @('NƯỚC', 'Hệ nước', 'HE NUOC') 'HeNuoc_Click'
+    $raw = Enable-WaterFireButton $raw @('CHÁY', 'Báo cháy', 'BAO CHAY', 'PCCC') 'BaoChay_Click'
+
+    if (-not (Test-XamlLooksValid $raw)) {
+        throw "Patch XAML that bai — file khong con UserControl. Da giu ban backup $bak"
+    }
 
     if ($raw -ne $orig) {
-        Set-Content -Path $xaml -Value $raw -Encoding UTF8
+        Write-XamlUtf8NoBom $xaml $raw
         Write-Host "   Updated XAML: $xaml"
     }
     else {
-        Write-Host "   (XAML khong doi - kiem tra chu NƯỚC/CHÁY trong $xaml)"
+        Write-Host "   (XAML da bat nut hoac khong tim thay nut NƯỚC/CHÁY)"
     }
 }
 
 if ($cs) {
-    $code = Get-Content $cs -Raw -Encoding UTF8
+    $code = Read-TextUtf8 $cs
     $codeOrig = $code
 
     $directHandler = @'
 
         private void HeNuoc_Click(object sender, RoutedEventArgs e)
         {
-            // Goi truc tiep — tranh Unknown command MEPWATER neu command chua dang ky
             try { MepPanelMvp.Commands.WaterFireCommands.ShowWaterMenu(); }
             catch { AutoCadCommandDispatcher.Queue("MEPWATER"); }
         }
@@ -110,61 +136,35 @@ if ($cs) {
         }
 '@
 
-    if ($code -match 'ShowWaterMenu') {
-        Write-Host "   (code-behind da goi ShowWaterMenu)"
-    }
-    elseif ($code -match 'HeNuoc_Click') {
-        $replaced = [regex]::Replace(
-            $code,
-            '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}\s*private void BaoChay_Click\s*\([^)]*\)\s*\{.*?\}',
-            $directHandler.Trim(),
-            1)
-        if ($replaced -eq $code) {
-            $replaced = [regex]::Replace(
-                $code,
-                '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}',
-                $directHandler.Trim(),
-                1)
-        }
-        $code = $replaced
-        Write-Host "   OK cap nhat HeNuoc/BaoChay -> ShowWaterMenu/ShowFireMenu"
-    }
-    else {
+    if ($code -notmatch 'ShowWaterMenu') {
         if ($code -match '(?s)private void Hvac_Click\s*\([^)]*\)\s*\{.*?\}') {
             $code = [regex]::Replace($code, '(?s)(private void Hvac_Click\s*\([^)]*\)\s*\{.*?\})', "`$1$directHandler", 1)
         }
-        elseif ($code -match 'void InitializeComponent\s*\(') {
-            $code = [regex]::Replace($code, '([^\n]*void InitializeComponent\s*\()', ($directHandler + "`r`n`r`n        `$1"), 1)
+        elseif ($code -match 'HeNuoc_Click') {
+            $code = [regex]::Replace(
+                $code,
+                '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}\s*private void BaoChay_Click\s*\([^)]*\)\s*\{.*?\}',
+                $directHandler.Trim(),
+                1)
         }
         else {
             $code = $code.TrimEnd() + "`r`n" + $directHandler + "`r`n"
         }
-        Write-Host "   OK chen HeNuoc_Click / BaoChay_Click (goi truc tiep)"
+        Write-Host "   OK cap nhat code-behind click handlers"
     }
 
     if ($code -ne $codeOrig) {
-        Set-Content -Path $cs -Value $code -Encoding UTF8
+        Write-XamlUtf8NoBom $cs $code
         Write-Host "   Updated CS: $cs"
     }
 }
-else {
-    Write-Host "   (bo qua code-behind - khong tim thay .xaml.cs)"
-}
 
 $cmdSrc = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Commands\WaterFireCommands.cs"
-$cmdDirs = @(
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Commands"),
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD")
-)
+$cmdDstDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Commands"
 if (Test-Path $cmdSrc) {
-    $dstDir = $cmdDirs[0]
-    if (-not (Test-Path (Split-Path $dstDir))) {
-        $dstDir = $cmdDirs[1]
-    }
-    New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
-    $dst = Join-Path $dstDir "WaterFireCommands.cs"
-    Copy-Item $cmdSrc $dst -Force
-    Write-Host "   OK WaterFireCommands.cs -> $dst"
+    New-Item -ItemType Directory -Force -Path $cmdDstDir | Out-Null
+    Copy-Item $cmdSrc (Join-Path $cmdDstDir "WaterFireCommands.cs") -Force
+    Write-Host "   OK WaterFireCommands.cs"
 }
 
 Write-Host "   Xong enable water/fire UI."
