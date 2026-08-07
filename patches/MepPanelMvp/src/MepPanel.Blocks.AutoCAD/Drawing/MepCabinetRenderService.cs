@@ -106,13 +106,16 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                         continue;
                     }
 
-                    if (ent is BlockReference br && br.HasAttributes)
+                    BlockReference br = ent as BlockReference;
+                    if (br == null || br.AttributeCollection == null || br.AttributeCollection.Count == 0)
                     {
-                        CabinetDeviceJson dev = ReadBlockAttribs(br, tr);
-                        if (dev != null)
-                        {
-                            devices.Add(dev);
-                        }
+                        continue;
+                    }
+
+                    CabinetDeviceJson dev = ReadBlockAttribs(br, tr);
+                    if (dev != null)
+                    {
+                        devices.Add(dev);
                     }
                 }
 
