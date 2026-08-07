@@ -60,12 +60,13 @@ namespace MepPanelMvp.Commands
             WarnIfFeatureMissing(ed, featureCode, title);
 
             var kw = new PromptKeywordOptions(
-                "\n" + title + ": chon chuc nang [VeOng] PhuKien TieuChuan TinhToan Render")
+                "\n" + title + ": chon chuc nang [VeOng] PhuKien ThuVien TieuChuan TinhToan Render")
             {
                 AllowNone = true
             };
             kw.Keywords.Add("VeOng");
             kw.Keywords.Add("PhuKien");
+            kw.Keywords.Add("ThuVien");
             kw.Keywords.Add("TieuChuan");
             kw.Keywords.Add("TinhToan");
             kw.Keywords.Add("Render");
@@ -84,6 +85,11 @@ namespace MepPanelMvp.Commands
                 {
                     case "PhuKien":
                         InvokeStatic(drawType, fittingMethod);
+                        break;
+                    case "ThuVien":
+                        InvokeStatic(
+                            "MepPanel.Blocks.AutoCAD.Drawing.MepPipeLibraryService",
+                            "ImportAmcLibrary");
                         break;
                     case "TieuChuan":
                         InvokeKnowledge("ShowStandards", systemKind);

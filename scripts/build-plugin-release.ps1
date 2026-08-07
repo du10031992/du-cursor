@@ -114,6 +114,11 @@ if (Test-Path $WaterPcccPatch) {
     & $WaterPcccPatch -PluginSourceRoot $PluginSourceRoot
 }
 
+$BlocksProjectPatch = Join-Path $Root "scripts\apply-blocks-project-patch.ps1"
+if (Test-Path $BlocksProjectPatch) {
+    & $BlocksProjectPatch -PluginSourceRoot $PluginSourceRoot
+}
+
 $EnableWaterFireUi = Join-Path $Root "scripts\apply-enable-water-fire-ui.ps1"
 $RepairXaml = Join-Path $Root "scripts\repair-electrical-tool-xaml.ps1"
 if (Test-Path $EnableWaterFireUi) {
@@ -180,6 +185,8 @@ foreach ($proj in @($AutoCadProj, $CoreProj)) {
 # AutoCAD.csproj se build Blocks nhu dependency neu can.
 # Patch MepCabinetRenderService da apply o tren.
 
+$BlocksProj = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj"
+
 $buildArgs = @(
     "build",
     $AutoCadProj,
@@ -215,6 +222,27 @@ dotnet @coreBuildArgs
 if ($LASTEXITCODE -ne 0) {
     Pop-Location
     throw "Build MepPanel.Core that bai."
+}
+
+if (Test-Path $BlocksProj) {
+    Write-Host "==> Build MepPanel.Blocks.AutoCAD (ve ong + thu vien AMC)"
+    $blocksBuildArgs = @(
+        "build",
+        $BlocksProj,
+        "-c", $Configuration,
+        "-p:Platform=x64"
+    )
+    if ($AutoCadDir) {
+        $blocksBuildArgs += "-p:AutoCadDir=$AutoCadDir"
+    }
+    dotnet @blocksBuildArgs
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        throw "Build MepPanel.Blocks.AutoCAD that bai."
+    }
+}
+else {
+    Write-Host "   (bo qua Blocks.AutoCAD - khong co project)"
 }
 Pop-Location
 
@@ -266,6 +294,15 @@ $outputs = @(
 
 Write-Host "==> Copy DLL vao bundle"
 New-Item -ItemType Directory -Force -Path $BundleContents | Out-Null
+
+$TemplateSrc = Join-Path $Root "assets\templates\AMC_TEMPLATE_RV29.dwg"
+$TemplateDstDir = Join-Path $BundleContents "samples\templates"
+if (Test-Path $TemplateSrc) {
+    New-Item -ItemType Directory -Force -Path $TemplateDstDir | Out-Null
+    Copy-Item $TemplateSrc (Join-Path $TemplateDstDir "AMC_TEMPLATE_RV29.dwg") -Force
+    Write-Host "   OK AMC_TEMPLATE_RV29.dwg -> samples/templates"
+}
+
 $anyOk = $false
 foreach ($item in $outputs) {
     $src = Find-Dll -Name $item.Name -Dirs $item.Dirs

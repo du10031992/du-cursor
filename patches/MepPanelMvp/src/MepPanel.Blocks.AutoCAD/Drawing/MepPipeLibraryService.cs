@@ -44,6 +44,10 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 return;
             }
 
+            string[] patterns = path.IndexOf("AMC", StringComparison.OrdinalIgnoreCase) >= 0
+                ? new[] { "*" }
+                : GetAllSearchPatterns();
+
             using (doc.LockDocument())
             using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
             {
@@ -51,7 +55,7 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                     doc.Database,
                     tr,
                     path,
-                    GetAllSearchPatterns());
+                    patterns);
                 tr.Commit();
                 ed.WriteMessage($"\n[MEP] Da nap {imported} block phu kien tu thu vien AMC.");
                 ed.WriteMessage("\nFile: " + path);
