@@ -32,17 +32,13 @@ OTP test: **123456**
 
 ### Lỗi MSB3021 / file bị khóa
 
-**Nguyên nhân:** Server **đang chạy** (F5) mà bạn bấm **Build Solution** → VS không ghi đè được `.exe`.
+**Nguyên nhân:** Server đang F5 mà bấm Build → file `.exe` bị khóa.
 
-**Cách xử lý (chọn một):**
+**Đã sửa trong project:** mỗi lần Build, VS **tự tắt** `MepPanel.LicenseServer.exe` cũ rồi mới build (xem Output: `[MepPanel] Dung License Server cu...`).
 
-| Muốn làm | Thao tác |
-|----------|----------|
-| Chỉ dùng server | **Không Build** — giữ F5 chạy, mở AutoCAD |
-| Build lại server | **Shift+F5** (Stop Debugging) → rồi **Ctrl+Shift+B** |
-| Vẫn lỗi | Task Manager → End **MepPanel.LicenseServer.exe** → Build lại |
+Sau Build xong → **F5** lại để chạy server.
 
-**Không** vừa F5 vừa Build Solution.
+Nếu vẫn lỗi: Task Manager → End **MepPanel.LicenseServer.exe** → Build lại.
 
 ---
 

@@ -6,6 +6,12 @@
     <RootNamespace>MepPanel.LicenseServer</RootNamespace>
   </PropertyGroup>
 
+  <!-- VS: tu dong tat process cu truoc Build — tranh MSB3021 file locked -->
+  <Target Name="StopRunningLicenseServerBeforeBuild" BeforeTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+    <Message Importance="high" Text="[MepPanel] Dung License Server cu (neu dang chay) truoc khi build..." />
+    <Exec Command="taskkill /F /IM MepPanel.LicenseServer.exe /T 2&gt;nul" IgnoreExitCode="true" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.19" />
