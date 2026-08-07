@@ -40,7 +40,7 @@ $demoJson = @'
       ]
     }
   ],
-  "render": {"engine": "cycles", "samples": 128, "width": 1920, "height": 1280}
+  "render": {"engine": "cycles", "samples": 64, "width": 1200, "height": 1600}
 }
 '@
 

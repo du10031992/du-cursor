@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Blender headless scene builder — render tu dien 3D photorealistic (Cycles / V-Ray).
+Blender Cycles — render tu dien.
+Pipeline da verify:
+  1) Ghep anh thiet bi (PNG) len tam layout bang pixel blit
+  2) Dan len plane + khung tu kim loai
+  3) Camera nhin ro tam layout (khong bi trang xoa)
 """
 import json
 import math
@@ -11,30 +15,13 @@ import bpy
 from mathutils import Vector, Euler
 
 
-MODULE_MM = 18.0
-DEVICE_H_MM = 88.0
-RAIL_H_MM = 7.0
-ROW_GAP_MM = 16.0
-DUCT_W_MM = 30.0
-
-
 def parse_args():
-    argv = sys.argv
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1:]
-    else:
-        argv = []
-    out = {"input": None, "output": "cabinet_blender.png", "engine": "cycles", "samples": 256}
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    out = {"input": None, "output": "out.png", "samples": 64, "engine": "cycles"}
     i = 0
     while i < len(argv):
-        if argv[i] == "--input" and i + 1 < len(argv):
-            out["input"] = argv[i + 1]
-            i += 2
-        elif argv[i] == "--output" and i + 1 < len(argv):
-            out["output"] = argv[i + 1]
-            i += 2
-        elif argv[i] == "--engine" and i + 1 < len(argv):
-            out["engine"] = argv[i + 1].lower()
+        if argv[i] in ("--input", "--output", "--engine") and i + 1 < len(argv):
+            out[argv[i][2:]] = argv[i + 1]
             i += 2
         elif argv[i] == "--samples" and i + 1 < len(argv):
             out["samples"] = int(argv[i + 1])
@@ -42,309 +29,197 @@ def parse_args():
         else:
             i += 1
     if not out["input"]:
-        raise SystemExit("Can --input layout.json")
+        raise SystemExit("need --input")
     return out
 
 
-def mm(v):
-    return v / 1000.0
-
-
-def clear_scene():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-
-
-def _set_bsdf_input(bsdf, names, value):
-    """Set Principled BSDF input by trying several Blender version names."""
-    for name in names:
-        sock = bsdf.inputs.get(name)
-        if sock is not None:
-            sock.default_value = value
-            return True
-    return False
-
-
-def make_mat(name, base_color, roughness=0.45, metallic=0.0, emission=None, emission_strength=0.0):
-    mat = bpy.data.materials.new(name=name)
-    mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
+def mat_principled(name, color, rough=0.5, metal=0.0, emit=None, es=0.0):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nodes, links = m.node_tree.nodes, m.node_tree.links
     nodes.clear()
     out = nodes.new("ShaderNodeOutputMaterial")
-    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-    _set_bsdf_input(bsdf, ("Base Color",), (*base_color, 1.0))
-    _set_bsdf_input(bsdf, ("Roughness",), roughness)
-    _set_bsdf_input(bsdf, ("Metallic",), metallic)
-    if emission:
-        # Blender 4.x: Emission Color; older: Emission
-        if not _set_bsdf_input(bsdf, ("Emission Color", "Emission"), (*emission, 1.0)):
-            pass
-        _set_bsdf_input(bsdf, ("Emission Strength",), emission_strength)
-    links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    return mat
+    b = nodes.new("ShaderNodeBsdfPrincipled")
+    b.inputs["Base Color"].default_value = (*color, 1)
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Metallic"].default_value = metal
+    if emit is not None:
+        k = "Emission Color" if "Emission Color" in b.inputs else "Emission"
+        b.inputs[k].default_value = (*emit, 1)
+        if "Emission Strength" in b.inputs:
+            b.inputs["Emission Strength"].default_value = es
+    links.new(b.outputs["BSDF"], out.inputs["Surface"])
+    return m
 
 
-def make_image_mat(name, img_path):
-    mat = bpy.data.materials.new(name=name)
-    mat.use_nodes = True
-    # KHONG dung mat.shadow_method - da bi go bo tren Blender 4.2+
-    try:
-        mat.blend_method = "CLIP"
-    except Exception:
-        pass
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
-    nodes.clear()
-    out = nodes.new("ShaderNodeOutputMaterial")
-    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-    tex = nodes.new("ShaderNodeTexImage")
-    if img_path and os.path.exists(img_path):
-        tex.image = bpy.data.images.load(img_path, check_existing=True)
-        tex.image.colorspace_settings.name = "sRGB"
-        tex.image.alpha_mode = "STRAIGHT"
-    links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    if "Alpha" in bsdf.inputs:
-        links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
-    _set_bsdf_input(bsdf, ("Roughness",), 0.38)
-    _set_bsdf_input(bsdf, ("Specular IOR Level", "Specular"), 0.35)
-    links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    return mat
-
-
-def add_box(name, sx, sy, sz, loc, mat):
+def cube(name, sx, sy, sz, loc, material):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
-    obj = bpy.context.active_object
-    obj.name = name
-    obj.scale = (sx / 2, sy / 2, sz / 2)
-    if mat:
-        obj.data.materials.append(mat)
-    return obj
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = (sx / 2, sy / 2, sz / 2)
+    bpy.ops.object.transform_apply(scale=True)
+    o.data.materials.append(material)
+    return o
 
 
-def add_plane_textured(name, w, h, loc, img_path):
-    """Plane mat huong +Y (ve phia camera)."""
-    bpy.ops.mesh.primitive_plane_add(size=1, location=loc, rotation=Euler((math.radians(-90), 0, 0), "XYZ"))
-    obj = bpy.context.active_object
-    obj.name = name
-    obj.scale = (w / 2, h / 2, 1)
-    mat = make_image_mat(name + "_mat", img_path)
-    obj.data.materials.append(mat)
-    return obj
+def load_rgba(path, tw, th):
+    img = bpy.data.images.load(os.path.abspath(path), check_existing=True)
+    sw, sh = img.size
+    src = list(img.pixels)
+    out = [0.0] * (tw * th * 4)
+    for y in range(th):
+        sy = int((1 - (y + 0.5) / th) * (sh - 1))
+        for x in range(tw):
+            sx = int((x + 0.5) / tw * (sw - 1))
+            si = (sy * sw + sx) * 4
+            di = (y * tw + x) * 4
+            out[di:di + 4] = src[si:si + 4]
+    return out
 
 
-def add_emissive_sphere(name, loc, color, strength=18.0, radius_mm=7.0):
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=mm(radius_mm), location=loc)
-    obj = bpy.context.active_object
-    obj.name = name
-    mat = make_mat(name + "_mat", color, roughness=0.15, emission=color, emission_strength=strength)
-    obj.data.materials.append(mat)
-    return obj
+def blit(dst, dw, dh, src, sw, sh, x0, y0):
+    for y in range(sh):
+        dy = y0 + y
+        if dy < 0 or dy >= dh:
+            continue
+        for x in range(sw):
+            dx = x0 + x
+            if dx < 0 or dx >= dw:
+                continue
+            si = (y * sw + x) * 4
+            di = (dy * dw + dx) * 4
+            # skip catalog white background
+            if src[si] > 0.93 and src[si + 1] > 0.93 and src[si + 2] > 0.93:
+                continue
+            dst[di:di + 4] = src[si:si + 4]
 
 
-def parse_cabinet_dims(size_str):
-    h, w, d = 600.0, 500.0, 225.0
-    import re
-    mh = re.search(r"H(\d+)", size_str or "", re.I)
-    mw = re.search(r"W(\d+)", size_str or "", re.I)
-    md = re.search(r"D(\d+)", size_str or "", re.I)
-    if mh:
-        h = float(mh.group(1))
-    if mw:
-        w = float(mw.group(1))
-    if md:
-        d = float(md.group(1))
-    return w, h, d
-
-
-def build_cabinet_shell(w_mm, h_mm, d_mm):
-    mat_shell = make_mat("CabShell", (0.68, 0.70, 0.73), roughness=0.58)
-    mat_inner = make_mat("CabInner", (0.78, 0.80, 0.83), roughness=0.72)
-    mat_duct = make_mat("WireDuct", (0.42, 0.44, 0.47), roughness=0.62)
-    mat_rail = make_mat("DINRail", (0.75, 0.77, 0.80), roughness=0.22, metallic=0.92)
-
-    cx, cy, cz = 0, 0, mm(h_mm / 2)
-    t = mm(2.5)
-
-    # Back panel (mounting plate)
-    add_box("BackPanel", mm(w_mm - 30), mm(3), mm(h_mm - 50),
-            (cx, cy - mm(d_mm / 2 - 6), cz), mat_inner)
-
-    # Shell frame
-    add_box("Top", mm(w_mm), mm(d_mm), t, (cx, cy, cz + mm(h_mm / 2 - 1)), mat_shell)
-    add_box("Bottom", mm(w_mm), mm(d_mm), t, (cx, cy, cz - mm(h_mm / 2 - 1)), mat_shell)
-    add_box("Left", t, mm(d_mm), mm(h_mm), (cx - mm(w_mm / 2 - 1), cy, cz), mat_shell)
-    add_box("Right", t, mm(d_mm), mm(h_mm), (cx + mm(w_mm / 2 - 1), cy, cz), mat_shell)
-
-    # Door (open ~48 deg)
-    hinge_x = cx - mm(w_mm / 2)
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(hinge_x + mm(w_mm * 0.42), cy + mm(d_mm * 0.42), cz))
-    door = bpy.context.active_object
-    door.name = "Door"
-    door.scale = (mm(w_mm * 0.84) / 2, mm(5) / 2, mm(h_mm * 0.88) / 2)
-    door.data.materials.append(mat_shell)
-    door.rotation_euler = Euler((0, math.radians(48), 0), "XYZ")
-
-    # Wire ducts
-    duct_h = h_mm - 70
-    add_box("DuctL", mm(DUCT_W_MM), mm(16), mm(duct_h),
-            (cx - mm(w_mm / 2 - DUCT_W_MM - 18), cy - mm(d_mm / 2 - 18), cz), mat_duct)
-    add_box("DuctR", mm(DUCT_W_MM), mm(16), mm(duct_h),
-            (cx + mm(w_mm / 2 - DUCT_W_MM - 18), cy - mm(d_mm / 2 - 18), cz), mat_duct)
-
-    return mat_rail
-
-
-def build_devices(layout, w_mm, h_mm, d_mm, mat_rail):
-    row_mods = layout.get("row_modules", 18)
+def build_layout_image(layout, px_w=900, px_h=1200):
+    pixels = [0.78, 0.80, 0.82, 1.0] * (px_w * px_h)
     rows = layout.get("rows", [])
-    rail_len = row_mods * MODULE_MM
+    row_mods = int(layout.get("row_modules", 18))
+    margin = 50
+    usable_w = px_w - margin * 2
+    mod_w = usable_w / max(row_mods, 1)
+    row_h = 200
+    top = px_h - 70
 
-    y_face = -mm(d_mm / 2 - 22)  # mat phang thiet bi, huong +Y
-    z_top = mm(h_mm - 95)
-    row_step = mm(DEVICE_H_MM + RAIL_H_MM + ROW_GAP_MM + 18)
+    for x0 in (12, px_w - 48):
+        for y in range(40, px_h - 30):
+            for x in range(x0, x0 + 32):
+                i = (y * px_w + x) * 4
+                pixels[i:i + 3] = [0.34, 0.36, 0.38]
 
-    for row_idx, row in enumerate(rows):
-        z_row = z_top - row_idx * row_step
-        rail_z = z_row - mm(DEVICE_H_MM / 2 + RAIL_H_MM / 2)
-
-        add_box(
-            f"Rail_{row_idx}",
-            mm(rail_len), mm(RAIL_H_MM), mm(RAIL_H_MM),
-            (0, y_face - mm(4), rail_z),
-            mat_rail,
-        )
-
+    for ri, row in enumerate(rows):
+        y_row = top - ri * (row_h + 50) - row_h
+        for y in range(y_row - 10, y_row - 2):
+            for x in range(margin, px_w - margin):
+                i = (y * px_w + x) * 4
+                pixels[i:i + 3] = [0.84, 0.85, 0.87]
         slot = 0
         for dev in row.get("devices", []):
-            modules = dev.get("modules", 1)
-            dev_w_mm = modules * MODULE_MM
-            x_center_mm = -rail_len / 2 + slot * MODULE_MM + dev_w_mm / 2
+            mods = max(1, int(dev.get("modules") or 1))
+            dw = max(20, int(mods * mod_w) - 6)
+            dh = row_h - 16
+            x0 = margin + int(slot * mod_w) + 2
+            y0 = y_row + 6
             tex = dev.get("texture")
-            loc = (mm(x_center_mm), y_face, z_row)
-            if tex and os.path.exists(tex):
-                add_plane_textured(
-                    f"Dev_{row_idx}_{slot}",
-                    mm(dev_w_mm - 0.5),
-                    mm(DEVICE_H_MM - 1),
-                    loc,
-                    tex,
-                )
-            slot += modules
+            if tex and os.path.isfile(tex):
+                src = load_rgba(tex, dw, dh)
+                blit(pixels, px_w, px_h, src, dw, dh, x0, y0)
+                print("BLIT", os.path.basename(tex), "at", x0, y0, dw, dh)
+            slot += mods
 
-
-def build_phase_lights(w_mm, h_mm, d_mm):
-    colors = [(0.92, 0.12, 0.10), (0.96, 0.76, 0.10), (0.12, 0.38, 0.88)]
-    labels = ["L1", "L2", "L3"]
-    base_x = -mm(w_mm / 2 - 28)
-    base_y = mm(d_mm * 0.38)
-    base_z = mm(h_mm - 75)
-    for i, (col, lbl) in enumerate(zip(colors, labels)):
-        add_emissive_sphere(f"Phase_{lbl}", (base_x, base_y + mm(i * 24 - 24), base_z), col, strength=22.0)
-
-
-def setup_camera(w_mm, h_mm, d_mm):
-    cam_data = bpy.data.cameras.new("CabCamera")
-    cam_data.lens = 32
-    cam_data.clip_start = mm(1)
-    cam_data.clip_end = mm(5000)
-    cam = bpy.data.objects.new("CabCamera", cam_data)
-    bpy.context.collection.objects.link(cam)
-    bpy.context.scene.camera = cam
-
-    target = Vector((0, -mm(d_mm * 0.05), mm(h_mm * 0.48)))
-    dist = mm(max(w_mm, h_mm) * 1.55)
-    cam.location = Vector((dist * 0.42, dist * 0.72, mm(h_mm * 0.52)))
-    direction = target - cam.location
-    cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
-
-
-def setup_lights():
-    bpy.ops.object.light_add(type="AREA", location=(0.55, 0.65, 0.95))
-    key = bpy.context.active_object
-    key.data.energy = 60
-    key.data.size = 1.0
-
-    bpy.ops.object.light_add(type="AREA", location=(-0.5, 0.4, 0.7))
-    fill = bpy.context.active_object
-    fill.data.energy = 25
-    fill.data.size = 1.4
-    fill.data.color = (0.88, 0.92, 1.0)
-
-    bpy.ops.object.light_add(type="AREA", location=(0.15, 0.9, 0.55))
-    rim = bpy.context.active_object
-    rim.data.energy = 35
-    rim.data.size = 0.6
-
-    world = bpy.context.scene.world
-    if not world:
-        world = bpy.data.worlds.new("World")
-        bpy.context.scene.world = world
-    world.use_nodes = True
-    bg = world.node_tree.nodes.get("Background")
-    if bg:
-        bg.inputs["Color"].default_value = (0.35, 0.37, 0.40, 1.0)
-        bg.inputs["Strength"].default_value = 0.15
-
-
-def setup_render(output_path, engine_name, samples, width, height):
-    scene = bpy.context.scene
-    scene.render.resolution_x = width
-    scene.render.resolution_y = height
-    scene.render.resolution_percentage = 100
-    scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = output_path
-
-    vray_ok = False
-    if engine_name.lower() == "vray":
-        for addon in ("vray_blender", "VRayBlender", "vray_for_blender"):
-            try:
-                bpy.ops.preferences.addon_enable(module=addon)
-                if addon in bpy.context.preferences.addons:
-                    scene.render.engine = "VRAY"
-                    vray_ok = True
-                    break
-            except Exception:
-                pass
-        if not vray_ok:
-            print("V-Ray addon khong tim thay — fallback Cycles")
-
-    if not vray_ok:
-        scene.render.engine = "CYCLES"
-        scene.cycles.samples = samples
-        scene.cycles.use_denoising = False
-        scene.cycles.device = "CPU"
-        scene.cycles.max_bounces = 10
-        scene.view_settings.view_transform = "Filmic"
-        scene.view_settings.exposure = -0.3
-        scene.view_settings.look = "Medium Contrast"
+    img = bpy.data.images.new("CabinetLayout", px_w, px_h, alpha=True)
+    img.pixels = pixels
+    img.pack()
+    return img
 
 
 def main():
     args = parse_args()
-    # utf-8-sig: PowerShell Set-Content -Encoding UTF8 thuong ghi BOM
     with open(args["input"], encoding="utf-8-sig") as f:
         layout = json.load(f)
 
-    clear_scene()
-    w_mm, h_mm, d_mm = parse_cabinet_dims(layout.get("size", ""))
-    mat_rail = build_cabinet_shell(w_mm, h_mm, d_mm)
-    build_devices(layout, w_mm, h_mm, d_mm, mat_rail)
-    build_phase_lights(w_mm, h_mm, d_mm)
-    setup_camera(w_mm, h_mm, d_mm)
-    setup_lights()
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    layout_img = build_layout_image(layout)
 
-    render_cfg = layout.get("render", {})
-    setup_render(
-        os.path.abspath(args["output"]),
-        args["engine"],
-        args.get("samples") or render_cfg.get("samples", 256),
-        render_cfg.get("width", 1920),
-        render_cfg.get("height", 1280),
-    )
+    # Emission material — khong bi anh sang lam trang xoa
+    m = bpy.data.materials.new("layoutMat")
+    m.use_nodes = True
+    nodes, links = m.node_tree.nodes, m.node_tree.links
+    nodes.clear()
+    out = nodes.new("ShaderNodeOutputMaterial")
+    emi = nodes.new("ShaderNodeEmission")
+    tex = nodes.new("ShaderNodeTexImage")
+    tex.image = layout_img
+    links.new(tex.outputs["Color"], emi.inputs["Color"])
+    emi.inputs["Strength"].default_value = 1.0
+    links.new(emi.outputs["Emission"], out.inputs["Surface"])
 
-    print(f"Rendering {args['output']} engine={bpy.context.scene.render.engine} samples={bpy.context.scene.cycles.samples}...")
+    # Board
+    bpy.ops.mesh.primitive_plane_add(location=(0, 0, 0))
+    board = bpy.context.active_object
+    board.name = "Board"
+    board.scale = (0.45, 0.60, 1)
+    bpy.ops.object.transform_apply(scale=True)
+    board.data.materials.append(m)
+
+    # Metal frame around board (depth)
+    shell = mat_principled("shell", (0.40, 0.42, 0.45), 0.5, 0.4)
+    cube("frameL", 0.03, 0.08, 1.22, (-0.48, -0.03, 0), shell)
+    cube("frameR", 0.03, 0.08, 1.22, (0.48, -0.03, 0), shell)
+    cube("frameT", 0.99, 0.08, 0.03, (0, -0.03, 0.615), shell)
+    cube("frameB", 0.99, 0.08, 0.03, (0, -0.03, -0.615), shell)
+    cube("back", 0.99, 0.02, 1.22, (0, -0.07, 0), shell)
+
+    # Phase LEDs — tren khung, khong de len thiet bi
+    for i, c in enumerate(((0.95, 0.12, 0.1), (0.95, 0.8, 0.1), (0.15, 0.4, 0.95))):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.018, location=(-0.30 + i * 0.07, 0.06, 0.68))
+        s = bpy.context.active_object
+        s.data.materials.append(mat_principled(f"led{i}", c, 0.2, 0, c, 8))
+
+    # Camera: giong render_layout_only (da verify thiet bi hien ro)
+    # Board nam mat phang XY, normal +Z; camera nhin xuong -Z.
+    cam_d = bpy.data.cameras.new("cam")
+    cam_d.type = "ORTHO"
+    cam_d.ortho_scale = 1.40
+    cam = bpy.data.objects.new("cam", cam_d)
+    bpy.context.collection.objects.link(cam)
+    bpy.context.scene.camera = cam
+    cam.location = (0.05, -0.08, 2.0)
+    cam.rotation_euler = (0, 0, 0)
+
+    bpy.ops.object.light_add(type="AREA", location=(0.6, -0.5, 1.5))
+    L = bpy.context.active_object
+    L.data.energy = 15
+    L.data.size = 1.2
+
+    world = bpy.data.worlds.new("W")
+    bpy.context.scene.world = world
+    world.use_nodes = True
+    bg = world.node_tree.nodes["Background"]
+    bg.inputs[0].default_value = (0.14, 0.15, 0.17, 1)
+    bg.inputs[1].default_value = 0.5
+
+    sc = bpy.context.scene
+    sc.render.engine = "CYCLES"
+    sc.cycles.samples = int(args["samples"])
+    sc.cycles.use_denoising = False
+    sc.cycles.device = "CPU"
+    # Portrait — khop ti le board (0.45 x 0.60)
+    sc.render.resolution_x = int(layout.get("render", {}).get("width", 1200))
+    sc.render.resolution_y = int(layout.get("render", {}).get("height", 1600))
+    sc.render.image_settings.file_format = "PNG"
+    sc.render.filepath = os.path.abspath(args["output"])
+    sc.view_settings.view_transform = "Standard"
+    sc.view_settings.exposure = 0.0
+
+    print("RENDER", sc.render.filepath, "samples", sc.cycles.samples)
     bpy.ops.render.render(write_still=True)
-    print(f"OK {args['output']}")
+    if not os.path.isfile(sc.render.filepath):
+        raise SystemExit("no output")
+    print("OK", sc.render.filepath)
 
 
 if __name__ == "__main__":

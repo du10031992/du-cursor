@@ -70,8 +70,8 @@
   ],
   "render": {
     "engine": "cycles",
-    "samples": 32,
-    "width": 1280,
-    "height": 854
+    "samples": 64,
+    "width": 1200,
+    "height": 1600
   }
 }
