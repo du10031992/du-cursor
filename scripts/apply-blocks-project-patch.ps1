@@ -85,12 +85,6 @@ if ((Test-Path $patchPanel) -and (Test-Path $dstRoot)) {
     Copy-Item $patchPanel (Join-Path $dstRoot "MepDbToolPanel.cs") -Force
 }
 
-$patchAssemblyInfo = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\AutoCadAssemblyInfo.cs"
-if ((Test-Path $patchAssemblyInfo) -and (Test-Path $dstRoot)) {
-    Copy-Item $patchAssemblyInfo (Join-Path $dstRoot "AutoCadAssemblyInfo.cs") -Force
-    Write-Host "   OK AutoCadAssemblyInfo.cs (khong CommandClass legacy)"
-}
-
 # AutoCAD.csproj can tham chieu Blocks (neu chua co).
 $acadProj = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj"
 $blocksProj = Join-Path $dstRoot "MepPanel.Blocks.AutoCAD.csproj"
