@@ -200,7 +200,17 @@ $cmdSrc = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Commands\Wat
 $cmdDstDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Commands"
 if (Test-Path $cmdSrc) {
     New-Item -ItemType Directory -Force -Path $cmdDstDir | Out-Null
-    Copy-Item $cmdSrc (Join-Path $cmdDstDir "WaterFireCommands.cs") -Force
+    $cmdDst = Join-Path $cmdDstDir "WaterFireCommands.cs"
+    Copy-Item $cmdSrc $cmdDst -Force
+    # CS0104: Exception trung Autodesk.AutoCAD.Runtime vs System
+    $cmdText = Read-TextUtf8 $cmdDst
+    if ($cmdText -match 'using Autodesk\.AutoCAD\.Runtime' -and $cmdText -match 'catch\s*\(\s*Exception\b') {
+        if ($cmdText -notmatch 'using Exception = System\.Exception') {
+            $cmdText = $cmdText -replace '(using Autodesk\.AutoCAD\.Runtime;\r?\n)', "`$1using Exception = System.Exception;`r`n"
+            Write-TextUtf8NoBom $cmdDst $cmdText
+            Write-Host "   OK fix CS0104 Exception alias"
+        }
+    }
     Write-Host "   OK WaterFireCommands.cs"
 }
 

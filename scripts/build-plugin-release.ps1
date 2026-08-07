@@ -173,6 +173,12 @@ if ($AutoCadDir) {
 
 Write-Host "==> Build plugin tu source: $PluginSourceRoot"
 Write-Host "==> Configuration: $Configuration x64"
+
+$Preflight = Join-Path $Root "scripts\preflight-plugin-build.ps1"
+if (Test-Path $Preflight) {
+    & $Preflight -PluginSourceRoot $PluginSourceRoot
+}
+
 Push-Location $PluginSourceRoot
 dotnet @buildArgs
 if ($LASTEXITCODE -ne 0) {

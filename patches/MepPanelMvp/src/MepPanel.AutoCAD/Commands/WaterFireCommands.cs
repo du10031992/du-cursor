@@ -4,6 +4,7 @@ using System.Reflection;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using Exception = System.Exception;
 
 namespace MepPanelMvp.Commands
 {
