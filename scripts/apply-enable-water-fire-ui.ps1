@@ -94,32 +94,52 @@ if ($cs) {
     $code = Get-Content $cs -Raw -Encoding UTF8
     $codeOrig = $code
 
-    if ($code -notmatch 'HeNuoc_Click') {
-        $handler = @'
+    $directHandler = @'
 
         private void HeNuoc_Click(object sender, RoutedEventArgs e)
         {
-            AutoCadCommandDispatcher.Queue("MEPWATER");
+            // Goi truc tiep — tranh Unknown command MEPWATER neu command chua dang ky
+            try { MepPanelMvp.Commands.WaterFireCommands.ShowWaterMenu(); }
+            catch { AutoCadCommandDispatcher.Queue("MEPWATER"); }
         }
 
         private void BaoChay_Click(object sender, RoutedEventArgs e)
         {
-            AutoCadCommandDispatcher.Queue("MEPFIRE");
+            try { MepPanelMvp.Commands.WaterFireCommands.ShowFireMenu(); }
+            catch { AutoCadCommandDispatcher.Queue("MEPFIRE"); }
         }
 '@
-        if ($code -match '(?s)private void Hvac_Click\s*\([^)]*\)\s*\{.*?\}') {
-            $code = [regex]::Replace($code, '(?s)(private void Hvac_Click\s*\([^)]*\)\s*\{.*?\})', "`$1$handler", 1)
+
+    if ($code -match 'ShowWaterMenu') {
+        Write-Host "   (code-behind da goi ShowWaterMenu)"
+    }
+    elseif ($code -match 'HeNuoc_Click') {
+        $replaced = [regex]::Replace(
+            $code,
+            '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}\s*private void BaoChay_Click\s*\([^)]*\)\s*\{.*?\}',
+            $directHandler.Trim(),
+            1)
+        if ($replaced -eq $code) {
+            $replaced = [regex]::Replace(
+                $code,
+                '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}',
+                $directHandler.Trim(),
+                1)
         }
-        elseif ($code -match 'void InitializeComponent\s*\(') {
-            $code = [regex]::Replace($code, '([^\n]*void InitializeComponent\s*\()', ($handler + "`r`n`r`n        `$1"), 1)
-        }
-        else {
-            $code = $code.TrimEnd() + "`r`n" + $handler + "`r`n"
-        }
-        Write-Host "   OK chen HeNuoc_Click / BaoChay_Click"
+        $code = $replaced
+        Write-Host "   OK cap nhat HeNuoc/BaoChay -> ShowWaterMenu/ShowFireMenu"
     }
     else {
-        Write-Host "   (code-behind da co HeNuoc_Click)"
+        if ($code -match '(?s)private void Hvac_Click\s*\([^)]*\)\s*\{.*?\}') {
+            $code = [regex]::Replace($code, '(?s)(private void Hvac_Click\s*\([^)]*\)\s*\{.*?\})', "`$1$directHandler", 1)
+        }
+        elseif ($code -match 'void InitializeComponent\s*\(') {
+            $code = [regex]::Replace($code, '([^\n]*void InitializeComponent\s*\()', ($directHandler + "`r`n`r`n        `$1"), 1)
+        }
+        else {
+            $code = $code.TrimEnd() + "`r`n" + $directHandler + "`r`n"
+        }
+        Write-Host "   OK chen HeNuoc_Click / BaoChay_Click (goi truc tiep)"
     }
 
     if ($code -ne $codeOrig) {

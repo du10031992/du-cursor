@@ -1,6 +1,6 @@
 using System;
+using System.IO;
 using System.Reflection;
-using System.Windows.Forms;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -8,12 +8,19 @@ using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace MepPanelMvp.Commands
 {
     /// <summary>
-    /// Lenh he nuoc / PCCC goi tu nut panel WPF (HỆ NƯỚC / BÁO CHÁY).
+    /// He nuoc / PCCC — goi tu nut panel WPF hoac lenh MEPWATER / MEPFIRE.
+    /// Khong dung WinForms MessageBox (tranh loi reference WPF project).
     /// </summary>
     public class WaterFireCommands
     {
         [CommandMethod("MEPWATER", CommandFlags.Modal)]
-        public void WaterMenu()
+        public void WaterMenuCmd() => ShowWaterMenu();
+
+        [CommandMethod("MEPFIRE", CommandFlags.Modal)]
+        public void FireMenuCmd() => ShowFireMenu();
+
+        /// <summary>Goi truc tiep tu HeNuoc_Click (khong can SendStringToExecute).</summary>
+        public static void ShowWaterMenu()
         {
             RunSystemMenu(
                 title: "He nuoc",
@@ -25,8 +32,8 @@ namespace MepPanelMvp.Commands
                 renderMethod: "RenderWater");
         }
 
-        [CommandMethod("MEPFIRE", CommandFlags.Modal)]
-        public void FireMenu()
+        /// <summary>Goi truc tiep tu BaoChay_Click.</summary>
+        public static void ShowFireMenu()
         {
             RunSystemMenu(
                 title: "PCCC / Bao chay",
@@ -50,16 +57,14 @@ namespace MepPanelMvp.Commands
             var doc = AcApp.DocumentManager.MdiActiveDocument;
             if (doc == null)
             {
-                MessageBox.Show("Khong co ban ve dang mo.", title);
+                Write("Khong co ban ve dang mo.");
                 return;
             }
 
             Editor ed = doc.Editor;
 
-            if (!EnsureFeature(featureCode, title))
-            {
-                return;
-            }
+            // Chi canh bao neu thieu sub-feature — van cho dung neu da login MEPDB.
+            WarnIfFeatureMissing(ed, featureCode, title);
 
             var kw = new PromptKeywordOptions(
                 "\n" + title + ": chon chuc nang [VeOng] PhuKien TieuChuan TinhToan Render")
@@ -103,50 +108,48 @@ namespace MepPanelMvp.Commands
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (TargetInvocationException ex)
             {
                 string msg = ex.InnerException?.Message ?? ex.Message;
                 ed.WriteMessage("\n[MEP] Loi " + title + ": " + msg);
-                MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Write(title + ": " + msg);
+            }
+            catch (Exception ex)
+            {
+                ed.WriteMessage("\n[MEP] Loi " + title + ": " + ex.Message);
+                Write(title + ": " + ex.Message);
             }
         }
 
-        private static bool EnsureFeature(string featureCode, string title)
+        private static void WarnIfFeatureMissing(Editor ed, string featureCode, string title)
         {
             try
             {
-                // Prefer Licensing gate when available.
                 Type gate = FindType("MepPanel.AutoCAD.Licensing.PluginFeatureGate")
                     ?? FindType("MepPanel.Core.PluginFeatureGate");
                 if (gate == null)
                 {
-                    return true;
+                    return;
                 }
 
-                MethodInfo ensure = gate.GetMethod("Ensure", BindingFlags.Public | BindingFlags.Static);
-                if (ensure == null)
+                MethodInfo canUse = gate.GetMethod("CanUse", BindingFlags.Public | BindingFlags.Static);
+                if (canUse == null)
                 {
-                    return true;
+                    return;
                 }
 
-                object ok = ensure.Invoke(null, new object[] { featureCode });
+                object ok = canUse.Invoke(null, new object[] { featureCode });
                 if (ok is bool b && !b)
                 {
-                    MessageBox.Show(
-                        "Chua mo tinh nang " + title + " (" + featureCode + ").\n\n" +
-                        "Vao Admin /admin → bat feature cho SĐT của bạn, roi dang nhap lai (MEPDB).",
-                        title,
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return false;
+                    ed.WriteMessage(
+                        "\n[MEP] Canh bao: chua bat feature " + featureCode +
+                        " tren Admin. Van thu chay " + title + ".");
                 }
             }
             catch
             {
-                // neu gate loi van cho chay (dev)
+                /* ignore */
             }
-
-            return true;
         }
 
         private static void InvokeKnowledge(string method, string systemKindName)
@@ -156,7 +159,7 @@ namespace MepPanelMvp.Commands
             if (knowledge == null || kindType == null)
             {
                 throw new InvalidOperationException(
-                    "Thieu MepKnowledgeService. Chay lai .\\scripts\\build-plugin-release.ps1 (apply-water-pccc-patch).");
+                    "Thieu service tinh toan. Dong AutoCAD, chay: .\\scripts\\build-plugin-release.ps1");
             }
 
             object kind = Enum.Parse(kindType, systemKindName);
@@ -175,7 +178,7 @@ namespace MepPanelMvp.Commands
             if (t == null)
             {
                 throw new InvalidOperationException(
-                    "Thieu " + typeName + ". Chay lai .\\scripts\\build-plugin-release.ps1 de apply patch he nuoc/PCCC.");
+                    "Thieu " + typeName + ". Dong AutoCAD, chay: .\\scripts\\build-plugin-release.ps1");
             }
 
             MethodInfo mi = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
@@ -205,7 +208,44 @@ namespace MepPanelMvp.Commands
                 }
             }
 
+            // Thu load Blocks DLL canh plugin
+            try
+            {
+                string dir = Path.GetDirectoryName(typeof(WaterFireCommands).Assembly.Location) ?? "";
+                string blocks = Path.Combine(dir, "MepPanel.Blocks.AutoCAD.dll");
+                if (File.Exists(blocks))
+                {
+                    Assembly asm = Assembly.LoadFrom(blocks);
+                    Type t = asm.GetType(fullName, throwOnError: false);
+                    if (t != null)
+                    {
+                        return t;
+                    }
+                }
+            }
+            catch
+            {
+                /* skip */
+            }
+
             return null;
+        }
+
+        private static void Write(string message)
+        {
+            try
+            {
+                System.Windows.MessageBox.Show(
+                    message,
+                    "MepPanel",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
+            catch
+            {
+                var doc = AcApp.DocumentManager.MdiActiveDocument;
+                doc?.Editor.WriteMessage("\n[MEP] " + message);
+            }
         }
     }
 }
