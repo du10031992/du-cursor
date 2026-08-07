@@ -6,6 +6,7 @@ using MepPanel.Core.Standards;
 
 namespace MepPanel.Blocks.AutoCAD
 {
+    /// <summary>Panel WinForms — chi He nuoc / PCCC (MEPDB chinh dung panel WPF).</summary>
     internal sealed class MepDbToolPanel : UserControl
     {
         public MepDbToolPanel()
@@ -24,15 +25,8 @@ namespace MepPanel.Blocks.AutoCAD
                 Width = 300
             };
 
-            AddTitle(layout, "MEPDB - Drawing Database");
-            AddHint(layout, "Tao layer, chen block thiet bi, ve vung MEPDB.");
-            AddButton(layout, "Tao layer MEPDB", MepDbDrawingService.EnsureLayer);
-            AddButton(layout, "Chen block thiet bi (MEPDB_EQUIP)", MepDbDrawingService.InsertEquipmentMarker);
-            AddButton(layout, "Ve vung thiet bi (hinh chu nhat)", MepDbDrawingService.DrawEquipmentZone);
-            AddButton(layout, "Render tu dien -> PNG", MepCabinetRenderService.RenderFromDrawing);
-
             AddTitle(layout, "He nuoc");
-            AddHint(layout, "Ve ong, phan tich, minh hoa PNG — layer MEP_WATER.");
+            AddHint(layout, "Ve ong, phu kien AMC, phan tich, minh hoa PNG — layer MEP_WATER.");
             AddButton(layout, "Nap thu vien AMC", MepPipeLibraryService.ImportAmcLibrary);
             AddButton(layout, "Ve ong nuoc + co", MepWaterDrawingService.DrawPipeRun);
             AddButton(layout, "Dat phu kien nuoc", MepWaterDrawingService.PlaceFitting);
@@ -95,7 +89,7 @@ namespace MepPanel.Blocks.AutoCAD
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "MepPanel MEPDB");
+                MessageBox.Show(ex.Message, "MepPanel");
             }
         }
     }

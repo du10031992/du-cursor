@@ -10,8 +10,8 @@ $srcRoot = Join-Path $Root "src\MepPanel.Blocks.AutoCAD"
 $patchRoot = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD"
 $dstRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
 
-if (-not (Test-Path $srcRoot)) {
-    Write-Host "   (bo qua - khong co src\MepPanel.Blocks.AutoCAD trong repo)"
+if (-not (Test-Path $srcRoot) -and -not (Test-Path $patchRoot)) {
+    Write-Host "   (bo qua - khong co Blocks.AutoCAD trong repo)"
     exit 0
 }
 
@@ -35,7 +35,9 @@ function Sync-Tree {
 }
 
 Write-Host "==> Dong bo MepPanel.Blocks.AutoCAD (full project tu repo)"
-Sync-Tree -Source $srcRoot -Dest $dstRoot
+if (Test-Path $srcRoot) {
+    Sync-Tree -Source $srcRoot -Dest $dstRoot
+}
 
 if (Test-Path $patchRoot) {
     Sync-Tree -Source $patchRoot -Dest $dstRoot
@@ -44,9 +46,7 @@ if (Test-Path $patchRoot) {
 
 $requiredFiles = @(
     "MepPanel.Blocks.AutoCAD.csproj",
-    "ToolHost.cs",
     "MepDbToolPanel.cs",
-    "Drawing\MepDbDrawingService.cs",
     "Drawing\MepPipeLibraryService.cs",
     "Drawing\MepWaterDrawingService.cs",
     "Drawing\MepDrawingHelper.cs"

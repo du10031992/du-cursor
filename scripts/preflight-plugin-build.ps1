@@ -82,10 +82,17 @@ if (Test-Path $client) {
 
 $blocksRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
 if (Test-Path $blocksRoot) {
+    $panel = Join-Path $blocksRoot "MepDbToolPanel.cs"
+    if (Test-Path $panel) {
+        $panelText = Read-TextUtf8 $panel
+        if ($panelText -match 'MepDbDrawingService') {
+            $issues += "MepDbToolPanel.cs cu (MepDbDrawingService) -> git pull + build lai"
+        }
+    }
+
     $blocksRequired = @(
-        "Drawing\MepDbDrawingService.cs",
         "Drawing\MepPipeLibraryService.cs",
-        "ToolHost.cs",
+        "Drawing\MepWaterDrawingService.cs",
         "MepDbToolPanel.cs"
     )
     foreach ($rel in $blocksRequired) {
