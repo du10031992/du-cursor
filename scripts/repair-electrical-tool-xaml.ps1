@@ -1,4 +1,4 @@
-# Khoi phuc ElectricalToolControl.xaml bi script patch lam trong / loi MC3000.
+# Khoi phuc ElectricalToolControl.xaml bi patch lam trong / loi MC3000.
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -13,6 +13,84 @@ function Find-FirstExisting([string[]]$Paths) {
     return $null
 }
 
+function Test-XamlLooksValid([string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+    return ($Text -match '(?is)<\s*UserControl\b') -and ($Text -match '(?is)</\s*UserControl\s*>')
+}
+
+function Read-TextUtf8([string]$Path) {
+    if (-not (Test-Path $Path)) { return $null }
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+        return [System.Text.Encoding]::Unicode.GetString($bytes)
+    }
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        return [System.Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3)
+    }
+    return [System.Text.Encoding]::UTF8.GetString($bytes)
+}
+
+function Try-RestoreFromFile([string]$Source, [string]$Target) {
+    $text = Read-TextUtf8 $Source
+    if (-not (Test-XamlLooksValid $text)) {
+        return $false
+    }
+    Copy-Item $Source $Target -Force
+    Write-Host "   OK khoi phuc tu $Source"
+    return $true
+}
+
+function Test-GitRepo([string]$Dir) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        return $false
+    }
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    try {
+        git -C $Dir rev-parse --is-inside-work-tree 2>$null | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
+function Try-GitCheckout([string]$RepoRoot, [string]$XamlPath) {
+    if (-not (Test-GitRepo $RepoRoot)) {
+        Write-Host "   (bo qua git - $RepoRoot khong phai git repo)"
+        return $false
+    }
+
+    $rel = $XamlPath.Substring($RepoRoot.Length).TrimStart('\', '/')
+    if ([string]::IsNullOrWhiteSpace($rel)) {
+        return $false
+    }
+
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    try {
+        git -C $RepoRoot checkout -- $rel 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "   (git checkout that bai trong $RepoRoot)"
+            return $false
+        }
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
+
+    $restored = Read-TextUtf8 $XamlPath
+    if (Test-XamlLooksValid $restored) {
+        Write-Host "   OK git checkout $rel"
+        return $true
+    }
+
+    Write-Host "   (git checkout xong nhung XAML van khong hop le)"
+    return $false
+}
+
+$PluginSourceRoot = (Resolve-Path $PluginSourceRoot).Path
+
 $xaml = Find-FirstExisting @(
     (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml"),
     (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\ElectricalToolControl.xaml")
@@ -25,66 +103,47 @@ if (-not $xaml) {
 Write-Host "==> Repair ElectricalToolControl.xaml"
 Write-Host "   File: $xaml"
 
-$bak = "$xaml.bak"
-$prePatch = "$xaml.pre-water-fire.bak"
+$bakCandidates = @(
+    "$xaml.bak",
+    "$xaml.pre-water-fire.bak",
+    (Join-Path (Split-Path $xaml) "ElectricalToolControl.xaml.orig")
+)
 
-function Test-XamlLooksValid([string]$Text) {
-    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
-    return ($Text -match '(?is)<\s*UserControl\b') -and ($Text -match '(?is)</\s*UserControl\s*>')
-}
-
-function Write-XamlUtf8NoBom([string]$Path, [string]$Text) {
-    $enc = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllText($Path, $Text, $enc)
-}
-
-# 1) Backup gan nhat (script cu)
-if ((Test-Path $bak) -and (Test-XamlLooksValid (Get-Content $bak -Raw -Encoding UTF8))) {
-    Copy-Item $bak $xaml -Force
-    Write-Host "   OK khoi phuc tu $bak"
-    exit 0
-}
-
-if ((Test-Path $prePatch) -and (Test-XamlLooksValid (Get-Content $prePatch -Raw -Encoding UTF8))) {
-    Copy-Item $prePatch $xaml -Force
-    Write-Host "   OK khoi phuc tu $prePatch"
-    exit 0
-}
-
-# 2) Git restore trong MepPanelMvp
-$git = Get-Command git -ErrorAction SilentlyContinue
-if ($git) {
-    Push-Location $PluginSourceRoot
-    try {
-        $rel = Resolve-Path -Relative $xaml
-        git checkout -- $rel 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            $restored = Get-Content $xaml -Raw -Encoding UTF8
-            if (Test-XamlLooksValid $restored) {
-                Write-Host "   OK git checkout $rel"
-                Pop-Location
-                exit 0
-            }
-        }
-    }
-    finally {
-        Pop-Location
+foreach ($bak in $bakCandidates) {
+    if (Try-RestoreFromFile $bak $xaml) {
+        exit 0
     }
 }
 
-# 3) Huong dan thu cong
-throw @"
-Khong khoi phuc duoc XAML tu backup/git.
+if (Try-GitCheckout $PluginSourceRoot $xaml) {
+    exit 0
+}
 
-File hien tai co the bi trong -> loi MC3000 Root element is missing.
+# Thu git o thu muc cha (neu MepPanelMvp nam trong repo lon hon)
+$parent = Split-Path $PluginSourceRoot -Parent
+if ($parent -and (Try-GitCheckout $parent $xaml)) {
+    exit 0
+}
 
-Cach sua:
-  1. Mo Visual Studio -> Team Explorer -> Undo Changes tren:
-       src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml
-     (hoac git checkout file do trong thu muc MepPanelMvp)
+Write-Host ""
+Write-Host "KHONG khoi phuc duoc XAML tu backup/git." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "File co the bi trong -> loi MC3000 Root element is missing."
+Write-Host ""
+Write-Host "Cach sua (chon 1):"
+Write-Host "  A) Visual Studio: mo ElectricalToolControl.xaml -> chuot phai -> Undo Changes"
+Write-Host "     (hoac Local History / Previous Version neu co)"
+Write-Host ""
+Write-Host "  B) Neu MepPanelMvp co git:"
+Write-Host "     cd $PluginSourceRoot"
+Write-Host "     git checkout -- src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml"
+Write-Host ""
+Write-Host "  C) Copy file XAML tu may backup / ban cu cua MepPanelMvp"
+Write-Host ""
+Write-Host "Sau do:"
+Write-Host "  cd C:\Users\DU_COMPUTER\Desktop\AI"
+Write-Host "  git pull origin cursor/water-pccc-visual-cc24"
+Write-Host "  .\scripts\build-plugin-release.ps1"
+Write-Host ""
 
-  2. Chay lai:
-       .\scripts\build-plugin-release.ps1
-
-Neu khong co git: copy lai file XAML tu may backup / ban cu cua MepPanelMvp.
-"@
+exit 1

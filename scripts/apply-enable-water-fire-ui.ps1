@@ -76,8 +76,20 @@ else {
         $repair = Join-Path $Root "scripts\repair-electrical-tool-xaml.ps1"
         if (Test-Path $repair) {
             Write-Host "   XAML hong/trong -> thu repair truoc..."
+            $prevEa = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
             & $repair -PluginSourceRoot $PluginSourceRoot
+            $repairExit = $LASTEXITCODE
+            $ErrorActionPreference = $prevEa
             $raw = Read-TextUtf8 $xaml
+            if ($repairExit -ne 0 -and -not (Test-XamlLooksValid $raw)) {
+                throw @"
+ElectricalToolControl.xaml van khong hop le (MC3000 Root element is missing).
+
+Xem huong dan repair o tren, hoac Undo Changes file XAML trong Visual Studio.
+Roi chay lai: .\scripts\build-plugin-release.ps1
+"@
+            }
         }
     }
 
@@ -87,7 +99,6 @@ ElectricalToolControl.xaml van khong hop le (MC3000 Root element is missing).
 
 Chay:
   .\scripts\repair-electrical-tool-xaml.ps1 -PluginSourceRoot `"$PluginSourceRoot`"
-  (hoac Undo Changes file XAML trong Visual Studio / git checkout)
 
 Roi chay lai build-plugin-release.ps1
 "@
