@@ -78,7 +78,7 @@ if (Test-Path $PatchCoreFeatures) {
     Copy-Item $PatchCoreFeatures $TargetCoreFeatures -Force
 }
 
-Write-Host "==> build-plugin-release.ps1 [no-standalone-Blocks] Blender patch enabled"
+Write-Host "==> build-plugin-release.ps1 [no-standalone-Blocks] photoreal render"
 
 $CabinetRenderPatch = Join-Path $Root "scripts\apply-cabinet-render-patch.ps1"
 $RepairBlocks = Join-Path $Root "scripts\repair-blocks-cs0234.ps1"
@@ -87,7 +87,7 @@ if (Test-Path $RepairBlocks) {
     & $RepairBlocks -PluginSourceRoot $PluginSourceRoot
 }
 if (Test-Path $CabinetRenderPatch) {
-    Write-Host "==> Apply patch MepCabinetRenderService (Blender 3D render)"
+    Write-Host "==> Apply patch MepCabinetRenderService (Pillow photoreal)"
     & $CabinetRenderPatch -PluginSourceRoot $PluginSourceRoot
 }
 

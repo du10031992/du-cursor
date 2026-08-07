@@ -685,12 +685,8 @@ def main():
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--mode", choices=("interior", "layout"), default="interior",
                         help="interior = tu mo that (mac dinh), layout = bang DIN UI")
-    parser.add_argument("--quality", choices=("standard", "photoreal", "blender"), default="blender",
-                        help="blender = Blender Cycles/V-Ray 3D (mac dinh), photoreal = Pillow AI composite")
-    parser.add_argument("--engine", choices=("cycles", "vray"), default="cycles",
-                        help="Render engine khi --quality blender (vray can addon + license)")
-    parser.add_argument("--samples", type=int, default=256,
-                        help="Cycles samples (blender mode, cao hon = dep hon, lau hon)")
+    parser.add_argument("--quality", choices=("standard", "photoreal"), default="photoreal",
+                        help="photoreal = Pillow AI composite (mac dinh), standard = layout phang")
     args = parser.parse_args()
 
     if args.mode == "interior":
@@ -701,13 +697,6 @@ def main():
             spec = parse_json(args.input)
         else:
             spec = parse_csv(args.input)
-
-        if args.quality == "blender":
-            from render_blender import render_blender_or_fallback
-            mode = render_blender_or_fallback(
-                spec, args.output, engine=args.engine, samples=args.samples,
-            )
-            return
 
         img = render_interior(spec, quality=args.quality)
         img.save(args.output, "PNG", dpi=(150, 150))

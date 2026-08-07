@@ -10,27 +10,20 @@ using Autodesk.AutoCAD.EditorInput;
 namespace MepPanel.Blocks.AutoCAD.Drawing
 {
     /// <summary>
-    /// Doc du lieu tu ban ve / file -> goi render_cabinet.py (Blender 3D / Pillow).
+    /// Render tu dien bang Python/Pillow (photoreal) — khong dung Blender.
     /// </summary>
     public static class MepCabinetRenderService
     {
         private const string RendererScript = "render_cabinet.py";
-        private const int TimeoutBlenderMs = 600000;
-        private const int TimeoutFastMs = 120000;
+        private const int TimeoutMs = 120000;
 
         public static void RenderFromDrawing()
         {
             var doc = MepDrawingHelper.GetActiveDocument();
             Editor ed = doc.Editor;
 
-            string quality = PromptQuality(ed);
-            if (quality == null)
-            {
-                return;
-            }
-
             var kw = new PromptKeywordOptions(
-                "\nNguon du lieu [TuBanVe] TuFile Demo")
+                "\nRender tu dien: nguon du lieu [TuBanVe] TuFile Demo")
             {
                 AllowNone = true
             };
@@ -76,7 +69,7 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 Path.GetTempPath(),
                 "MEP_CABINET_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png");
 
-            if (!CallPythonRenderer(ed, jsonPath, outPng, quality))
+            if (!CallPythonRenderer(ed, jsonPath, outPng))
             {
                 return;
             }
@@ -89,36 +82,6 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             catch
             {
                 ed.WriteMessage("\nKhong mo duoc anh tu dong. File: " + outPng);
-            }
-        }
-
-        private static string PromptQuality(Editor ed)
-        {
-            var kw = new PromptKeywordOptions(
-                "\nChe do render [Blender3D] Photoreal Nhanh")
-            {
-                AllowNone = true
-            };
-            kw.Keywords.Add("Blender3D");
-            kw.Keywords.Add("Photoreal");
-            kw.Keywords.Add("Nhanh");
-            kw.Keywords.Default = "Blender3D";
-
-            PromptResult pr = ed.GetKeywords(kw);
-            if (pr.Status == PromptStatus.Cancel)
-            {
-                return null;
-            }
-
-            string choice = pr.Status == PromptStatus.OK ? pr.StringResult : "Blender3D";
-            switch (choice)
-            {
-                case "Photoreal":
-                    return "photoreal";
-                case "Nhanh":
-                    return "standard";
-                default:
-                    return "blender";
             }
         }
 
@@ -146,15 +109,6 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                     if (ent is BlockReference br && br.HasAttributes)
                     {
                         CabinetDeviceJson dev = ReadBlockAttribs(br, tr);
-                        if (dev != null)
-                        {
-                            devices.Add(dev);
-                        }
-                    }
-
-                    if (ent is MText mtext)
-                    {
-                        CabinetDeviceJson dev = ParseMTextDevice(mtext.Contents);
                         if (dev != null)
                         {
                             devices.Add(dev);
@@ -202,61 +156,9 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 in_a = ParseDouble(attrs, "IN_A", "IN", "DONG"),
                 poles = (int)ParseDouble(attrs, "POLES", "PHA", "P"),
                 qty = Math.Max(1, (int)ParseDouble(attrs, "QTY", "SL", "SO_LUONG")),
-                manufacturer = attrs.TryGetValue("MANUFACTURER", out string mfr) ? mfr : attrs.TryGetValue("HANG", out string h) ? h : "",
-                note = attrs.TryGetValue("NOTE", out string note) ? note : attrs.TryGetValue("GHI_CHU", out string gc) ? gc : ""
+                manufacturer = attrs.TryGetValue("MANUFACTURER", out string mfr) ? mfr : "",
+                note = attrs.TryGetValue("NOTE", out string note) ? note : ""
             };
-        }
-
-        private static CabinetDeviceJson ParseMTextDevice(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return null;
-            }
-
-            string clean = System.Text.RegularExpressions.Regex.Replace(text, @"\\[A-Za-z][^;]*;|[{}]", "").Trim();
-            if (clean.Length < 3)
-            {
-                return null;
-            }
-
-            string upper = clean.ToUpperInvariant();
-            bool isMcb = upper.Contains("MCB") || upper.Contains("MCCB") || upper.Contains("ELCB");
-            bool isCont = upper.Contains("CONTACTOR") || upper.Contains("CONT");
-            bool isMeter = upper.Contains("METER") || upper.Contains("DONG HO");
-
-            if (!isMcb && !isCont && !isMeter)
-            {
-                return null;
-            }
-
-            var dev = new CabinetDeviceJson
-            {
-                name = clean.Length > 30 ? clean.Substring(0, 30) : clean,
-                qty = 1
-            };
-
-            if (isMcb)
-            {
-                dev.type = clean.ToUpperInvariant().Contains("3P") ? "MCB 3P" : "MCB 1P";
-                dev.poles = dev.type.Contains("3P") ? 3 : 1;
-                var match = System.Text.RegularExpressions.Regex.Match(clean, @"(\d+)\s*[Aa]");
-                if (match.Success)
-                {
-                    dev.in_a = double.Parse(match.Groups[1].Value);
-                }
-            }
-            else if (isCont)
-            {
-                dev.type = "CONTACTOR";
-                dev.poles = 3;
-            }
-            else
-            {
-                dev.type = "METER";
-            }
-
-            return dev;
         }
 
         private static string WriteJsonFile(List<CabinetDeviceJson> devices, Autodesk.AutoCAD.ApplicationServices.Document doc)
@@ -285,50 +187,28 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             return jsonPath;
         }
 
-        private static bool CallPythonRenderer(Editor ed, string inputPath, string outputPath, string quality)
+        private static bool CallPythonRenderer(Editor ed, string inputPath, string outputPath)
         {
             string scriptPath = FindRendererScript();
             if (scriptPath == null)
             {
-                ed.WriteMessage("\nKhong tim thay render_cabinet.py trong thu muc plugin.");
-                ed.WriteMessage("\nChay: .\\scripts\\install-renderer-devices.ps1");
+                ed.WriteMessage("\nKhong tim thay render_cabinet.py. Chay: .\\scripts\\install-renderer-devices.ps1");
                 return false;
             }
 
-            string pythonExe;
-            string pythonArgsPrefix;
-            if (!TryResolvePython(out pythonExe, out pythonArgsPrefix))
+            if (!TryResolvePython(out string pythonExe, out string argPrefix))
             {
-                ed.WriteMessage("\nKhong tim thay Python. Cai Python 3 tu python.org hoac Microsoft Store.");
+                ed.WriteMessage("\nKhong tim thay Python 3. Cai tu python.org (tick Add to PATH).");
                 return false;
             }
 
-            if (quality == "blender" && FindBlender() == null)
-            {
-                ed.WriteMessage("\n[MEP] Blender chua cai - se fallback Pillow photoreal.");
-                ed.WriteMessage("\nCai Blender: https://www.blender.org/download/");
-            }
-
-            string renderArgs = BuildRenderArgs(inputPath, outputPath, quality, scriptPath);
-            string fullArgs = pythonArgsPrefix + renderArgs;
-
-            if (quality == "blender")
-            {
-                ed.WriteMessage("\n[MEP] Dang render Blender 3D (Cycles)... co the mat 2-5 phut, vui long cho.");
-            }
-            else
-            {
-                ed.WriteMessage("\n[MEP] Dang render (" + quality + ")...");
-            }
-
-            ed.WriteMessage("\n[MEP] " + pythonExe + " " + fullArgs);
-
-            int timeout = quality == "blender" ? TimeoutBlenderMs : TimeoutFastMs;
+            string args = argPrefix + BuildRenderArgs(inputPath, outputPath, scriptPath);
+            ed.WriteMessage("\n[MEP] Dang render...");
             string workDir = Path.GetDirectoryName(scriptPath) ?? "";
 
             try
             {
-                var psi = new ProcessStartInfo(pythonExe, fullArgs)
+                var psi = new ProcessStartInfo(pythonExe, args)
                 {
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -341,20 +221,16 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 {
                     string stdout = p.StandardOutput.ReadToEnd();
                     string stderr = p.StandardError.ReadToEnd();
-                    if (!p.WaitForExit(timeout))
+                    if (!p.WaitForExit(TimeoutMs))
                     {
                         try { p.Kill(); } catch { /* ignore */ }
-                        ed.WriteMessage("\n[MEP] Render timeout sau " + (timeout / 1000) + "s.");
+                        ed.WriteMessage("\n[MEP] Render timeout.");
                         return false;
                     }
 
                     if (p.ExitCode != 0)
                     {
                         ed.WriteMessage("\n[MEP] Loi render: " + stderr);
-                        if (!string.IsNullOrWhiteSpace(stdout))
-                        {
-                            ed.WriteMessage("\n[MEP] " + stdout.Trim());
-                        }
                         return false;
                     }
 
@@ -373,35 +249,20 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             }
         }
 
-        private static string BuildRenderArgs(string inputPath, string outputPath, string quality, string scriptPath)
+        private static string BuildRenderArgs(string inputPath, string outputPath, string scriptPath)
         {
-            var parts = new List<string>
-            {
-                Quote(scriptPath),
-                "--mode", "interior",
-                "--quality", quality,
-                "--output", Quote(outputPath)
-            };
-
+            // Render goc: Pillow photoreal (khong Blender)
             if (inputPath != null)
             {
-                parts.Add("--input");
-                parts.Add(Quote(inputPath));
-            }
-            else
-            {
-                parts.Add("--demo");
+                return Quote(scriptPath)
+                    + " --mode interior --quality photoreal"
+                    + " --input " + Quote(inputPath)
+                    + " --output " + Quote(outputPath);
             }
 
-            if (quality == "blender")
-            {
-                parts.Add("--engine");
-                parts.Add("cycles");
-                parts.Add("--samples");
-                parts.Add("256");
-            }
-
-            return string.Join(" ", parts);
+            return Quote(scriptPath)
+                + " --mode interior --quality photoreal --demo"
+                + " --output " + Quote(outputPath);
         }
 
         private static string Quote(string path)
@@ -414,16 +275,13 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             foreach (var spec in new[]
             {
                 new { Exe = "py", Args = "-3 " },
-                new { Exe = "python3", Args = "" },
                 new { Exe = "python", Args = "" },
-                new { Exe = "python3.exe", Args = "" },
-                new { Exe = "python.exe", Args = "" }
+                new { Exe = "python3", Args = "" }
             })
             {
                 try
                 {
-                    string testArgs = spec.Args + "--version";
-                    var psi = new ProcessStartInfo(spec.Exe, testArgs)
+                    var psi = new ProcessStartInfo(spec.Exe, spec.Args + "--version")
                     {
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
@@ -434,7 +292,8 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                     {
                         string output = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd());
                         p.WaitForExit(5000);
-                        if (p.ExitCode == 0 && output.IndexOf("Python", StringComparison.OrdinalIgnoreCase) >= 0
+                        if (p.ExitCode == 0
+                            && output.IndexOf("Python", StringComparison.OrdinalIgnoreCase) >= 0
                             && output.IndexOf("was not found", StringComparison.OrdinalIgnoreCase) < 0)
                         {
                             exe = spec.Exe;
@@ -449,48 +308,9 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 }
             }
 
-            // Python di kem Blender (may khong cai Python rieng)
-            string blenderPy = FindBlenderPython();
-            if (blenderPy != null)
-            {
-                exe = blenderPy;
-                argPrefix = "";
-                return true;
-            }
-
             exe = null;
             argPrefix = "";
             return false;
-        }
-
-        private static string FindBlenderPython()
-        {
-            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string bf = Path.Combine(pf, "Blender Foundation");
-            if (!Directory.Exists(bf))
-            {
-                return null;
-            }
-
-            try
-            {
-                foreach (string dir in Directory.GetDirectories(bf))
-                {
-                    foreach (string py in Directory.GetFiles(dir, "python.exe", SearchOption.AllDirectories))
-                    {
-                        if (py.Replace('/', '\\').IndexOf("\\python\\bin\\python.exe", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            return py;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                /* ignore */
-            }
-
-            return null;
         }
 
         private static string FindRendererScript()
@@ -499,9 +319,7 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             string[] candidates =
             {
                 Path.Combine(pluginDir, RendererScript),
-                Path.Combine(pluginDir, "scripts", RendererScript),
-                Path.Combine(pluginDir, "..", RendererScript),
-                Path.Combine(pluginDir, "..", "scripts", RendererScript)
+                Path.Combine(pluginDir, "scripts", RendererScript)
             };
 
             foreach (string p in candidates)
@@ -510,51 +328,6 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 if (File.Exists(full))
                 {
                     return full;
-                }
-            }
-
-            return null;
-        }
-
-        private static string FindBlender()
-        {
-            foreach (string name in new[] { "blender", "blender.exe" })
-            {
-                try
-                {
-                    var psi = new ProcessStartInfo(name, "--version")
-                    {
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    };
-                    using (Process p = Process.Start(psi))
-                    {
-                        p.WaitForExit(5000);
-                        if (p.ExitCode == 0)
-                        {
-                            return name;
-                        }
-                    }
-                }
-                catch
-                {
-                    /* not in PATH */
-                }
-            }
-
-            string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string bf = Path.Combine(pf, "Blender Foundation");
-            if (Directory.Exists(bf))
-            {
-                foreach (string dir in Directory.GetDirectories(bf))
-                {
-                    string exe = Path.Combine(dir, "blender.exe");
-                    if (File.Exists(exe))
-                    {
-                        return exe;
-                    }
                 }
             }
 

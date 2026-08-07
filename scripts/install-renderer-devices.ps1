@@ -29,15 +29,8 @@ Write-Host "==> Cai anh thiet bi AI ($pngCount file PNG)"
 New-Item -ItemType Directory -Force -Path $DstDevices | Out-Null
 Copy-Item (Join-Path $SrcDevices "*.png") $DstDevices -Force
 Copy-Item (Join-Path $Root "renderer\render_cabinet.py") $DstScript -Force
-$DstInterior = Join-Path $BundleContents "render_cabinet_interior.py"
-$DstPhotoreal = Join-Path $BundleContents "render_photoreal.py"
-$DstBlenderWrap = Join-Path $BundleContents "render_blender.py"
-$DstBlenderDir = Join-Path $BundleContents "blender"
-Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") $DstInterior -Force
-Copy-Item (Join-Path $Root "renderer\render_photoreal.py") $DstPhotoreal -Force
-Copy-Item (Join-Path $Root "renderer\render_blender.py") $DstBlenderWrap -Force
-New-Item -ItemType Directory -Force -Path $DstBlenderDir | Out-Null
-Copy-Item (Join-Path $Root "renderer\blender\build_scene.py") (Join-Path $DstBlenderDir "build_scene.py") -Force
+Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") (Join-Path $BundleContents "render_cabinet_interior.py") -Force
+Copy-Item (Join-Path $Root "renderer\render_photoreal.py") (Join-Path $BundleContents "render_photoreal.py") -Force
 Write-Host "   -> bundle: $DstDevices"
 
 $installDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents"
@@ -48,10 +41,6 @@ if (Test-Path $installDir) {
     Copy-Item (Join-Path $Root "renderer\render_cabinet.py") (Join-Path $installDir "render_cabinet.py") -Force
     Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") (Join-Path $installDir "render_cabinet_interior.py") -Force
     Copy-Item (Join-Path $Root "renderer\render_photoreal.py") (Join-Path $installDir "render_photoreal.py") -Force
-    Copy-Item (Join-Path $Root "renderer\render_blender.py") (Join-Path $installDir "render_blender.py") -Force
-    $autoBlender = Join-Path $installDir "blender"
-    New-Item -ItemType Directory -Force -Path $autoBlender | Out-Null
-    Copy-Item (Join-Path $Root "renderer\blender\build_scene.py") (Join-Path $autoBlender "build_scene.py") -Force
     Write-Host "   -> AutoCAD: $autoDevices"
 }
 else {
@@ -62,20 +51,16 @@ Write-Host ""
 Write-Host "Xong! Khoi dong lai AutoCAD, thu Render tu dien."
 Write-Host ""
 
-# Tim python de in lenh dung
 . (Join-Path $PSScriptRoot "Find-MepPython.ps1")
 $py = Get-MepPython
 if ($py) {
     $run = if ($py.Prefix) { "$($py.Exe) $($py.Prefix)".Trim() } else { $py.Exe }
     Write-Host "Python: $run"
-    Write-Host "Test render Blender:"
-    Write-Host ("  {0}renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png" -f ($run + " "))
-    Write-Host "Fallback Pillow:"
-    Write-Host ("  {0}renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png" -f ($run + " "))
+    Write-Host "Test render:"
+    Write-Host ("  {0} renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png" -f $run)
 }
 else {
-    Write-Host "CHUA tim thay Python. Cai tu https://www.python.org/downloads/"
-    Write-Host "Khi cai: tick 'Add python.exe to PATH'"
-    Write-Host "Sau do thu:"
-    Write-Host '  python renderer\render_cabinet.py --demo --quality blender --samples 128 --output cabinet_blender.png'
+    Write-Host "Neu muon test ngoai AutoCAD: cai Python 3 + pillow"
+    Write-Host "  python -m pip install pillow"
+    Write-Host "  python renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png"
 }
