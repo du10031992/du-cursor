@@ -1,4 +1,4 @@
-# Install MepPanel plugin bundle to AutoCAD ApplicationPlugins.
+# Install MepPanel plugin bundle — 1 ban trong C:\MepPanel\plugin, AutoCAD load qua junction.
 # Default: dung plugin release san (MepPanel.AutoCAD.dll + MepPanel.Core.dll).
 # Dev loader: .\scripts\install-plugin-bundle.ps1 -BuildDevLoader
 #
@@ -13,9 +13,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "plugin-paths.ps1")
+
 $BundleContents = Join-Path $Root "bundle\MepPanel.Plugin.bundle\Contents"
 $BundleRoot = Join-Path $Root "bundle\MepPanel.Plugin.bundle"
-$InstallDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle"
+$InstallDir = Get-PluginInstallBundlePath -RepoRoot $Root
+$AppPluginsLink = Get-AppPluginsLinkPath
 
 function Test-AutoCadRunning {
     $procs = Get-Process -Name "acad" -ErrorAction SilentlyContinue
@@ -56,13 +59,11 @@ function Ensure-ConfigFile {
     }
 }
 
-function Copy-BundleOverwrite {
-    # Copy tung file; khong xoa ca thu muc (tranh Access denied khi DLL dang mo).
+function Copy-BundleToInstallDir {
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     $dstContents = Join-Path $InstallDir "Contents"
     New-Item -ItemType Directory -Force -Path $dstContents | Out-Null
 
-    # PackageContents.xml o root bundle
     $pkg = Join-Path $BundleRoot "PackageContents.xml"
     if (Test-Path $pkg) {
         Copy-Item $pkg (Join-Path $InstallDir "PackageContents.xml") -Force
@@ -110,7 +111,8 @@ function Install-Bundle {
     Ensure-ConfigFile
 
     if ($SkipInstall) {
-        Write-Host "==> Skip install (-SkipInstall). Bundle ready at: $BundleRoot"
+        Write-Host "==> Skip install (-SkipInstall). Bundle build: $BundleRoot"
+        Write-Host "==> Plugin kiem soat tai: $InstallDir"
         return
     }
 
@@ -133,22 +135,22 @@ Dong AutoCAD (hoac process dang giu file) roi chay lai:
 "@
     }
 
-    Write-Host "==> Install bundle to $InstallDir"
-    # Thu xoa cu; neu fail thi van copy de ghi de.
+    Write-Host "==> Plugin kiem soat (1 ban): $InstallDir"
     if (Test-Path $InstallDir) {
         try {
             Remove-Item $InstallDir -Recurse -Force -ErrorAction Stop
         }
         catch {
-            Write-Host "==> Khong xoa duoc bundle cu (co the file dang mo). Thu ghi de tung file..."
-            Copy-BundleOverwrite
-            Write-Host "==> Da ghi de bundle (khong xoa thu muc cu)."
+            Write-Host "==> Khong xoa duoc bundle cu. Ghi de tung file..."
+            Copy-BundleToInstallDir
+            Set-AppPluginsJunction -LinkPath $AppPluginsLink -TargetPath $InstallDir | Out-Null
             Disable-OldBundle
             return
         }
     }
 
     Copy-Item $BundleRoot $InstallDir -Recurse -Force
+    Set-AppPluginsJunction -LinkPath $AppPluginsLink -TargetPath $InstallDir | Out-Null
     Disable-OldBundle
 }
 
@@ -222,5 +224,6 @@ Install-Bundle -RequiredFiles $releaseRequired
 
 Write-Host ""
 Write-Host "Done! Restart AutoCAD - plugin loads automatically."
+Write-Host "Kiem soat plugin tai: $InstallDir"
 Write-Host "Plugin: chi lenh MEPDB tren command line. Chuc nang phu khoa/mo trong panel + /admin"
 Write-Host "License Server: chay F5, OTP test 123456 (TestMode=true)"

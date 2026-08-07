@@ -42,21 +42,22 @@ foreach ($name in $RendererScripts) {
 }
 Write-Host "   -> bundle: $DstDevices"
 
-$installDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents"
-if (Test-Path $installDir) {
-    $autoDevices = Join-Path $installDir "devices"
+. (Join-Path $PSScriptRoot "plugin-paths.ps1")
+$installContents = Get-PluginInstallContentsPath -RepoRoot $Root
+if (Test-Path $installContents) {
+    $autoDevices = Join-Path $installContents "devices"
     New-Item -ItemType Directory -Force -Path $autoDevices | Out-Null
     Copy-Item (Join-Path $SrcDevices "*.png") $autoDevices -Force
     foreach ($name in $RendererScripts) {
         $src = Join-Path $Root "renderer\$name"
         if (Test-Path $src) {
-            Copy-Item $src (Join-Path $installDir $name) -Force
+            Copy-Item $src (Join-Path $installContents $name) -Force
         }
     }
-    Write-Host "   -> AutoCAD: $autoDevices"
+    Write-Host "   -> plugin: $autoDevices"
 }
 else {
-    Write-Host "   (Chua cai plugin AutoCAD - chay install-plugin-bundle.ps1 truoc.)"
+    Write-Host "   (Chua cai plugin - chay install-plugin-bundle.ps1 truoc.)"
 }
 
 Write-Host ""

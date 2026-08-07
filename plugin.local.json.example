@@ -1,5 +1,6 @@
 {
-  "pluginSourceRoot": "C:\\Users\\DU_COMPUTER\\Documents\\Codex\\2026-07-31\\hay\\work\\MepPanelMvp",
+  "pluginSourceRoot": "C:\\MepPanel\\MepPanelMvp",
+  "pluginInstallRoot": "C:\\MepPanel\\plugin",
   "autoCadDir": "C:\\Program Files\\Autodesk\\AutoCAD 2021",
   "configuration": "Release"
 }
