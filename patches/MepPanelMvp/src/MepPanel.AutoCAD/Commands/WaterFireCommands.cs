@@ -2,24 +2,16 @@ using System;
 using System.IO;
 using System.Reflection;
 using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Exception = System.Exception;
 
 namespace MepPanelMvp.Commands
 {
     /// <summary>
-    /// He nuoc / PCCC — goi tu nut panel WPF hoac lenh MEPWATER / MEPFIRE.
-    /// Khong dung WinForms MessageBox (tranh loi reference WPF project).
+    /// He nuoc / PCCC — goi tu nut panel WPF (khong dang ky lenh CLI).
     /// </summary>
     public class WaterFireCommands
     {
-        [CommandMethod("MEPWATER", CommandFlags.Modal)]
-        public void WaterMenuCmd() => ShowWaterMenu();
-
-        [CommandMethod("MEPFIRE", CommandFlags.Modal)]
-        public void FireMenuCmd() => ShowFireMenu();
-
         /// <summary>Goi truc tiep tu HeNuoc_Click (khong can SendStringToExecute).</summary>
         public static void ShowWaterMenu()
         {

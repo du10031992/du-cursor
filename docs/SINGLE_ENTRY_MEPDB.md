@@ -8,7 +8,7 @@
 | **Admin `/admin`** | Bật `MEPDB` (vào plugin) + từng **chức năng phụ** (Cabinet, HVAC, …) |
 | **Trong panel** | Nút/tool gọi `PluginFeatureGate.Ensure("MEPDBCABINET2D")` |
 
-Các lệnh `MEPDBCABINET2D`, `MEPHVAC`, … **không còn** trên command line (patch build tự ẩn `[CommandMethod]`).
+Các lệnh `MEPDBCABINET2D`, `MEPHVAC`, … **không còn** trên command line: chuyển thành `[MepInternalCommand]` — panel vẫn gọi được qua `AutoCadCommandDispatcher`.
 
 ## Build
 
@@ -20,10 +20,9 @@ git pull
 Script tự:
 
 1. Copy `LicenseGuard`, `PluginFeatureGate`, `PanelSystemGuard`, `LicenseSession`, …
-2. `apply-single-entry-patch.ps1` — comment `[CommandMethod]` các lệnh MEP* trừ `MEPDB`
-3. `apply-subfeature-guard-patch.ps1` — inject guard vào handler panel (map + regex tên method)
-4. `audit-subfeature-guards.ps1` — báo handler nào chưa có guard (chạy tự động khi build)
-5. `apply-feature-guard-patch.ps1` — `MEPDB` → `EnsureEntry()`
+2. `apply-single-entry-patch.ps1` — lệnh MEP* (trừ `MEPDB`) → `[MepInternalCommand]`; copy dispatcher
+3. `apply-feature-guard-patch.ps1` — `MEPDB` → `EnsureEntry()` (hiện đăng nhập rồi mở panel)
+4. (Tuỳ chọn) `apply-subfeature-guard-patch.ps1` — Admin khóa từng nút trong panel
 
 Sau build, nếu thấy cảnh báo `[!!] CHUA CO GUARD`, gửi tên method cho dev để bổ sung vào `apply-subfeature-guard-patch.ps1`.
 

@@ -115,41 +115,37 @@ if (Test-Path $TypesPatch) {
     & $TypesPatch -PluginSourceRoot $PluginSourceRoot
 }
 
-# Mo lai tat ca lenh MEP* (MEPDBDRAW, MEPDBCABINET2D, ...) — panel goi qua command line.
-if (Test-Path $RestoreSingleEntry) {
-    & $RestoreSingleEntry -PluginSourceRoot $PluginSourceRoot
-}
-
 $RepairCorruptedCommands = Join-Path $Root "scripts\repair-corrupted-command-methods.ps1"
 if (Test-Path $RepairCorruptedCommands) {
     & $RepairCorruptedCommands -PluginSourceRoot $PluginSourceRoot
 }
 
-# SINGLE-ENTRY PATCH DA TAT — khong an lenh phu nua.
-# if (Test-Path $SingleEntryPatch) { & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot }
+# Single-entry: CLI chi MEPDB; lenh phu -> MepInternalCommand (panel van goi duoc).
+if (Test-Path $SingleEntryPatch) {
+    Write-Host "==> Single-entry: chi lenh MEPDB tren command line"
+    & $SingleEntryPatch -PluginSourceRoot $PluginSourceRoot
+}
+
+if (Test-Path $FeaturePatch) {
+    Write-Host "==> MEPDB entry -> EnsureEntry() (dang nhap truoc khi mo panel)"
+    & $FeaturePatch -PluginSourceRoot $PluginSourceRoot
+}
 
 $SubFeaturePatch = Join-Path $Root "scripts\apply-subfeature-guard-patch.ps1"
 $RestoreSubFeature = Join-Path $Root "scripts\restore-subfeature-patch.ps1"
 $RepairSource = Join-Path $Root "scripts\repair-plugin-source.ps1"
 
-# Xoa guard cu de plugin hoat dong binh thuong (khong chan nut panel).
+# Dam bao source khong bi hong; subfeature guard (khoa nut Admin) bat khi can.
 if (Test-Path $RepairSource) {
     & $RepairSource -PluginSourceRoot $PluginSourceRoot
 }
-if (Test-Path $RestoreSubFeature) {
-    & $RestoreSubFeature -PluginSourceRoot $PluginSourceRoot
-}
 
-# SUBFEATURE GUARD DA TAT — tat ca nut panel hoat dong binh thuong sau MEPDB login.
-# De bat lai chan nut: bo comment 3 dong duoi.
+# SUBFEATURE GUARD: bat neu muon Admin khoa tung nut trong panel.
 # if (Test-Path $SubFeaturePatch) { & $SubFeaturePatch -PluginSourceRoot $PluginSourceRoot }
 # $WindowGuard = Join-Path $Root "scripts\apply-window-entry-guard.ps1"
 # if (Test-Path $WindowGuard) { & $WindowGuard -PluginSourceRoot $PluginSourceRoot }
 # $ElectricalGuards = Join-Path $Root "scripts\apply-electrical-tool-guards.ps1"
 # if (Test-Path $ElectricalGuards) { & $ElectricalGuards -PluginSourceRoot $PluginSourceRoot }
-
-# FEATURE GUARD PATCH DA TAT khi phat trien plugin.
-# if (Test-Path $FeaturePatch) { & $FeaturePatch -PluginSourceRoot $PluginSourceRoot }
 
 foreach ($proj in @($AutoCadProj, $CoreProj)) {
     if (-not (Test-Path $proj)) {

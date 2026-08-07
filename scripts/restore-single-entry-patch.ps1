@@ -151,6 +151,24 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($_.FullName -match '\\(bin|obj)\\') { return }
 
     $text = Get-Content $_.FullName -Raw -Encoding UTF8
+    $local = 0
+
+    # Dang moi: [MepInternalCommand("XXX")] -> [CommandMethod("XXX")]
+    if ($text -match 'MepInternalCommand') {
+        $newText = [regex]::Replace($text, '\[MepInternalCommand\s*\(\s*"([^"]+)"\s*\)\]', {
+            param($m)
+            $script:restored++
+            $local++
+            return "[CommandMethod(`"$($m.Groups[1].Value)`")]"
+        })
+        if ($newText -ne $text) {
+            Set-Content -Path $_.FullName -Value $newText -Encoding UTF8 -NoNewline
+            $files++
+            Write-Host "   mo lai $local MepInternalCommand -> $($_.Name)"
+            $text = $newText
+        }
+    }
+
     $needsRepair = $text -match 'SINGLE_ENTRY_PATCH|//\s*\[CommandMethod|/\*\s*SINGLE_ENTRY_PATCH'
     if (-not $needsRepair) { return }
 
@@ -158,7 +176,7 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($count -gt 0) {
         $restored += $count
         $files++
-        Write-Host "   mo lai $count lenh -> $($_.Name)"
+        Write-Host "   mo lai $count lenh comment -> $($_.Name)"
     }
 }
 
