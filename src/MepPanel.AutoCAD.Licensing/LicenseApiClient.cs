@@ -21,7 +21,9 @@ namespace MepPanel.AutoCAD.Licensing
                 throw new ArgumentException("BaseUrl không hợp lệ.", nameof(baseUrl));
             }
 
-            // Cho phép HTTPS self-signed khi test local.
+            // Cho phep HTTPS self-signed + bat TLS 1.2 (AutoCAD .NET Framework).
+            ServicePointManager.SecurityProtocol =
+                SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
             ServicePointManager.ServerCertificateValidationCallback =
                 (sender, certificate, chain, errors) => true;
 
