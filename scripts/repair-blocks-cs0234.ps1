@@ -37,7 +37,8 @@ function Exclude-LegacyFile {
 $brokenNames = @(
     "PowerBlockLibraryCommands.cs",
     "ReferenceDrawingInspector.cs",
-    "AutoCadAssemblyInfo.cs"
+    "AutoCadAssemblyInfo.cs",
+    "MepDrawingToolPanel.cs"
 )
 
 foreach ($name in $brokenNames) {

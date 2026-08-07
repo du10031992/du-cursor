@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Remove="AutoCadAssemblyInfo.cs" />
     <Compile Remove="Properties\AssemblyInfo.cs" />
+    <Compile Remove="MepDrawingToolPanel.cs" />
     <None Include="AutoCadAssemblyInfo.cs.exclude" Condition="Exists('AutoCadAssemblyInfo.cs.exclude')" />
     <None Include="Properties\AssemblyInfo.cs.exclude" Condition="Exists('Properties\AssemblyInfo.cs.exclude')" />
   </ItemGroup>

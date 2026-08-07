@@ -11,17 +11,16 @@ $PatchRoot = Join-Path $Root "patches\MepPanelMvp\src"
 $CoreCalcSrc = Join-Path $PatchRoot "MepPanel.Core\Calculations"
 $CoreStdSrc = Join-Path $PatchRoot "MepPanel.Core\Standards"
 $DrawSrc = Join-Path $PatchRoot "MepPanel.Blocks.AutoCAD\Drawing"
-$PanelSrc = Join-Path $PatchRoot "MepPanel.Blocks.AutoCAD\MepDrawingToolPanel.cs"
 $FeaturesSrc = Join-Path $PatchRoot "MepPanel.Core\PluginFeatures.cs"
 $GateSrc = Join-Path $PatchRoot "MepPanel.Core\PluginFeatureGate.cs"
+$DbPanelDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
+$DbPanelSrc = Join-Path $PatchRoot "MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
 
 $CoreCalcDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\Calculations"
 $CoreStdDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\Standards"
 $DrawDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\Drawing"
-$PanelDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepDrawingToolPanel.cs"
 $FeaturesDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\PluginFeatures.cs"
 $GateDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\PluginFeatureGate.cs"
-$DbPanelDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
 
 if (-not (Test-Path $DrawSrc)) {
     throw "Thieu patch Drawing: $DrawSrc"
@@ -86,19 +85,9 @@ else {
     Write-Host "   (bo qua Drawing - khong co MepPanel.Blocks.AutoCAD)"
 }
 
-if ((Test-Path $PanelSrc) -and (Test-Path $PanelDst)) {
-    Copy-Item $PanelSrc $PanelDst -Force
-    Write-Host "   OK MepDrawingToolPanel.cs (nut Render he nuoc/PCCC)"
-}
-elseif ((Test-Path $PanelSrc) -and (Test-Path $DbPanelDst)) {
-    $liveDb = Join-Path $Root "src\MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
-    if (Test-Path $liveDb) {
-        Copy-Item $liveDb $DbPanelDst -Force
-        Write-Host "   OK MepDbToolPanel.cs (nhom He nuoc / PCCC)"
-    }
-}
-else {
-    Write-Host "   (bo qua panel - khong tim thay MepDrawingToolPanel / MepDbToolPanel)"
+if ((Test-Path $DbPanelSrc) -and (Test-Path (Split-Path $DbPanelDst))) {
+    Copy-Item $DbPanelSrc $DbPanelDst -Force
+    Write-Host "   OK MepDbToolPanel.cs (He nuoc / PCCC)"
 }
 
 Write-Host "   Xong water/PCCC patch."
