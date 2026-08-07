@@ -127,6 +127,36 @@ Roi chay lai build-plugin-release.ps1
     }
 }
 
+function Remove-MethodBlock([string]$Text, [string]$MethodName) {
+    $pattern = "(?ms)^\s*private\s+void\s+$MethodName\s*\([^)]*\)\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}\s*"
+    return [regex]::Replace($Text, $pattern, '')
+}
+
+function Remove-WaterFireHandlerBlocks([string]$Text) {
+    # Xoa moi block HeNuoc/BaoChay (ke ca bi chen ngoai class -> CS8803)
+    $Text = Remove-MethodBlock $Text 'HeNuoc_Click'
+    $Text = Remove-MethodBlock $Text 'BaoChay_Click'
+    return $Text
+}
+
+function Insert-HandlersInsideClass([string]$Text, [string]$Handlers) {
+    if ($Text -match '(?s)private\s+void\s+Hvac_Click\s*\([^)]*\)\s*\{.*?\}') {
+        return [regex]::Replace($Text, '(?s)(private\s+void\s+Hvac_Click\s*\([^)]*\)\s*\{.*?\})', "`$1$Handlers", 1)
+    }
+
+    $anchor = [regex]::Match($Text, '(?m)^(\s*)(\[DebuggerNonUserCode\]|public\s+void\s+InitializeComponent|#region\s+Component)')
+    if ($anchor.Success) {
+        return $Text.Insert($anchor.Index, $Handlers + "`r`n")
+    }
+
+    # Chen truoc dau } dong class (ngay truoc } dong namespace)
+    $last = $Text.LastIndexOf('}')
+    if ($last -lt 0) { return ($Text.TrimEnd() + $Handlers) }
+    $second = $Text.LastIndexOf('}', $last - 1)
+    if ($second -lt 0) { return $Text.Insert($last, $Handlers + "`r`n") }
+    return $Text.Insert($second, $Handlers + "`r`n")
+}
+
 if ($cs) {
     $code = Read-TextUtf8 $cs
     $codeOrig = $code
@@ -146,21 +176,18 @@ if ($cs) {
         }
 '@
 
-    if ($code -notmatch 'ShowWaterMenu') {
-        if ($code -match '(?s)private void Hvac_Click\s*\([^)]*\)\s*\{.*?\}') {
-            $code = [regex]::Replace($code, '(?s)(private void Hvac_Click\s*\([^)]*\)\s*\{.*?\})', "`$1$directHandler", 1)
-        }
-        elseif ($code -match 'HeNuoc_Click') {
-            $code = [regex]::Replace(
-                $code,
-                '(?s)private void HeNuoc_Click\s*\([^)]*\)\s*\{.*?\}\s*private void BaoChay_Click\s*\([^)]*\)\s*\{.*?\}',
-                $directHandler.Trim(),
-                1)
+    # Luon go bo handler nam sai cho (ngoai class) roi chen lai dung cho
+    $cleaned = Remove-WaterFireHandlerBlocks $code
+    $needInject = ($cleaned -notmatch 'ShowWaterMenu')
+    if ($needInject -or ($cleaned -ne $code)) {
+        if ($needInject) {
+            $code = Insert-HandlersInsideClass $cleaned $directHandler
+            Write-Host "   OK chen HeNuoc_Click / BaoChay_Click trong class"
         }
         else {
-            $code = $code.TrimEnd() + "`r`n" + $directHandler + "`r`n"
+            $code = $cleaned
+            Write-Host "   OK go handler nam ngoai class (giu ban dung trong class)"
         }
-        Write-Host "   OK cap nhat code-behind click handlers"
     }
 
     if ($code -ne $codeOrig) {
