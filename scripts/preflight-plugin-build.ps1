@@ -38,8 +38,8 @@ if (-not (Test-Path $cs)) {
 }
 if (Test-Path $cs) {
     $csText = Read-TextUtf8 $cs
-    if ($csText -match '(?m)^\s*private\s+void\s+HeNuoc_Click' -and $csText -notmatch '(?s)class\s+ElectricalToolControl.*private\s+void\s+HeNuoc_Click') {
-        $issues += "HeNuoc_Click nam ngoai class ElectricalToolControl -> chay lai build (apply-enable-water-fire-ui)"
+    if ($csText -match '(?s)\}\s*\}\s*private\s+void\s+HeNuoc_Click') {
+        $issues += "HeNuoc_Click nam ngoai class -> chay lai build (script tu sua code-behind)"
     }
 }
 
