@@ -10,10 +10,9 @@ namespace MepPanel.AutoCAD.Licensing
     {
         private static readonly string[] FallbackUrls =
         {
-            "http://localhost:5268/",
             "https://localhost:7024/",
-            "http://127.0.0.1:5268/",
-            "http://192.168.1.7:5268/"
+            "http://localhost:5268/",
+            "http://127.0.0.1:5268/"
         };
 
         public static string ResolvePrimary()
