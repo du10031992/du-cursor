@@ -7,9 +7,58 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $dstRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
+$srcRoot = Join-Path $Root "src\MepPanel.Blocks.AutoCAD"
+$patchCsproj = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj"
+
+function Ensure-BlocksCsprojWinForms {
+    param([string]$CsprojPath)
+
+    if (-not (Test-Path $CsprojPath)) {
+        return
+    }
+
+    # Uu tien patch csproj chuan tu repo.
+    if (Test-Path $patchCsproj) {
+        Copy-Item $patchCsproj $CsprojPath -Force
+        Write-Host "   OK csproj Blocks (UseWindowsForms + System.Windows.Forms)"
+        return
+    }
+
+    $text = Get-Content $CsprojPath -Raw -Encoding UTF8
+    $changed = $false
+
+    if ($text -notmatch '<UseWindowsForms>\s*true\s*</UseWindowsForms>') {
+        if ($text -match '<TargetFramework>') {
+            $text = $text -replace '(<TargetFramework>[^<]+</TargetFramework>)', "`$1`r`n    <UseWindowsForms>true</UseWindowsForms>"
+        }
+        else {
+            $text = $text -replace '(<PropertyGroup>)', "`$1`r`n    <UseWindowsForms>true</UseWindowsForms>"
+        }
+        $changed = $true
+    }
+
+    if ($text -notmatch 'Reference Include="System\.Windows\.Forms"') {
+        $ref = @"
+
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+"@
+        if ($text -match '</ItemGroup>\s*</Project>') {
+            $text = $text -replace '</ItemGroup>(\s*</Project>)', ($ref + "`r`n  </ItemGroup>`$1")
+        }
+        elseif ($text -match '</Project>') {
+            $text = $text -replace '</Project>', ("  <ItemGroup>" + $ref + "`r`n  </ItemGroup>`r`n</Project>")
+        }
+        $changed = $true
+    }
+
+    if ($changed) {
+        Set-Content -Path $CsprojPath -Value $text -Encoding UTF8 -NoNewline
+        Write-Host "   OK sua csproj Blocks (them UseWindowsForms)"
+    }
+}
 
 if (-not (Test-Path $dstRoot)) {
-    $srcRoot = Join-Path $Root "src\MepPanel.Blocks.AutoCAD"
     if (-not (Test-Path $srcRoot)) {
         Write-Host "   (bo qua - khong co src\MepPanel.Blocks.AutoCAD trong repo)"
         exit 0
@@ -20,6 +69,8 @@ if (-not (Test-Path $dstRoot)) {
     Copy-Item $srcRoot $dstRoot -Recurse -Force
     Write-Host "   OK copy project Blocks.AutoCAD"
 }
+
+Ensure-BlocksCsprojWinForms -CsprojPath (Join-Path $dstRoot "MepPanel.Blocks.AutoCAD.csproj")
 
 $patchDraw = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\Drawing"
 $dstDraw = Join-Path $dstRoot "Drawing"
