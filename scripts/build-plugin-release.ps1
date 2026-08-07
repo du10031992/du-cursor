@@ -67,7 +67,23 @@ $TargetLicensing = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Licensing"
 if (Test-Path $PatchLicensing) {
     Write-Host "==> Apply patch Licensing (LicenseGuard, PluginFeatureGate, ...)"
     New-Item -ItemType Directory -Force -Path $TargetLicensing | Out-Null
-    Copy-Item (Join-Path $PatchLicensing "*") $TargetLicensing -Force
+    # Khong ghi de LicenseApiClient.cs / file .txt khoi phuc — repair script xu ly.
+    Get-ChildItem (Join-Path $PatchLicensing "*") -File | ForEach-Object {
+        if ($_.Name -eq 'LicenseApiClient.cs' -or $_.Extension -eq '.txt') {
+            Write-Host "   (bo qua copy $($_.Name))"
+            return
+        }
+        # LicenseDtos / DeviceIdentity: chi copy neu chua co type (tranh CS0101)
+        if ($_.Name -eq 'LicenseDtos.cs' -or $_.Name -eq 'DeviceIdentity.cs') {
+            return
+        }
+        Copy-Item $_.FullName (Join-Path $TargetLicensing $_.Name) -Force
+    }
+}
+
+$TlsPatch = Join-Path $Root "scripts\apply-license-api-tls-patch.ps1"
+if (Test-Path $TlsPatch) {
+    & $TlsPatch -PluginSourceRoot $PluginSourceRoot
 }
 
 $PatchCoreFeatures = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Core\PluginFeatures.cs"
