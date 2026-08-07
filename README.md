@@ -23,9 +23,10 @@ Plugin AutoCAD 2021 + License Server để Admin:
 
 ## Quick start — License Server
 
-1. Mở `MepPanelMvp.sln` → F5 `MepPanel.LicenseServer`
-2. Admin: `https://localhost:7024/admin`
-3. Tạo SĐT, bật/tắt MEPDB / MEPHVAC
+1. Mở **`MepPanelMvp.sln`** trong Visual Studio (`C:\MepPanel\du-cursor\`)
+2. Set startup **MepPanel.LicenseServer** → **F5**
+3. Admin: `http://localhost:5268/admin`
+4. Chi tiết: **[docs/VISUAL_STUDIO.md](docs/VISUAL_STUDIO.md)**
 
 ## Quick start — Cài plugin (release)
 
