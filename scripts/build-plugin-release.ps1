@@ -98,11 +98,20 @@ if (Test-Path $PatchCoreFeatures) {
 Write-Host "==> build-plugin-release.ps1 [no-standalone-Blocks] photoreal render"
 
 $CabinetRenderPatch = Join-Path $Root "scripts\apply-cabinet-render-patch.ps1"
+$BlocksProjectPatch = Join-Path $Root "scripts\apply-blocks-project-patch.ps1"
 $RepairBlocks = Join-Path $Root "scripts\repair-blocks-cs0234.ps1"
+
+# 1) Dong bo full Blocks project truoc (tranh thieu file nhu MepDbDrawingService).
+if (Test-Path $BlocksProjectPatch) {
+    & $BlocksProjectPatch -PluginSourceRoot $PluginSourceRoot
+}
+
+# 2) Loai file legacy sau khi da co ban sach.
 if (Test-Path $RepairBlocks) {
-    Write-Host "==> Repair Blocks.AutoCAD CS0234 (rename file loi)"
+    Write-Host "==> Repair Blocks.AutoCAD legacy (exclude file cu)"
     & $RepairBlocks -PluginSourceRoot $PluginSourceRoot
 }
+
 if (Test-Path $CabinetRenderPatch) {
     Write-Host "==> Apply patch MepCabinetRenderService (Pillow photoreal)"
     & $CabinetRenderPatch -PluginSourceRoot $PluginSourceRoot
@@ -112,11 +121,6 @@ $WaterPcccPatch = Join-Path $Root "scripts\apply-water-pccc-patch.ps1"
 if (Test-Path $WaterPcccPatch) {
     Write-Host "==> Apply patch He nuoc / PCCC (ve + phan tich + render PNG)"
     & $WaterPcccPatch -PluginSourceRoot $PluginSourceRoot
-}
-
-$BlocksProjectPatch = Join-Path $Root "scripts\apply-blocks-project-patch.ps1"
-if (Test-Path $BlocksProjectPatch) {
-    & $BlocksProjectPatch -PluginSourceRoot $PluginSourceRoot
 }
 
 $EnableWaterFireUi = Join-Path $Root "scripts\apply-enable-water-fire-ui.ps1"

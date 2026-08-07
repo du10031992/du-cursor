@@ -80,6 +80,29 @@ if (Test-Path $client) {
     }
 }
 
+$blocksRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
+if (Test-Path $blocksRoot) {
+    $blocksRequired = @(
+        "Drawing\MepDbDrawingService.cs",
+        "Drawing\MepPipeLibraryService.cs",
+        "ToolHost.cs",
+        "MepDbToolPanel.cs"
+    )
+    foreach ($rel in $blocksRequired) {
+        if (-not (Test-Path (Join-Path $blocksRoot $rel))) {
+            $issues += "Thieu Blocks: $rel -> chay lai build (apply-blocks-project-patch)"
+        }
+    }
+
+    $legacyAssembly = Join-Path $blocksRoot "AutoCadAssemblyInfo.cs"
+    if (Test-Path $legacyAssembly) {
+        $legacyText = Read-TextUtf8 $legacyAssembly
+        if ($legacyText -match 'CommandClass|PowerBlockLibraryCommands|MepPanelMvp\.Blocks') {
+            $issues += "AutoCadAssemblyInfo.cs legacy -> chay lai build (repair-blocks)"
+        }
+    }
+}
+
 if ($issues.Count -gt 0) {
     Write-Host "==> Preflight FAILED" -ForegroundColor Red
     foreach ($i in $issues) { Write-Host "   - $i" -ForegroundColor Yellow }

@@ -1,4 +1,4 @@
-# Dam bao MepPanelMvp co project Blocks.AutoCAD (ve ong + thu vien AMC).
+# Dong bo TOAN BO MepPanel.Blocks.AutoCAD tu repo -> MepPanelMvp (moi lan build).
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -6,86 +6,71 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
-$dstRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
 $srcRoot = Join-Path $Root "src\MepPanel.Blocks.AutoCAD"
-$patchCsproj = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\MepPanel.Blocks.AutoCAD.csproj"
+$patchRoot = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD"
+$dstRoot = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD"
 
-function Ensure-BlocksCsprojWinForms {
-    param([string]$CsprojPath)
+if (-not (Test-Path $srcRoot)) {
+    Write-Host "   (bo qua - khong co src\MepPanel.Blocks.AutoCAD trong repo)"
+    exit 0
+}
 
-    if (-not (Test-Path $CsprojPath)) {
-        return
+function Sync-Tree {
+    param(
+        [string]$Source,
+        [string]$Dest
+    )
+
+    New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+
+    Get-ChildItem -Path $Source -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Copy-Item $_.FullName (Join-Path $Dest $_.Name) -Force
     }
 
-    # Uu tien patch csproj chuan tu repo.
-    if (Test-Path $patchCsproj) {
-        Copy-Item $patchCsproj $CsprojPath -Force
-        Write-Host "   OK csproj Blocks (UseWindowsForms + System.Windows.Forms)"
-        return
-    }
-
-    $text = Get-Content $CsprojPath -Raw -Encoding UTF8
-    $changed = $false
-
-    if ($text -notmatch '<UseWindowsForms>\s*true\s*</UseWindowsForms>') {
-        if ($text -match '<TargetFramework>') {
-            $text = $text -replace '(<TargetFramework>[^<]+</TargetFramework>)', "`$1`r`n    <UseWindowsForms>true</UseWindowsForms>"
+    Get-ChildItem -Path $Source -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -notin @('bin', 'obj', '.vs') } |
+        ForEach-Object {
+            Sync-Tree -Source $_.FullName -Dest (Join-Path $Dest $_.Name)
         }
-        else {
-            $text = $text -replace '(<PropertyGroup>)', "`$1`r`n    <UseWindowsForms>true</UseWindowsForms>"
-        }
-        $changed = $true
+}
+
+Write-Host "==> Dong bo MepPanel.Blocks.AutoCAD (full project tu repo)"
+Sync-Tree -Source $srcRoot -Dest $dstRoot
+
+if (Test-Path $patchRoot) {
+    Sync-Tree -Source $patchRoot -Dest $dstRoot
+    Write-Host "   OK overlay patches\MepPanel.Blocks.AutoCAD"
+}
+
+$requiredFiles = @(
+    "MepPanel.Blocks.AutoCAD.csproj",
+    "ToolHost.cs",
+    "MepDbToolPanel.cs",
+    "Drawing\MepDbDrawingService.cs",
+    "Drawing\MepPipeLibraryService.cs",
+    "Drawing\MepWaterDrawingService.cs",
+    "Drawing\MepDrawingHelper.cs"
+)
+
+$missing = @()
+foreach ($rel in $requiredFiles) {
+    if (-not (Test-Path (Join-Path $dstRoot $rel))) {
+        $missing += $rel
     }
+}
 
-    if ($text -notmatch 'Reference Include="System\.Windows\.Forms"') {
-        $ref = @"
+if ($missing.Count -gt 0) {
+    throw @"
+Thieu file Blocks.AutoCAD sau khi dong bo:
+  $($missing -join "`n  ")
 
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
+Kiem tra repo du-cursor co day du src\MepPanel.Blocks.AutoCAD.
 "@
-        if ($text -match '</ItemGroup>\s*</Project>') {
-            $text = $text -replace '</ItemGroup>(\s*</Project>)', ($ref + "`r`n  </ItemGroup>`$1")
-        }
-        elseif ($text -match '</Project>') {
-            $text = $text -replace '</Project>', ("  <ItemGroup>" + $ref + "`r`n  </ItemGroup>`r`n</Project>")
-        }
-        $changed = $true
-    }
-
-    if ($changed) {
-        Set-Content -Path $CsprojPath -Value $text -Encoding UTF8 -NoNewline
-        Write-Host "   OK sua csproj Blocks (them UseWindowsForms)"
-    }
 }
 
-if (-not (Test-Path $dstRoot)) {
-    if (-not (Test-Path $srcRoot)) {
-        Write-Host "   (bo qua - khong co src\MepPanel.Blocks.AutoCAD trong repo)"
-        exit 0
-    }
+Write-Host "   OK $($requiredFiles.Count) file bat buoc"
 
-    Write-Host "==> Tao MepPanel.Blocks.AutoCAD trong MepPanelMvp"
-    New-Item -ItemType Directory -Force -Path (Split-Path $dstRoot) | Out-Null
-    Copy-Item $srcRoot $dstRoot -Recurse -Force
-    Write-Host "   OK copy project Blocks.AutoCAD"
-}
-
-Ensure-BlocksCsprojWinForms -CsprojPath (Join-Path $dstRoot "MepPanel.Blocks.AutoCAD.csproj")
-
-$patchDraw = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\Drawing"
-$dstDraw = Join-Path $dstRoot "Drawing"
-if (Test-Path $patchDraw) {
-    New-Item -ItemType Directory -Force -Path $dstDraw | Out-Null
-    Copy-Item (Join-Path $patchDraw "*.cs") $dstDraw -Force
-    Write-Host "   OK cap nhat Drawing (water/PCCC/AMC)"
-}
-
-$patchPanel = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
-if ((Test-Path $patchPanel) -and (Test-Path $dstRoot)) {
-    Copy-Item $patchPanel (Join-Path $dstRoot "MepDbToolPanel.cs") -Force
-}
-
-# AutoCAD.csproj can tham chieu Blocks (neu chua co).
+# AutoCAD.csproj tham chieu Blocks (neu chua co).
 $acadProj = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\MepPanel.AutoCAD.csproj"
 $blocksProj = Join-Path $dstRoot "MepPanel.Blocks.AutoCAD.csproj"
 if ((Test-Path $acadProj) -and (Test-Path $blocksProj)) {
@@ -99,7 +84,7 @@ if ((Test-Path $acadProj) -and (Test-Path $blocksProj)) {
 "@
         $projText = $projText -replace '</Project>', ($ref + "`r`n</Project>")
         Set-Content -Path $acadProj -Value $projText -Encoding UTF8 -NoNewline
-        Write-Host "   OK them ProjectReference Blocks.AutoCAD vao MepPanel.AutoCAD.csproj"
+        Write-Host "   OK them ProjectReference Blocks.AutoCAD"
     }
 }
 
