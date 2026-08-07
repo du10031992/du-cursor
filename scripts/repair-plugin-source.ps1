@@ -9,11 +9,15 @@ $ErrorActionPreference = "Stop"
 $removed = 0
 $files = 0
 
-Write-Host "==> Repair: xoa moi dong guard inject loi trong source plugin"
+Write-Host "==> Repair: xoa guard/login inject loi (chi MEPDB moi hien dang nhap)"
 Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
     if ($_.FullName -match '\\(bin|obj)\\') { return }
+    if ($_.Name -match '^(LicenseGuard|LoginWindow|LicenseApiClient)\.cs$') { return }
 
     $lines = Get-Content $_.FullName -Encoding UTF8
+    $isMepDbCommandFile = ($lines -join "`n") -match 'CommandMethod\s*\(\s*"MEPDB"\s*[,)]'
+    if ($isMepDbCommandFile) { return }
+
     $newLines = New-Object System.Collections.Generic.List[string]
 
     foreach ($line in $lines) {
@@ -21,6 +25,9 @@ Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse | ForEach-Object {
         if ($line -match 'SUBFEATURE_WINDOW_GUARD') { continue }
         if ($line -match 'PluginFeatureGate\.Ensure\s*\(') { continue }
         if ($line -match 'PanelSystemGuard\.Ensure') { continue }
+        if ($line -match 'LicenseGuard\.EnsureEntry\s*\(') { continue }
+        if ($line -match 'LicenseGuard\.EnsureAuthorized\s*\(') { continue }
+        if ($line -match 'LicensingHost\.(Show|Prompt)') { continue }
         $newLines.Add($line)
     }
 
