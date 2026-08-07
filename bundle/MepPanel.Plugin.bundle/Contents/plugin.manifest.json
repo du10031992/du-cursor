@@ -1,7 +1,7 @@
 {
   "bundleId": "MepPanel.Plugin.bundle",
   "product": "MepPanel",
-  "version": "0.13.0",
+  "version": "0.4.0",
   "entryDll": "MepPanel.AutoCAD.dll",
   "requiredDlls": [
     {
@@ -17,7 +17,16 @@
   ],
   "controlledFeatures": ["MEPDB"],
   "subFeatures": [
-    "MEPDBCABINET2D", "MEPDBCABINET3D", "MEPHVAC", "MEPHVACDRAW", "MEPDBREALWIRING"
+    "MEPDBDRAW",
+    "MEPHVAC",
+    "MEPDBWATER",
+    "MEPDBSMOKE",
+    "MEPDBCABINET2D",
+    "MEPDBUPDATE",
+    "MEPDBEXCEL",
+    "MEPDBCABINETVIEWS",
+    "MEPDBPOWER",
+    "MEPDB3P4W"
   ],
   "licenseControl": {
     "entryCommand": "MEPDB",

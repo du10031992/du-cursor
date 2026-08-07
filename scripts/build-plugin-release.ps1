@@ -91,6 +91,12 @@ if (Test-Path $CabinetRenderPatch) {
     & $CabinetRenderPatch -PluginSourceRoot $PluginSourceRoot
 }
 
+$WaterPcccPatch = Join-Path $Root "scripts\apply-water-pccc-patch.ps1"
+if (Test-Path $WaterPcccPatch) {
+    Write-Host "==> Apply patch He nuoc / PCCC (ve + phan tich + render PNG)"
+    & $WaterPcccPatch -PluginSourceRoot $PluginSourceRoot
+}
+
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
 $SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
 $RestoreSingleEntry = Join-Path $Root "scripts\restore-single-entry-patch.ps1"

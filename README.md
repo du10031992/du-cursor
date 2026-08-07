@@ -2,14 +2,15 @@
 
 | Thành phần | Version | Build |
 |---|---|---|
-| License Server + Admin | v0.3.0 | `dotnet run` / F5 |
-| Plugin AutoCAD (release) | v0.13.0 | Source MepPanelMvp trên Windows |
+| License Server + Admin | v0.4.0 | `dotnet run` / F5 |
+| Plugin AutoCAD (release) | v0.4.0 | Source MepPanelMvp trên Windows |
 
 Plugin AutoCAD 2021 + License Server để Admin:
 
 - Khóa / mở tài khoản theo số điện thoại (`Active` / `Blocked`)
 - Mỗi SĐT chỉ dùng **1 máy**; chuyển máy phải Admin `release-device`
-- Khóa / mở từng chức năng plugin (`MEPDB`, `MEPHVAC`)
+- Khóa / mở từng chức năng plugin (`MEPDB`, `MEPHVAC`, `MEPDBWATER`, `MEPDBSMOKE`)
+- Hệ nước / PCCC: vẽ ống, phân tích, render minh họa PNG (Pillow)
 
 ## Projects
 
@@ -29,11 +30,13 @@ Plugin AutoCAD 2021 + License Server để Admin:
 ## Quick start — Cài plugin (release)
 
 ```powershell
-git pull origin cursor/license-admin-device-control-cc24
-.\scripts\install-plugin-bundle.ps1
+git pull origin cursor/water-pccc-visual-cc24
+.\scripts\build-plugin-release.ps1
+# hoac chi cai renderer:
+.\scripts\install-renderer-devices.ps1
 ```
 
-Khởi động lại AutoCAD → `MEPDB` / `MEPHVAC` → OTP test `123456`.
+Khởi động lại AutoCAD → `MEPDB` → OTP test `123456` → dùng nhóm **Hệ nước** / **PCCC** (vẽ, tính toán, Render → PNG).
 
 ## Phát triển & build plugin (cập nhật tính năng)
 

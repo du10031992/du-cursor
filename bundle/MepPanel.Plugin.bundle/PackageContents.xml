@@ -4,7 +4,7 @@
   AutodeskProduct="AutoCAD"
   ProductType="Application"
   Name="MepPanel"
-  AppVersion="0.13.0"
+  AppVersion="0.4.0"
   Description="MepPanel MEP tools (MEPDB/MEPHVAC) with server licensing"
   Author="MepPanel">
   <CompanyDetails Name="MepPanel" />

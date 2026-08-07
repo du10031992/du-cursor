@@ -1,12 +1,17 @@
-# Copy anh thiet bi AI vao bundle plugin (Windows PowerShell).
-# KHONG can pip de chay script nay - chi copy file PNG.
-# pip/pillow chi can khi test render_cabinet.py ngoai AutoCAD.
+# Copy anh thiet bi AI + renderer Pillow (tu dien + he nuoc/PCCC) vao bundle plugin.
+# KHONG can pip de chay script nay - chi copy file.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $SrcDevices = Join-Path $Root "renderer\devices"
 $BundleContents = Join-Path $Root "bundle\MepPanel.Plugin.bundle\Contents"
 $DstDevices = Join-Path $BundleContents "devices"
-$DstScript = Join-Path $BundleContents "render_cabinet.py"
+
+$RendererScripts = @(
+    "render_cabinet.py",
+    "render_cabinet_interior.py",
+    "render_photoreal.py",
+    "render_pipe_system.py"
+)
 
 if (-not (Test-Path $SrcDevices)) {
     throw @"
@@ -14,8 +19,8 @@ Khong tim thay thu muc renderer\devices.
 
 Chay:
   git fetch origin
-  git checkout cursor/license-admin-device-control-cc24
-  git pull origin cursor/license-admin-device-control-cc24
+  git checkout cursor/water-pccc-visual-cc24
+  git pull origin cursor/water-pccc-visual-cc24
 "@
 }
 
@@ -24,13 +29,17 @@ if ($pngCount -eq 0) {
     throw "Khong co file PNG trong $SrcDevices"
 }
 
-Write-Host "==> Cai anh thiet bi AI ($pngCount file PNG)"
+Write-Host "==> Cai renderer Pillow + anh thiet bi ($pngCount PNG)"
 
 New-Item -ItemType Directory -Force -Path $DstDevices | Out-Null
 Copy-Item (Join-Path $SrcDevices "*.png") $DstDevices -Force
-Copy-Item (Join-Path $Root "renderer\render_cabinet.py") $DstScript -Force
-Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") (Join-Path $BundleContents "render_cabinet_interior.py") -Force
-Copy-Item (Join-Path $Root "renderer\render_photoreal.py") (Join-Path $BundleContents "render_photoreal.py") -Force
+foreach ($name in $RendererScripts) {
+    $src = Join-Path $Root "renderer\$name"
+    if (Test-Path $src) {
+        Copy-Item $src (Join-Path $BundleContents $name) -Force
+        Write-Host "   -> $name"
+    }
+}
 Write-Host "   -> bundle: $DstDevices"
 
 $installDir = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents"
@@ -38,9 +47,12 @@ if (Test-Path $installDir) {
     $autoDevices = Join-Path $installDir "devices"
     New-Item -ItemType Directory -Force -Path $autoDevices | Out-Null
     Copy-Item (Join-Path $SrcDevices "*.png") $autoDevices -Force
-    Copy-Item (Join-Path $Root "renderer\render_cabinet.py") (Join-Path $installDir "render_cabinet.py") -Force
-    Copy-Item (Join-Path $Root "renderer\render_cabinet_interior.py") (Join-Path $installDir "render_cabinet_interior.py") -Force
-    Copy-Item (Join-Path $Root "renderer\render_photoreal.py") (Join-Path $installDir "render_photoreal.py") -Force
+    foreach ($name in $RendererScripts) {
+        $src = Join-Path $Root "renderer\$name"
+        if (Test-Path $src) {
+            Copy-Item $src (Join-Path $installDir $name) -Force
+        }
+    }
     Write-Host "   -> AutoCAD: $autoDevices"
 }
 else {
@@ -48,7 +60,7 @@ else {
 }
 
 Write-Host ""
-Write-Host "Xong! Khoi dong lai AutoCAD, thu Render tu dien."
+Write-Host "Xong! Khoi dong lai AutoCAD, thu Render tu dien / he nuoc / PCCC."
 Write-Host ""
 
 . (Join-Path $PSScriptRoot "Find-MepPython.ps1")
@@ -58,9 +70,11 @@ if ($py) {
     Write-Host "Python: $run"
     Write-Host "Test render:"
     Write-Host ("  {0} renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png" -f $run)
+    Write-Host ("  {0} renderer\render_pipe_system.py --system water --demo --output water.png" -f $run)
+    Write-Host ("  {0} renderer\render_pipe_system.py --system fire --demo --output fire.png" -f $run)
 }
 else {
     Write-Host "Neu muon test ngoai AutoCAD: cai Python 3 + pillow"
     Write-Host "  python -m pip install pillow"
-    Write-Host "  python renderer\render_cabinet.py --demo --quality photoreal --output cabinet.png"
+    Write-Host "  python renderer\render_pipe_system.py --system water --demo --output water.png"
 }

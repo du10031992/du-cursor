@@ -10,6 +10,22 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 
 ---
 
+## [0.4.0] - 2026-08-07 — Hệ nước / PCCC: vẽ, phân tích, render PNG
+
+### Thêm mới
+- **Hệ nước**: vẽ ống + co tự động, đặt phụ kiện, nạp thư viện AMC (`MEPDBWATER`)
+- **PCCC / báo cháy**: vẽ ống, sprinkler / hydrant / đầu báo (`MEPDBSMOKE`)
+- **Phân tích**: tiêu chuẩn (TCVN/QCVN/NFPA) + tính toán nhanh (vận tốc, tổn thất, sprinkler, mật độ, bồn…)
+- **Minh họa trực quan**: `render_pipe_system.py` (Pillow) — sơ đồ ống + panel phân tích PNG
+- Panel MEPDB / Drawing Tool: nhóm Hệ nước, PCCC, nút Render → PNG
+- Patch `apply-water-pccc-patch.ps1` tích hợp vào `build-plugin-release.ps1`
+
+### Ghi chú
+- Render tủ điện vẫn dùng Pillow photoreal (không Blender)
+- Cần Python 3 + Pillow trên máy chạy AutoCAD để mở PNG
+
+---
+
 ## [0.3.0] - 2026-08-05 — Tool panels + bundle tự load + logic vẽ + VPS
 
 ### Thêm mới

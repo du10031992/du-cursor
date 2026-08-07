@@ -5,7 +5,7 @@ Repo này gồm **2 phần**:
 | Phần | Build được trên repo? | Mô tả |
 |---|---|---|
 | **License Server** | Có (mọi OS) | ASP.NET Core — Admin, OTP, khóa user/máy/feature |
-| **Plugin AutoCAD v0.13** | Cần source gốc trên Windows | `MepPanel.AutoCAD.dll` + `MepPanel.Core.dll` |
+| **Plugin AutoCAD v0.4** | Cần source gốc trên Windows | `MepPanel.AutoCAD.dll` + `MepPanel.Core.dll` + renderer Pillow |
 
 Source plugin đầy đủ (Cabinet, HVAC, WPF, …) nằm ở project **MepPanelMvp** trên máy bạn — **chưa** nằm hết trong git. Git chỉ lưu bản **DLL release** trong `bundle/`.
 
@@ -65,7 +65,8 @@ Mở solution **MepPanelMvp** (trên máy bạn) hoặc mở trực tiếp:
 **Kiểm soát license** (đã có trong plugin v0.13):
 
 - `LicenseGuard` / `AutoCadCommandDispatcher` — chặn lệnh nếu Admin khóa
-- Feature: `MEPDB`, `MEPHVAC`
+- Feature: `MEPDB`, `MEPHVAC`, `MEPDBWATER`, `MEPDBSMOKE`
+- Hệ nước / PCCC: patch `scripts/apply-water-pccc-patch.ps1` (vẽ + tính toán + `render_pipe_system.py`)
 
 Khi thêm nhóm lệnh mới cần Admin bật/tắt:
 
