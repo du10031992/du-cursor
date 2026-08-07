@@ -136,6 +136,12 @@ if (Test-Path $RepairCorruptedCommands) {
     & $RepairCorruptedCommands -PluginSourceRoot $PluginSourceRoot
 }
 
+# Dispatcher UI: luon ghi de de tranh CS0104 Application ambiguous tren source cu.
+$UiDispatcherPatch = Join-Path $Root "scripts\apply-ui-dispatcher-patch.ps1"
+if (Test-Path $UiDispatcherPatch) {
+    & $UiDispatcherPatch -PluginSourceRoot $PluginSourceRoot
+}
+
 # Single-entry: CLI chi MEPDB; lenh phu -> MepInternalCommand (panel van goi duoc).
 if (Test-Path $SingleEntryPatch) {
     Write-Host "==> Single-entry: chi lenh MEPDB tren command line"

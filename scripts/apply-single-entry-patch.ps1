@@ -84,12 +84,16 @@ function Patch-CsFile {
 }
 
 function Copy-UiDispatcherPatch {
+    $patch = Join-Path $Root "scripts\apply-ui-dispatcher-patch.ps1"
+    if (Test-Path $patch) {
+        & $patch -PluginSourceRoot $PluginSourceRoot
+        return
+    }
     $srcDir = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\UI"
     $dstCandidates = @(
         (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI"),
         (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui")
     )
-
     $dst = $null
     foreach ($c in $dstCandidates) {
         if (Test-Path $c) { $dst = $c; break }
@@ -98,7 +102,6 @@ function Copy-UiDispatcherPatch {
         $dst = $dstCandidates[0]
         New-Item -ItemType Directory -Force -Path $dst | Out-Null
     }
-
     foreach ($name in @("MepInternalCommandAttribute.cs", "AutoCadCommandDispatcher.cs")) {
         $src = Join-Path $srcDir $name
         if (Test-Path $src) {

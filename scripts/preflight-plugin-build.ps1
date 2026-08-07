@@ -51,6 +51,35 @@ if (Test-Path $wf) {
     }
 }
 
+$disp = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI\AutoCadCommandDispatcher.cs"
+if (-not (Test-Path $disp)) {
+    $disp = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui\AutoCadCommandDispatcher.cs"
+}
+if (Test-Path $disp) {
+    $dispText = Read-TextUtf8 $disp
+    if ($dispText -match '\bApplication\.DocumentManager\b') {
+        $issues += "AutoCadCommandDispatcher.cs CS0104 Application ambiguous -> chay lai build (apply-ui-dispatcher-patch)"
+    }
+    if ($dispText -notmatch 'AcApp\.DocumentManager') {
+        $issues += "AutoCadCommandDispatcher thieu AcApp alias"
+    }
+}
+
+$client = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Licensing\LicenseApiClient.cs"
+if (Test-Path $client) {
+    $clientText = Read-TextUtf8 $client
+    if ($clientText -match 'Task<RequestOtpResponse>' -and $clientText -notmatch 'class\s+RequestOtpResponse') {
+        $licDir = Split-Path $client -Parent
+        $hasDto = $false
+        Get-ChildItem $licDir -Filter *.cs | ForEach-Object {
+            if ((Read-TextUtf8 $_.FullName) -match 'class\s+RequestOtpResponse') { $hasDto = $true }
+        }
+        if (-not $hasDto) {
+            $issues += "LicenseApiClient thieu RequestOtpResponse (CS0246) -> chay lai build"
+        }
+    }
+}
+
 if ($issues.Count -gt 0) {
     Write-Host "==> Preflight FAILED" -ForegroundColor Red
     foreach ($i in $issues) { Write-Host "   - $i" -ForegroundColor Yellow }

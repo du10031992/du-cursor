@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Autodesk.AutoCAD.ApplicationServices;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace MepPanelMvp.UI
 {
     /// <summary>
-    /// Goi chuc nang tu panel WPF.
-    /// Uu tien invoke method noi bo (MepInternalCommand / CommandMethod) — khong can lenh CLI.
+    /// Goi chuc nang tu panel WPF (MepInternalCommand) — khong can lenh CLI.
     /// </summary>
     internal static class AutoCadCommandDispatcher
     {
@@ -34,8 +32,7 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            // Fallback: chi khi method van con [CommandMethod] tren CLI (vd MEPDB).
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            var doc = AcApp.DocumentManager.MdiActiveDocument;
             if (doc != null)
             {
                 doc.SendStringToExecute(cmd + " ", true, false, true);
@@ -45,8 +42,7 @@ namespace MepPanelMvp.UI
         private static bool TryInvoke(string commandName)
         {
             EnsureMap();
-            MethodInvoker invoker;
-            if (!_map.TryGetValue(commandName, out invoker) || invoker == null)
+            if (!_map.TryGetValue(commandName, out MethodInvoker invoker) || invoker == null)
             {
                 return false;
             }
@@ -62,16 +58,20 @@ namespace MepPanelMvp.UI
             catch (TargetInvocationException ex)
             {
                 string msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                Document doc = Application.DocumentManager.MdiActiveDocument;
-                doc?.Editor.WriteMessage("\n[MEP] Loi " + commandName + ": " + msg);
+                WriteMessage("[MEP] Loi " + commandName + ": " + msg);
                 return true;
             }
             catch (Exception ex)
             {
-                Document doc = Application.DocumentManager.MdiActiveDocument;
-                doc?.Editor.WriteMessage("\n[MEP] Loi goi " + commandName + ": " + ex.Message);
+                WriteMessage("[MEP] Loi goi " + commandName + ": " + ex.Message);
                 return true;
             }
+        }
+
+        private static void WriteMessage(string text)
+        {
+            var doc = AcApp.DocumentManager.MdiActiveDocument;
+            doc?.Editor.WriteMessage("\n" + text);
         }
 
         private static void EnsureMap()
@@ -123,7 +123,6 @@ namespace MepPanelMvp.UI
                                 continue;
                             }
 
-                            // Khong map MEPDB qua dispatcher noi bo — de CLI/login xu ly.
                             if (string.Equals(name, "MEPDB", StringComparison.OrdinalIgnoreCase))
                             {
                                 continue;
@@ -134,7 +133,6 @@ namespace MepPanelMvp.UI
                     }
                 }
 
-                // Water/Fire static entry (khong can instance CommandMethod)
                 TryMapStatic(map, "MepPanelMvp.Commands.WaterFireCommands", "ShowWaterMenu", "MEPWATER");
                 TryMapStatic(map, "MepPanelMvp.Commands.WaterFireCommands", "ShowFireMenu", "MEPFIRE");
 
@@ -162,12 +160,10 @@ namespace MepPanelMvp.UI
                     return;
                 }
 
-                // Reuse MethodInvoker with static invoke via wrapper type sentinel: Method.IsStatic
                 map[commandName] = new MethodInvoker { Type = t, Method = mi };
             }
             catch
             {
-                /* ignore */
             }
         }
 
@@ -187,10 +183,6 @@ namespace MepPanelMvp.UI
                 }
                 else if (at.Name == "CommandMethodAttribute")
                 {
-                    // Autodesk.AutoCAD.Runtime.CommandMethodAttribute
-                    PropertyInfo global = at.GetProperty("GlobalName")
-                        ?? at.GetProperty("GroupName");
-                    // Constructor stores localized/global — try common props
                     foreach (string propName in new[] { "GlobalName", "LocalizedName", "GroupName" })
                     {
                         PropertyInfo p = at.GetProperty(propName);
@@ -206,7 +198,6 @@ namespace MepPanelMvp.UI
                         }
                     }
 
-                    // Fallback: ToString sometimes includes name
                     FieldInfo[] fields = at.GetFields(
                         BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
                     foreach (FieldInfo f in fields)
