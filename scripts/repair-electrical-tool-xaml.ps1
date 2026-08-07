@@ -137,6 +137,14 @@ if ($parent -and (Try-GitCheckout $parent $xaml)) {
     exit 0
 }
 
+# Ban khoi phuc tu DLL v0.13 (trong repo du-cursor)
+$Root = Split-Path -Parent $PSScriptRoot
+$template = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\UI\ElectricalToolControl.xaml"
+if (Try-RestoreFromFile $template $xaml) {
+    Write-Host "   (da dung template khoi phuc tu repo - panel UI tu DLL v0.13)"
+    exit 0
+}
+
 # Neu XAML hien tai van hop le -> khong can repair
 $current = Read-TextUtf8 $xaml
 if (Test-XamlLooksValid $current) {
@@ -145,22 +153,13 @@ if (Test-XamlLooksValid $current) {
 }
 
 Write-Host ""
-Write-Host "KHONG khoi phuc duoc XAML tu backup/git." -ForegroundColor Yellow
+Write-Host "KHONG khoi phuc duoc XAML tu backup/git/template." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "File co the bi trong -> loi MC3000 Root element is missing."
 Write-Host ""
-Write-Host "Cach sua (chon 1):"
-Write-Host "  A) Visual Studio: mo ElectricalToolControl.xaml -> chuot phai -> Undo Changes"
-Write-Host "     (hoac Local History / Previous Version neu co)"
-Write-Host ""
-Write-Host "  B) Copy file .bak cung thu muc UI (neu co):"
-Write-Host "     ElectricalToolControl.xaml.pre-water-fire.bak"
-Write-Host "     doi ten/copy thanh ElectricalToolControl.xaml"
-Write-Host ""
-Write-Host "  C) Copy XAML tu ban MepPanelMvp cu / may khac"
-Write-Host ""
 Write-Host "Sau do:"
 Write-Host "  cd C:\MepPanel\du-cursor"
+Write-Host "  git pull origin cursor/water-pccc-visual-cc24"
 Write-Host "  .\scripts\build-plugin-release.ps1"
 Write-Host ""
 
