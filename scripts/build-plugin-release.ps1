@@ -97,6 +97,12 @@ if (Test-Path $WaterPcccPatch) {
     & $WaterPcccPatch -PluginSourceRoot $PluginSourceRoot
 }
 
+$EnableWaterFireUi = Join-Path $Root "scripts\apply-enable-water-fire-ui.ps1"
+if (Test-Path $EnableWaterFireUi) {
+    Write-Host "==> Bat nut HỆ NƯỚC / BÁO CHÁY tren panel WPF"
+    & $EnableWaterFireUi -PluginSourceRoot $PluginSourceRoot
+}
+
 $FeaturePatch = Join-Path $Root "scripts\apply-feature-guard-patch.ps1"
 $SingleEntryPatch = Join-Path $Root "scripts\apply-single-entry-patch.ps1"
 $RestoreSingleEntry = Join-Path $Root "scripts\restore-single-entry-patch.ps1"

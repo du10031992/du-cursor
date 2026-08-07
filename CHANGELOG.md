@@ -23,6 +23,8 @@ Mọi thay đổi đáng chú ý của MepPanel được ghi theo [Semantic Vers
 ### Ghi chú
 - Render tủ điện vẫn dùng Pillow photoreal (không Blender)
 - Cần Python 3 + Pillow trên máy chạy AutoCAD để mở PNG
+- Nút **HỆ NƯỚC / BÁO CHÁY** trên panel WPF v0.13 từng bị `IsEnabled=False` (stub) — patch `apply-enable-water-fire-ui.ps1` bật lại khi build
+- Admin cần bật feature `MEPDBWATER` + `MEPDBSMOKE` (hoặc restart License Server để seeder bổ sung)
 
 ---
 
