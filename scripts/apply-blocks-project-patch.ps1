@@ -64,7 +64,8 @@ if ($missing.Count -gt 0) {
 Thieu file Blocks.AutoCAD sau khi dong bo:
   $($missing -join "`n  ")
 
-Kiem tra repo du-cursor co day du src\MepPanel.Blocks.AutoCAD.
+Chay: git pull origin cursor/water-pccc-visual-cc24
+     .\scripts\apply-blocks-project-patch.ps1 -PluginSourceRoot C:\MepPanel\MepPanelMvp
 "@
 }
 

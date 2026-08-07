@@ -205,28 +205,17 @@ Write-Host "==> Build plugin tu source: $PluginSourceRoot"
 Write-Host "==> Configuration: $Configuration x64"
 
 $Preflight = Join-Path $Root "scripts\preflight-plugin-build.ps1"
+
+# Dong bo Blocks lan cuoi truoc build (phong script khac ghi de thieu file).
+if (Test-Path $BlocksProjectPatch) {
+    & $BlocksProjectPatch -PluginSourceRoot $PluginSourceRoot
+}
+
 if (Test-Path $Preflight) {
     & $Preflight -PluginSourceRoot $PluginSourceRoot
 }
 
 Push-Location $PluginSourceRoot
-dotnet @buildArgs
-if ($LASTEXITCODE -ne 0) {
-    Pop-Location
-    throw "Build MepPanel.AutoCAD that bai."
-}
-
-$coreBuildArgs = @(
-    "build",
-    $CoreProj,
-    "-c", $Configuration,
-    "-p:Platform=x64"
-)
-dotnet @coreBuildArgs
-if ($LASTEXITCODE -ne 0) {
-    Pop-Location
-    throw "Build MepPanel.Core that bai."
-}
 
 if (Test-Path $BlocksProj) {
     Write-Host "==> Build MepPanel.Blocks.AutoCAD (ve ong + thu vien AMC)"
@@ -245,8 +234,23 @@ if (Test-Path $BlocksProj) {
         throw "Build MepPanel.Blocks.AutoCAD that bai."
     }
 }
-else {
-    Write-Host "   (bo qua Blocks.AutoCAD - khong co project)"
+
+dotnet @buildArgs
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    throw "Build MepPanel.AutoCAD that bai."
+}
+
+$coreBuildArgs = @(
+    "build",
+    $CoreProj,
+    "-c", $Configuration,
+    "-p:Platform=x64"
+)
+dotnet @coreBuildArgs
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    throw "Build MepPanel.Core that bai."
 }
 Pop-Location
 

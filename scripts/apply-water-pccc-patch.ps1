@@ -61,6 +61,8 @@ if (Test-Path $GateSrc) {
 if (Test-Path (Split-Path $DrawDst)) {
     New-Item -ItemType Directory -Force -Path $DrawDst | Out-Null
     $drawFiles = @(
+        "MepDbDrawingService.cs",
+        "MepHvacDrawingService.cs",
         "MepWaterDrawingService.cs",
         "MepFireDrawingService.cs",
         "MepPipeSystem.cs",
@@ -69,7 +71,8 @@ if (Test-Path (Split-Path $DrawDst)) {
         "MepPluginConfig.cs",
         "MepKnowledgeService.cs",
         "MepPipeRenderService.cs",
-        "MepDrawingHelper.cs"
+        "MepDrawingHelper.cs",
+        "MepCabinetRenderService.cs"
     )
     foreach ($name in $drawFiles) {
         $src = Join-Path $DrawSrc $name
