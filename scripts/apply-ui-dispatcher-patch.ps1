@@ -21,7 +21,13 @@ if (-not $dst) {
 }
 
 Write-Host "==> Copy UI dispatcher (AutoCadCommandDispatcher)"
-foreach ($name in @("MepInternalCommandAttribute.cs", "AutoCadCommandDispatcher.cs", "MepDocumentContext.cs")) {
+foreach ($name in @(
+    "MepInternalCommandAttribute.cs",
+    "AutoCadCommandDispatcher.cs",
+    "MepDocumentContext.cs",
+    "HvacConfigurationWindow.xaml.cs",
+    "PanelConfigurationWindow.xaml.cs"
+)) {
     $src = Join-Path $srcDir $name
     if (-not (Test-Path $src)) {
         if ($name -eq "MepDocumentContext.cs") { continue }

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Autodesk.AutoCAD.ApplicationServices;
 
@@ -55,7 +56,7 @@ namespace MepPanelMvp.UI
             // Tu panel WPF modeless -> chuyen sang command context duy nhat.
             // Callback da o command context, khong LockDocument thu cong lan nua.
             docs.ExecuteInCommandContextAsync(
-                async _ =>
+                _ =>
                 {
                     _depth++;
                     try
@@ -77,6 +78,7 @@ namespace MepPanelMvp.UI
                     {
                         _depth--;
                     }
+                    return Task.CompletedTask;
                 },
                 null);
         }

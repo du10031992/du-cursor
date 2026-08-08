@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.ApplicationServices;
 
@@ -9,6 +10,9 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
     /// </summary>
     internal static class MepBlocksDocumentContext
     {
+        [ThreadStatic]
+        private static int _depth;
+
         public static void Run(Action action)
         {
             if (action == null)
@@ -23,24 +27,33 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                 throw new InvalidOperationException("Khong co ban ve AutoCAD dang mo.");
             }
 
+            if (_depth > 0)
+            {
+                action();
+                return;
+            }
+
             if (!docs.IsApplicationContext)
             {
-                using (doc.LockDocument())
+                _depth++;
+                try
                 {
                     action();
+                }
+                finally
+                {
+                    _depth--;
                 }
                 return;
             }
 
             docs.ExecuteInCommandContextAsync(
-                async _ =>
+                _ =>
                 {
+                    _depth++;
                     try
                     {
-                        using (doc.LockDocument())
-                        {
-                            action();
-                        }
+                        action();
                     }
                     catch (Exception ex)
                     {
@@ -52,6 +65,11 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
                         {
                         }
                     }
+                    finally
+                    {
+                        _depth--;
+                    }
+                    return Task.CompletedTask;
                 },
                 null);
         }

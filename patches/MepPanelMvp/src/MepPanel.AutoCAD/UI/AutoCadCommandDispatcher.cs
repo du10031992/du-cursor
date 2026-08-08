@@ -36,10 +36,10 @@ namespace MepPanelMvp.UI
             {
                 MepDocumentContext.Run(() => InvokeCommand(cmd));
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback: goi truc tiep neu khong vao duoc command context
-                InvokeCommand(cmd);
+                // Khong invoke truc tiep tu WPF: do chinh la duong gay eLockViolation.
+                WriteMessage("[MEP] Khong the chay " + cmd + " trong document context: " + ex.Message);
             }
         }
 
