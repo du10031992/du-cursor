@@ -30,11 +30,12 @@ Hosting started
 Admin: http://localhost:5268/admin
 OTP test: **123456**
 
-> User được lưu trong SQLite `mep-panel-license.db` tại thư mục chạy
-> `MepPanel.LicenseServer`. Nếu F5 source vừa giải nén ở một thư mục khác,
-> server sẽ tạo database mới và chỉ hiện user seed. Muốn giữ user cũ: F5
-> project cũ, hoặc đóng Visual Studio rồi chép `mep-panel-license.db` cũ sang
-> thư mục `MepPanel.LicenseServer` của source mới trước khi F5.
+> Database dùng một đường dẫn cố định:
+> `C:\MepPanel\du-cursor\MepPanel.LicenseServer\mep-panel-license.db`.
+> Dù F5 source ở thư mục khác, server vẫn dùng file này. Sao lưu file này
+> trước khi đổi máy hoặc cài Windows. Muốn đặt License Server trung tâm tại
+> một đường dẫn khác, cấu hình biến môi trường `MEP_PANEL_LICENSE_DB_PATH`
+> bằng đường dẫn tuyệt đối tới file `.db`.
 
 ### Lỗi MSB3021 / file bị khóa
 

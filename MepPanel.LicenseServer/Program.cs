@@ -65,9 +65,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+var databasePath = ResolveDatabasePath(builder.Configuration);
+Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite($"Data Source={databasePath}"));
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<AuditService>();
@@ -133,6 +135,24 @@ static string? ResolveAdminIndexPath(IWebHostEnvironment env)
     return null;
 }
 
+static string ResolveDatabasePath(IConfiguration configuration)
+{
+    // A shared/server deployment can override this without changing source:
+    // set MEP_PANEL_LICENSE_DB_PATH to its absolute database file path.
+    var configuredPath =
+        Environment.GetEnvironmentVariable("MEP_PANEL_LICENSE_DB_PATH") ??
+        configuration["LicenseStorage:DatabasePath"];
+
+    if (string.IsNullOrWhiteSpace(configuredPath))
+    {
+        configuredPath = OperatingSystem.IsWindows()
+            ? @"C:\MepPanel\du-cursor\MepPanel.LicenseServer\mep-panel-license.db"
+            : Path.Combine(AppContext.BaseDirectory, "mep-panel-license.db");
+    }
+
+    return Path.GetFullPath(configuredPath);
+}
+
 var adminIndex = ResolveAdminIndexPath(app.Environment);
 
 // Admin UI — xu ly som, truoc static files / auth
@@ -189,6 +209,7 @@ app.MapGet("/health", () => Results.Ok(new
 {
     ok = true,
     adminUi = adminIndex is not null,
+    databasePath,
     version = "2026-08-05-admin-v2"
 }));
 
