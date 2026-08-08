@@ -42,3 +42,34 @@ if ($text -match 'using\s+Autodesk\.AutoCAD\.ApplicationServices\.Core\s*;' -and
 }
 
 Write-Host "   Dispatcher OK (AcApp, khong ambiguous Application)"
+
+# --- Guard chong build code CU (repo working tree bi stale) ---
+# Dispatcher phai di qua MepDocumentContext.Run de set scope depth 1 lan.
+if ($text -notmatch 'MepDocumentContext\.Run\(\(\)\s*=>\s*InvokeCommand') {
+    throw @"
+AutoCadCommandDispatcher.cs la BAN CU (chua co MepDocumentContext.Run -> InvokeCommand).
+=> Repo du-cursor dang stale. Chay:
+     git fetch origin
+     git checkout -B cursor/water-pccc-visual-cc24 origin/cursor/water-pccc-visual-cc24
+     git reset --hard origin/cursor/water-pccc-visual-cc24
+   roi apply lai.
+"@
+}
+
+$ctx = Join-Path $dst "MepDocumentContext.cs"
+if (Test-Path $ctx) {
+    $ctxText = Get-Content $ctx -Raw -Encoding UTF8
+    if ($ctxText -notmatch '\[ThreadStatic\]' -or $ctxText -notmatch '_depth') {
+        throw @"
+MepDocumentContext.cs la BAN CU (thieu guard _depth chong long command context).
+=> Repo du-cursor dang stale. Chay:
+     git fetch origin
+     git checkout -B cursor/water-pccc-visual-cc24 origin/cursor/water-pccc-visual-cc24
+     git reset --hard origin/cursor/water-pccc-visual-cc24
+   roi apply lai.
+"@
+    }
+    Write-Host "   MepDocumentContext OK (co guard _depth)"
+}
+
+Write-Host "   eLock guard OK: Queue -> MepDocumentContext.Run -> lock 1 lan"

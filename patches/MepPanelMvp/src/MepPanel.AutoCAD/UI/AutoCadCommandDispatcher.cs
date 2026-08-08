@@ -28,37 +28,27 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            // Chay qua document execution context + lock -> tranh eLockViolation tu WPF dialog
+            // Vao command context + lock 1 LAN qua MepDocumentContext.
+            // Cac lenh ben trong (HvacCommands/PanelCommands) neu goi MepDocumentContext.Run
+            // se thay _depth > 0 -> chay dong bo, KHONG long ExecuteInCommandContextAsync
+            // -> tranh eLockViolation.
             try
             {
-                AcApp.DocumentManager.ExecuteInCommandContextAsync(
-                    async (_) =>
-                    {
-                        InvokeLocked(cmd);
-                    }, null);
+                MepDocumentContext.Run(() => InvokeCommand(cmd));
             }
             catch
             {
-                // Fallback: goi truc tiep neu ExecuteInCommandContextAsync khong kha dung
-                InvokeLocked(cmd);
+                // Fallback: goi truc tiep neu khong vao duoc command context
+                InvokeCommand(cmd);
             }
         }
 
-        private static void InvokeLocked(string commandName)
+        private static void InvokeCommand(string commandName)
         {
-            var doc = AcApp.DocumentManager.MdiActiveDocument;
-            if (doc == null)
+            if (!TryInvoke(commandName))
             {
-                TryInvoke(commandName);
-                return;
-            }
-
-            using (doc.LockDocument())
-            {
-                if (!TryInvoke(commandName))
-                {
-                    doc.SendStringToExecute(commandName + " ", true, false, true);
-                }
+                var doc = AcApp.DocumentManager.MdiActiveDocument;
+                doc?.SendStringToExecute(commandName + " ", true, false, true);
             }
         }
 
