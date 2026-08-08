@@ -245,15 +245,93 @@ foreach ($f in $xamlFiles) {
     Wrap-EntryMethodsInFile $f.FullName $f.Name
 }
 
-# Force: moi file goi BuildSchematic (thuong la HvacConfigurationWindow)
+# Force: moi file goi BuildSchematic (thuong la HvacConfigurationWindow / ViewModel)
 Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinue |
     Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging|Cad)\\' } |
     ForEach-Object {
         $raw = Read-Utf8 $_.FullName
-        if ($raw -notmatch 'BuildSchematic') { return }
-        Log ("HAS BuildSchematic: " + $_.Name)
+        if ($raw -notmatch 'BuildSchematic|StartTransaction') { return }
+        Log ("HAS CAD WRITE: " + $_.Name)
         Wrap-EntryMethodsInFile $_.FullName $_.Name
     }
+
+# Evidence: Draw_Click chi goi CommitEdits() -> CAD nam o ViewModel / sau Commit.
+# Force-wrap cac click ve CAD tren cua so cau hinh (khong can body hit heuristic).
+$forceClickNames = @(
+    'Draw_Click', 'Update_Click', 'Export_Click',
+    'CabinetViews_Click', 'PowerLayout_Click', 'ThreePhaseFourWire_Click',
+    'RealisticWiring_Click', 'RealisticWiringRender_Click',
+    'Cabinet2d_Click', 'CabinetRender_Click', 'CabinetUnfold_Click'
+)
+$forceWindows = @(
+    'HvacConfigurationWindow.xaml.cs',
+    'PanelConfigurationWindow.xaml.cs'
+)
+foreach ($win in $forceWindows) {
+    $hits = Get-ChildItem $autoRoot -Filter $win -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' }
+    foreach ($f in $hits) {
+        $t = Read-Utf8 $f.FullName
+        foreach ($name in $forceClickNames) {
+            $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
+            Log ("FORCE " + $f.Name + "." + $name + ": " + $r.Reason)
+            if ($r.Count -gt 0) {
+                $t = Ensure-UsingUi $r.Text
+                Write-Utf8NoBom $f.FullName $t
+            }
+        }
+    }
+}
+
+# ViewModel / Host: wrap void methods co CAD write (entry thuc su sau CommitEdits)
+Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.FullName -notmatch '\\(bin|obj|package_staging|Cad)\\' -and
+        ($_.Name -match 'ViewModel|ConfigurationHost|HvacConfigurationHost|PaletteHost')
+    } |
+    ForEach-Object {
+        $raw = Read-Utf8 $_.FullName
+        if ($raw -notmatch 'BuildSchematic|StartTransaction|DrawingService|AppendEntity|TransactionManager') {
+            Log ("VM SCAN " + $_.Name + ": no CAD write keywords")
+            return
+        }
+        Log ("VM SCAN " + $_.Name + ": has CAD write -> wrap entries")
+        # Dump method names for evidence
+        $rx = [regex]'(?m)^\s*(public|private|internal|protected)\s+(static\s+)?(async\s+)?void\s+(\w+)\s*\('
+        foreach ($m in $rx.Matches($raw)) {
+            $name = $m.Groups[4].Value
+            $open = $raw.IndexOf([char]123, $m.Index)
+            if ($open -lt 0) { continue }
+            $close = Find-MatchingBrace $raw $open
+            if ($close -lt 0) { continue }
+            $body = $raw.Substring($open, [Math]::Min(4000, $close - $open))
+            $flags = @()
+            if ($body -match 'BuildSchematic') { $flags += 'BuildSchematic' }
+            if ($body -match 'StartTransaction') { $flags += 'StartTransaction' }
+            if ($body -match 'DrawingService|HvacSupply|PanelDrawing|Cad\.') { $flags += 'CadCall' }
+            if ($flags.Count -gt 0) {
+                Log ("  VM METHOD " + $name + " [" + ($flags -join ',') + "]")
+            }
+        }
+        Wrap-EntryMethodsInFile $_.FullName $_.Name
+    }
+
+# Dump Draw_Click bodies (evidence sau patch)
+foreach ($win in $forceWindows) {
+    $hits = Get-ChildItem $autoRoot -Filter $win -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' }
+    foreach ($f in $hits) {
+        $raw = Read-Utf8 $f.FullName
+        $rx = [regex]'(?m)^\s*(?:public|private|internal|protected)\s+(?:static\s+)?void\s+Draw_Click\s*\('
+        $m = $rx.Match($raw)
+        if (-not $m.Success) { continue }
+        $open = $raw.IndexOf([char]123, $m.Index)
+        $close = Find-MatchingBrace $raw $open
+        if ($open -lt 0 -or $close -lt 0) { continue }
+        $body = $raw.Substring($open, [Math]::Min(800, $close - $open + 1)) -replace '\s+', ' '
+        Log ("DRAW_BODY " + $f.Name + ": " + $body)
+    }
+}
 
 # Khong wrap Cad\* helpers.
 

@@ -7,7 +7,7 @@ namespace MepPanelMvp.UI
 {
     /// <summary>
     /// Goi chuc nang tu panel WPF (MepInternalCommand) — khong can lenh CLI.
-    /// Su dung ExecuteInCommandContextAsync de tranh eLockViolation tu modeless WPF.
+    /// Su dung ExecuteInCommandContextAsync + LockDocument de tranh eLockViolation tu modeless WPF.
     /// </summary>
     internal static class AutoCadCommandDispatcher
     {
@@ -28,32 +28,36 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            // Chay qua document execution context -> tranh eLockViolation tu WPF dialog
+            // Chay qua document execution context + lock -> tranh eLockViolation tu WPF dialog
             try
             {
                 AcApp.DocumentManager.ExecuteInCommandContextAsync(
                     async (_) =>
                     {
-                        if (!TryInvoke(cmd))
-                        {
-                            var doc = AcApp.DocumentManager.MdiActiveDocument;
-                            if (doc != null)
-                            {
-                                doc.SendStringToExecute(cmd + " ", true, false, true);
-                            }
-                        }
+                        InvokeLocked(cmd);
                     }, null);
             }
             catch
             {
-                // Fallback: goi truc tiep (neu khong co document context)
-                if (!TryInvoke(cmd))
+                // Fallback: goi truc tiep neu ExecuteInCommandContextAsync khong kha dung
+                InvokeLocked(cmd);
+            }
+        }
+
+        private static void InvokeLocked(string commandName)
+        {
+            var doc = AcApp.DocumentManager.MdiActiveDocument;
+            if (doc == null)
+            {
+                TryInvoke(commandName);
+                return;
+            }
+
+            using (doc.LockDocument())
+            {
+                if (!TryInvoke(commandName))
                 {
-                    var doc = AcApp.DocumentManager.MdiActiveDocument;
-                    if (doc != null)
-                    {
-                        doc.SendStringToExecute(cmd + " ", true, false, true);
-                    }
+                    doc.SendStringToExecute(commandName + " ", true, false, true);
                 }
             }
         }

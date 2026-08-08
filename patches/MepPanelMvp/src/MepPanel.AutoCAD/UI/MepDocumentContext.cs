@@ -12,6 +12,9 @@ namespace MepPanelMvp.UI
     /// </summary>
     public static class MepDocumentContext
     {
+        [ThreadStatic]
+        private static int _depth;
+
         public static void Run(Action action)
         {
             if (action == null)
@@ -26,12 +29,20 @@ namespace MepPanelMvp.UI
                 throw new InvalidOperationException("Khong co ban ve AutoCAD dang mo.");
             }
 
-            // Da nam trong command/document context -> chay thang.
-            if (!docs.IsApplicationContext)
+            // Da nam trong Run/command context -> khong queue long (giu feature).
+            if (_depth > 0 || !docs.IsApplicationContext)
             {
-                using (doc.LockDocument())
+                _depth++;
+                try
                 {
-                    action();
+                    using (doc.LockDocument())
+                    {
+                        action();
+                    }
+                }
+                finally
+                {
+                    _depth--;
                 }
                 return;
             }
@@ -40,6 +51,7 @@ namespace MepPanelMvp.UI
             docs.ExecuteInCommandContextAsync(
                 async _ =>
                 {
+                    _depth++;
                     try
                     {
                         using (doc.LockDocument())
@@ -57,6 +69,10 @@ namespace MepPanelMvp.UI
                         {
                             doc.Editor.WriteMessage("\n[MEP] Loi ve CAD: " + ex.Message);
                         }
+                    }
+                    finally
+                    {
+                        _depth--;
                     }
                 },
                 null);
