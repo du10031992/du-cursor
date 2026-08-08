@@ -72,4 +72,4 @@ MepDocumentContext.cs la BAN CU (thieu guard _depth chong long command context).
     Write-Host "   MepDocumentContext OK (co guard _depth)"
 }
 
-Write-Host "   eLock guard OK: Queue -> MepDocumentContext.Run -> lock 1 lan"
+Write-Host "   eLock guard OK: Queue -> 1 command context; khong nested LockDocument"

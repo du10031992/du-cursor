@@ -6,9 +6,9 @@ namespace MepPanelMvp.UI
 {
     /// <summary>
     /// Ve CAD an toan tu WPF:
-    /// - Dang trong command context: LockDocument + chay dong bo
+    /// - Dang trong command context: chay dong bo (AutoCAD da lock document)
     /// - Dang o application context (modeless UI): ExecuteInCommandContextAsync
-    /// Khong bao gio queue long nhau (tranh mat chuc nang / prompt).
+    /// Khong queue hoac LockDocument long nhau.
     /// </summary>
     public static class MepDocumentContext
     {
@@ -29,16 +29,21 @@ namespace MepPanelMvp.UI
                 throw new InvalidOperationException("Khong co ban ve AutoCAD dang mo.");
             }
 
-            // Da nam trong Run/command context -> khong queue long (giu feature).
-            if (_depth > 0 || !docs.IsApplicationContext)
+            // Da nam trong Run -> command context va document lock da duoc AutoCAD cap.
+            // LockDocument lan nua tai day gay nested lock va eLockViolation.
+            if (_depth > 0)
+            {
+                action();
+                return;
+            }
+
+            // Lenh AutoCAD dang chay: document hien tai da duoc AutoCAD lock.
+            if (!docs.IsApplicationContext)
             {
                 _depth++;
                 try
                 {
-                    using (doc.LockDocument())
-                    {
-                        action();
-                    }
+                    action();
                 }
                 finally
                 {
@@ -47,17 +52,15 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            // Tu panel WPF modeless -> chuyen sang command context (1 lan).
+            // Tu panel WPF modeless -> chuyen sang command context duy nhat.
+            // Callback da o command context, khong LockDocument thu cong lan nua.
             docs.ExecuteInCommandContextAsync(
                 async _ =>
                 {
                     _depth++;
                     try
                     {
-                        using (doc.LockDocument())
-                        {
-                            action();
-                        }
+                        action();
                     }
                     catch (Exception ex)
                     {

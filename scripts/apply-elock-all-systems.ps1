@@ -46,7 +46,7 @@ function Ensure-UsingUi([string]$Text) {
     return "using MepPanelMvp.UI;`r`n" + $Text
 }
 
-# Go: // MEP_ELOCK_XXX \n MepDocumentContext.Run(() => \n { INNER }); 
+# Go: // MEP_ELOCK_XXX \n MepDocumentContext.Run(() => \n { INNER });
 function Remove-ElockWraps([string]$Text) {
     $removed = 0
     $guard = 0
@@ -255,33 +255,13 @@ Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinu
         Wrap-EntryMethodsInFile $_.FullName $_.Name
     }
 
-# Evidence: Draw_Click chi goi CommitEdits() -> CAD nam o ViewModel / sau Commit.
-# Force-wrap cac click ve CAD tren cua so cau hinh (khong can body hit heuristic).
-$forceClickNames = @(
-    'Draw_Click', 'Update_Click', 'Export_Click',
-    'CabinetViews_Click', 'PowerLayout_Click', 'ThreePhaseFourWire_Click',
-    'RealisticWiring_Click', 'RealisticWiringRender_Click',
-    'Cabinet2d_Click', 'CabinetRender_Click', 'CabinetUnfold_Click'
-)
-$forceWindows = @(
+# Draw_Click chi sua WPF model + Queue command. KHONG wrap UI:
+# Queue la cua vao command context duy nhat; wrap o day tao nested context/lock.
+$auditWindows = @(
     'HvacConfigurationWindow.xaml.cs',
     'PanelConfigurationWindow.xaml.cs'
 )
-foreach ($win in $forceWindows) {
-    $hits = Get-ChildItem $autoRoot -Filter $win -Recurse -File -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' }
-    foreach ($f in $hits) {
-        $t = Read-Utf8 $f.FullName
-        foreach ($name in $forceClickNames) {
-            $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
-            Log ("FORCE " + $f.Name + "." + $name + ": " + $r.Reason)
-            if ($r.Count -gt 0) {
-                $t = Ensure-UsingUi $r.Text
-                Write-Utf8NoBom $f.FullName $t
-            }
-        }
-    }
-}
+Log "UI CLICK: khong wrap; Queue la command-context entry duy nhat"
 
 # ViewModel / Host: wrap void methods co CAD write (entry thuc su sau CommitEdits)
 Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinue |
@@ -317,7 +297,7 @@ Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinu
     }
 
 # Dump Draw_Click bodies (evidence sau patch)
-foreach ($win in $forceWindows) {
+foreach ($win in $auditWindows) {
     $hits = Get-ChildItem $autoRoot -Filter $win -Recurse -File -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' }
     foreach ($f in $hits) {

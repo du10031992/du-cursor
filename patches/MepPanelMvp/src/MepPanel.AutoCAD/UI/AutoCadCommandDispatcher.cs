@@ -7,7 +7,7 @@ namespace MepPanelMvp.UI
 {
     /// <summary>
     /// Goi chuc nang tu panel WPF (MepInternalCommand) — khong can lenh CLI.
-    /// Su dung ExecuteInCommandContextAsync + LockDocument de tranh eLockViolation tu modeless WPF.
+    /// Su dung mot command context duy nhat de tranh eLockViolation tu modeless WPF.
     /// </summary>
     internal static class AutoCadCommandDispatcher
     {
@@ -28,7 +28,7 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            // Vao command context + lock 1 LAN qua MepDocumentContext.
+            // Vao command context 1 LAN qua MepDocumentContext.
             // Cac lenh ben trong (HvacCommands/PanelCommands) neu goi MepDocumentContext.Run
             // se thay _depth > 0 -> chay dong bo, KHONG long ExecuteInCommandContextAsync
             // -> tranh eLockViolation.
