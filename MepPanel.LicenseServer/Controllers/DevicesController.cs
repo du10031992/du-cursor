@@ -97,7 +97,12 @@ public class DevicesController : ControllerBase
         var existingForKey = await _db.Devices
             .FirstOrDefaultAsync(x => x.DeviceKeyHash == deviceKeyHash);
 
-        if (existingForKey != null && existingForKey.UserId != user.Id)
+        // Thiet bi da duoc release thi co the chuyen sang tai khoan khac.
+        // Truoc day API chi kiem tra UserId khac va tu choi truoc khi xu ly
+        // trang thai Revoked, nen nut "Mo chuyen may" khong the chuyen tai khoan.
+        if (existingForKey != null &&
+            existingForKey.UserId != user.Id &&
+            existingForKey.Status != DeviceStatuses.Revoked)
         {
             return StatusCode(
                 StatusCodes.Status403Forbidden,
@@ -123,7 +128,8 @@ public class DevicesController : ControllerBase
 
             if (existingForKey.Status == DeviceStatuses.Revoked)
             {
-                // Cho phép bind lại cùng máy sau khi admin đã release/revoke.
+                // Cho phep bind lai cung may sau khi admin release/revoke,
+                // ke ca khi thiet bi duoc chuyen sang tai khoan moi.
                 var activeCount = await _db.Devices.CountAsync(x =>
                     x.UserId == user.Id &&
                     x.Status == DeviceStatuses.Active &&
@@ -141,8 +147,18 @@ public class DevicesController : ControllerBase
                         });
                 }
 
+                var previousUserId = existingForKey.UserId;
+                existingForKey.UserId = user.Id;
                 existingForKey.Status = DeviceStatuses.Active;
                 existingForKey.RevokedAtUtc = null;
+
+                if (previousUserId != user.Id)
+                {
+                    await _auditService.WriteAsync(
+                        "device-transfer",
+                        $"Chuyen thiet bi {existingForKey.Id} sang {user.PhoneNumber}",
+                        user.Id);
+                }
             }
 
             existingForKey.DeviceName = request.DeviceName ?? existingForKey.DeviceName;
