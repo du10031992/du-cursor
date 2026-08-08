@@ -44,6 +44,14 @@ if (Test-Path $patchRoot) {
     Write-Host "   OK overlay patches\MepPanel.Blocks.AutoCAD"
 }
 
+# Copy Directory.Build.targets vao goc MepPanelMvp (cho VS build tu copy DLL)
+$buildTargets = Join-Path $Root "patches\MepPanelMvp\Directory.Build.targets"
+$mvpRoot = Split-Path $dstRoot -Parent | Split-Path -Parent  # src\ -> MepPanelMvp\
+if ((Test-Path $buildTargets) -and (Test-Path $mvpRoot)) {
+    Copy-Item $buildTargets (Join-Path $mvpRoot "Directory.Build.targets") -Force
+    Write-Host "   OK Directory.Build.targets (post-build copy DLL tu VS)"
+}
+
 $requiredFiles = @(
     "MepPanel.Blocks.AutoCAD.csproj",
     "MepDbToolPanel.cs",

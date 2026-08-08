@@ -1,0 +1,48 @@
+<Project>
+  <!--
+    Post-build: tu dong copy DLL vao C:\MepPanel\plugin\MepPanel.Plugin.bundle\Contents\
+    Dieu kien: thu muc plugin ton tai (tranh loi tren may khac khong co plugin).
+    Dat file nay vao goc MepPanelMvp\ de MSBuild tu pick up.
+  -->
+
+  <PropertyGroup>
+    <MepPluginContents Condition="'$(MepPluginContents)' == ''">C:\MepPanel\plugin\MepPanel.Plugin.bundle\Contents</MepPluginContents>
+    <MepBundleContents Condition="'$(MepBundleContents)' == ''">C:\MepPanel\du-cursor\bundle\MepPanel.Plugin.bundle\Contents</MepBundleContents>
+  </PropertyGroup>
+
+  <!-- Copy DLL vao plugin folder (neu ton tai) -->
+  <Target Name="MepCopyToPlugin" AfterTargets="Build"
+          Condition="Exists('$(MepPluginContents)') AND '$(MSBuildProjectName)' == 'MepPanel.AutoCAD'">
+    <Message Text="[MEP] Copy plugin DLL -> $(MepPluginContents)" Importance="high" />
+
+    <ItemGroup>
+      <_MepDlls Include="$(OutputPath)MepPanel.AutoCAD.dll" />
+      <_MepDlls Include="$(OutputPath)MepPanel.AutoCAD.pdb" />
+      <_MepDlls Include="$(OutputPath)MepPanel.Blocks.AutoCAD.dll" Condition="Exists('$(OutputPath)MepPanel.Blocks.AutoCAD.dll')" />
+      <_MepCoreDlls Include="$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\x64\$(Configuration)\net48\MepPanel.Core.dll"
+                    Condition="Exists('$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\x64\$(Configuration)\net48\MepPanel.Core.dll')" />
+      <_MepCoreDlls Include="$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\net48\MepPanel.Core.dll"
+                    Condition="Exists('$(MSBuildProjectDirectory)\..\MepPanel.Core\bin\$(Configuration)\net48\MepPanel.Core.dll')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_MepDlls)" DestinationFolder="$(MepPluginContents)"
+          OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false"
+          ContinueOnError="true" />
+    <Copy SourceFiles="@(_MepCoreDlls)" DestinationFolder="$(MepPluginContents)"
+          OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false"
+          ContinueOnError="true" />
+
+    <!-- Dong bo vao bundle du-cursor neu ton tai -->
+    <Copy SourceFiles="@(_MepDlls)" DestinationFolder="$(MepBundleContents)"
+          OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false"
+          ContinueOnError="true"
+          Condition="Exists('$(MepBundleContents)')" />
+    <Copy SourceFiles="@(_MepCoreDlls)" DestinationFolder="$(MepBundleContents)"
+          OverwriteReadOnlyFiles="true" SkipUnchangedFiles="false"
+          ContinueOnError="true"
+          Condition="Exists('$(MepBundleContents)')" />
+
+    <Message Text="[MEP] Done. Restart AutoCAD roi gõ MEPDB." Importance="high" />
+  </Target>
+
+</Project>
