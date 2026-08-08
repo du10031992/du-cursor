@@ -210,7 +210,38 @@ $xamlFiles = Get-ChildItem $autoRoot -Filter *.xaml.cs -Recurse -File -ErrorActi
 
 Log ("XAML.CS found=" + @($xamlFiles).Count)
 foreach ($f in $xamlFiles) {
-    Log ("SCAN " + $f.FullName.Substring($autoRoot.Length).TrimStart('\', '/'))
+    $rel = $f.FullName.Substring($autoRoot.Length).TrimStart('\', '/')
+    Log ("SCAN " + $rel)
+    # Dump method signatures for key windows (evidence, khong doan)
+    if ($f.Name -match 'HvacConfiguration|PanelConfiguration|ElectricalToolControl') {
+        $raw = Read-Utf8 $f.FullName
+        Log ("  size=" + $raw.Length)
+        $rxAll = [regex]'(?m)^\s*((?:public|private|internal|protected)\s+(?:static\s+)?(?:async\s+)?[\w\.<>,\[\]\?]+\s+(\w+)\s*\([^;]*\))\s*\{?'
+        $count = 0
+        foreach ($m in $rxAll.Matches($raw)) {
+            $sig = ($m.Groups[1].Value -replace '\s+', ' ').Trim()
+            $name = $m.Groups[2].Value
+            if ($name -match '^(get_|set_|add_|remove_)') { continue }
+            $open = $raw.IndexOf([char]123, $m.Index)
+            $flags = @()
+            if ($open -gt 0) {
+                $close = Find-MatchingBrace $raw $open
+                if ($close -gt 0) {
+                    $body = $raw.Substring($open, [Math]::Min(5000, $close - $open))
+                    if ($body -match 'BuildSchematic') { $flags += 'BuildSchematic' }
+                    if ($body -match 'StartTransaction') { $flags += 'StartTransaction' }
+                    if ($body -match 'DrawingService|HvacSupply|PanelDrawing|Cad\.') { $flags += 'CadCall' }
+                    if ($body -match 'LockDocument') { $flags += 'LockDocument' }
+                    if ($body -match 'MepDocumentContext') { $flags += 'MepDocumentContext' }
+                }
+            }
+            if ($flags.Count -gt 0 -or $name -match 'Click|Draw|Build|Create|Schematic|SoDo|Export|Render') {
+                Log ("  METHOD " + $sig + " [" + ($flags -join ',') + "]")
+                $count++
+            }
+        }
+        Log ("  dumpedMethods=" + $count)
+    }
     Wrap-EntryMethodsInFile $f.FullName $f.Name
 }
 
