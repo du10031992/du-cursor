@@ -61,7 +61,7 @@ namespace MepPanel.Blocks.AutoCAD
         {
             try
             {
-                action();
+                MepBlocksDocumentContext.Run(action);
             }
             catch (Exception ex)
             {

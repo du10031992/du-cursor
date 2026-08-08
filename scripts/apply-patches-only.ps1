@@ -41,7 +41,7 @@ Run "apply-licensing-types-patch.ps1"
 Run "repair-plugin-source.ps1"
 Run "repair-corrupted-command-methods.ps1"
 Run "apply-ui-dispatcher-patch.ps1"
-Run "apply-hvac-elock-fix.ps1"
+Run "apply-elock-all-systems.ps1"
 Run "apply-single-entry-patch.ps1"
 Run "apply-feature-guard-patch.ps1"
 

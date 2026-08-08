@@ -165,14 +165,12 @@ if ($cs) {
 
         private void HeNuoc_Click(object sender, RoutedEventArgs e)
         {
-            try { MepPanelMvp.Commands.WaterFireCommands.ShowWaterMenu(); }
-            catch { AutoCadCommandDispatcher.Queue("MEPWATER"); }
+            AutoCadCommandDispatcher.Queue("MEPWATER");
         }
 
         private void BaoChay_Click(object sender, RoutedEventArgs e)
         {
-            try { MepPanelMvp.Commands.WaterFireCommands.ShowFireMenu(); }
-            catch { AutoCadCommandDispatcher.Queue("MEPFIRE"); }
+            AutoCadCommandDispatcher.Queue("MEPFIRE");
         }
 '@
 
