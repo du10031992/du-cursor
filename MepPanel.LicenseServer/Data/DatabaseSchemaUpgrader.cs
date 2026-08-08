@@ -16,6 +16,23 @@ internal static class DatabaseSchemaUpgrader
             "Licenses",
             "EnabledFeatures",
             "TEXT NOT NULL DEFAULT 'MEPDB'");
+        await AddColumnIfMissingAsync(db, "Licenses", "UpdatedAtUtc", "TEXT NULL");
+
+        await AddColumnIfMissingAsync(db, "Users", "UpdatedAtUtc", "TEXT NULL");
+
+        await AddColumnIfMissingAsync(db, "Devices", "PluginVersion", "TEXT NOT NULL DEFAULT ''");
+        await AddColumnIfMissingAsync(db, "Devices", "RevokedAtUtc", "TEXT NULL");
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE IF NOT EXISTS "AuditLogs" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_AuditLogs" PRIMARY KEY AUTOINCREMENT,
+                "UserId" INTEGER NULL,
+                "Action" TEXT NOT NULL,
+                "Detail" TEXT NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL
+            );
+            """);
     }
 
     private static async Task AddColumnIfMissingAsync(
