@@ -8,7 +8,7 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db, IConfiguration configuration)
     {
-        await db.Database.EnsureCreatedAsync();
+        await DatabaseSchemaUpgrader.UpgradeAsync(db);
 
         var defaultFeatures = configuration
             .GetSection("LicenseSettings:DefaultFeatures")
