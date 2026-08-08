@@ -5,7 +5,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 namespace MepPanel.Blocks.AutoCAD.Drawing
 {
     /// <summary>
-    /// Chay ve CAD an toan tu WinForms palette (tranh eLockViolation).
+    /// Ve CAD an toan tu WinForms palette.
     /// </summary>
     internal static class MepBlocksDocumentContext
     {
@@ -21,6 +21,15 @@ namespace MepPanel.Blocks.AutoCAD.Drawing
             if (doc == null)
             {
                 throw new InvalidOperationException("Khong co ban ve AutoCAD dang mo.");
+            }
+
+            if (!docs.IsApplicationContext)
+            {
+                using (doc.LockDocument())
+                {
+                    action();
+                }
+                return;
             }
 
             docs.ExecuteInCommandContextAsync(

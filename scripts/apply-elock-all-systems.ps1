@@ -1,7 +1,6 @@
-# Fix eLockViolation cho TAT CA he: Dien / HVAC / Nuoc / PCCC.
-# - Copy MepDocumentContext.cs
-# - Wrap void methods trong Cad\ va Commands\ co StartTransaction hoac ten ve CAD
-# - Wrap *_Click trong UI\*.xaml.cs neu co StartTransaction / BuildSchematic / DrawingService
+# 1) Go BO wrap MEP_ELOCK_* thua (phuc hoi method goc)
+# 2) Chi wrap ENTRY POINT (Commands + UI Click) — khong wrap helper Cad
+# 3) Copy MepDocumentContext smart (sync khi da trong command context)
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -12,29 +11,7 @@ $Root = Split-Path -Parent $PSScriptRoot
 $log = New-Object System.Collections.Generic.List[string]
 function Log([string]$m) { $log.Add($m); Write-Host "   $m" }
 
-Write-Host "==> Fix eLockViolation ALL systems (Dien/HVAC/Nuoc/PCCC)"
-
-# --- helper ---
-$uiDir = $null
-foreach ($c in @(
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI"),
-    (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui")
-)) { if (Test-Path $c) { $uiDir = $c; break } }
-if (-not $uiDir) {
-    $uiDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI"
-    New-Item -ItemType Directory -Force -Path $uiDir | Out-Null
-}
-Copy-Item (Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\UI\MepDocumentContext.cs") `
-    (Join-Path $uiDir "MepDocumentContext.cs") -Force
-Log "OK MepDocumentContext.cs"
-
-# WaterFireCommands: luon copy ban da wrap MepDocumentContext
-$wfSrc = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Commands\WaterFireCommands.cs"
-$wfDstDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Commands"
-if ((Test-Path $wfSrc) -and (Test-Path $wfDstDir)) {
-    Copy-Item $wfSrc (Join-Path $wfDstDir "WaterFireCommands.cs") -Force
-    Log "OK WaterFireCommands.cs (MepDocumentContext)"
-}
+Write-Host "==> eLock AUDIT FIX (revert overwrap + entry-only)"
 
 function Read-Utf8([string]$Path) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -69,13 +46,59 @@ function Ensure-UsingUi([string]$Text) {
     return "using MepPanelMvp.UI;`r`n" + $Text
 }
 
+# Go: // MEP_ELOCK_XXX \n MepDocumentContext.Run(() => \n { INNER }); 
+function Remove-ElockWraps([string]$Text) {
+    $removed = 0
+    $guard = 0
+    while ($guard -lt 100 -and $Text -match 'MEP_ELOCK_') {
+        $guard++
+        $markerIdx = $Text.IndexOf('MEP_ELOCK_', [StringComparison]::Ordinal)
+        if ($markerIdx -lt 0) { break }
+
+        # tim MepDocumentContext.Run sau marker
+        $runIdx = $Text.IndexOf('MepDocumentContext.Run', $markerIdx, [StringComparison]::Ordinal)
+        if ($runIdx -lt 0 -or $runIdx -gt ($markerIdx + 120)) {
+            # marker rac - xoa dong comment
+            $lineStart = $Text.LastIndexOf("`n", $markerIdx)
+            if ($lineStart -lt 0) { $lineStart = 0 } else { $lineStart++ }
+            $lineEnd = $Text.IndexOf("`n", $markerIdx)
+            if ($lineEnd -lt 0) { break }
+            $Text = $Text.Remove($lineStart, $lineEnd - $lineStart + 1)
+            $removed++
+            continue
+        }
+
+        $arrowIdx = $Text.IndexOf('=>', $runIdx, [StringComparison]::Ordinal)
+        if ($arrowIdx -lt 0) { break }
+        $braceOpen = $Text.IndexOf([char]123, $arrowIdx)
+        if ($braceOpen -lt 0) { break }
+        $braceClose = Find-MatchingBrace -Text $Text -OpenIndex $braceOpen
+        if ($braceClose -lt 0) { break }
+
+        $inner = $Text.Substring($braceOpen + 1, $braceClose - $braceOpen - 1)
+
+        # bo ");" sau closing brace cua lambda
+        $after = $braceClose + 1
+        while ($after -lt $Text.Length -and [char]::IsWhiteSpace($Text[$after])) { $after++ }
+        if ($after -lt $Text.Length -and $Text[$after] -eq ')') { $after++ }
+        if ($after -lt $Text.Length -and $Text[$after] -eq ';') { $after++ }
+
+        # xoa tu dau dong comment marker
+        $lineStart = $Text.LastIndexOf("`n", $markerIdx)
+        if ($lineStart -lt 0) { $lineStart = 0 } else { $lineStart++ }
+
+        $Text = $Text.Substring(0, $lineStart) + $inner + $Text.Substring($after)
+        $removed++
+    }
+    return @{ Text = $Text; Count = $removed }
+}
+
 function Wrap-NamedVoidMethod([string]$Text, [string]$MethodName, [string]$Marker) {
     $rx = [regex]("(?m)^(\s*)(public|private|internal|protected)\s+(static\s+)?void\s+" + [regex]::Escape($MethodName) + "\s*\(")
     $m = $rx.Match($Text)
     if (-not $m.Success) {
         return @{ Text = $Text; Count = 0; Reason = "not found" }
     }
-
     $i = $m.Index + $m.Length
     $parenDepth = 1
     while ($i -lt $Text.Length -and $parenDepth -gt 0) {
@@ -91,13 +114,9 @@ function Wrap-NamedVoidMethod([string]$Text, [string]$MethodName, [string]$Marke
     if ($braceClose -lt 0) {
         return @{ Text = $Text; Count = 0; Reason = "no close" }
     }
-
     $inner = $Text.Substring($braceOpen + 1, $braceClose - $braceOpen - 1)
-    if ($inner -match [regex]::Escape($Marker)) {
+    if ($inner -match 'MepDocumentContext\.Run\s*\(') {
         return @{ Text = $Text; Count = 0; Reason = "already" }
-    }
-    if ($inner -match '^\s*(//[^\r\n]*\r?\n\s*)*MepDocumentContext\.Run\s*\(') {
-        return @{ Text = $Text; Count = 0; Reason = "already Run" }
     }
 
     $wrapped =
@@ -105,129 +124,108 @@ function Wrap-NamedVoidMethod([string]$Text, [string]$MethodName, [string]$Marke
         "`r`n            // $Marker`r`n            MepDocumentContext.Run(() =>`r`n            " +
         [char]123 + $inner + "`r`n            " + [char]125 + ");`r`n            " +
         $Text.Substring($braceClose)
-
     return @{ Text = $wrapped; Count = 1; Reason = "patched" }
 }
 
-function Test-ShouldWrapMethod([string]$Name, [string]$Body) {
-    if ($Body -match 'MepDocumentContext\.Run') { return $false }
-    if ($Body -match 'StartTransaction') { return $true }
-    if ($Name -match '^(Build|Draw|Create|Insert|Place|Render|Export|Update|Generate|Ve|Tao)') { return $true }
-    if ($Body -match 'BuildSchematic|DrawingService|TransactionManager|AppendEntity|BlockReference') { return $true }
-    if ($Name -match '_Click$' -and $Body -match 'StartTransaction|BuildSchematic|DrawingService|AppendEntity') { return $true }
-    return $false
+# --- copy smart helpers ---
+$uiDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI"
+if (-not (Test-Path $uiDir)) { $uiDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\ui" }
+if (-not (Test-Path $uiDir)) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI") | Out-Null
+    $uiDir = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\UI"
+}
+Copy-Item (Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\UI\MepDocumentContext.cs") (Join-Path $uiDir "MepDocumentContext.cs") -Force
+Log "OK MepDocumentContext.cs (smart context)"
+
+$wfSrc = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Commands\WaterFireCommands.cs"
+$wfDst = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Commands\WaterFireCommands.cs"
+if (Test-Path $wfSrc) {
+    Copy-Item $wfSrc $wfDst -Force
+    Log "OK WaterFireCommands.cs"
 }
 
-function Wrap-FileMethods([string]$Path) {
-    if ($Path -match 'MepDocumentContext\.cs|WaterFireCommands\.cs') {
-        return 0
+# --- REVERT all overwraps under src\MepPanel.AutoCAD ---
+$autoRoot = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD"
+$revertedFiles = 0
+$revertedWraps = 0
+Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' -and $_.Name -ne 'MepDocumentContext.cs' -and $_.Name -ne 'WaterFireCommands.cs' } |
+    ForEach-Object {
+        $raw = Read-Utf8 $_.FullName
+        if ($raw -notmatch 'MEP_ELOCK_') { return }
+        $r = Remove-ElockWraps $raw
+        if ($r.Count -gt 0) {
+            Write-Utf8NoBom $_.FullName $r.Text
+            Log ("REVERT " + $_.Name + " wraps=" + $r.Count)
+            $script:revertedFiles++
+            $script:revertedWraps += $r.Count
+        }
     }
+Log ("REVERT total files=" + $revertedFiles + " wraps=" + $revertedWraps)
 
-    $text = Read-Utf8 $Path
+# --- ENTRY ONLY wraps ---
+# HVAC command entry
+$hvacCmd = Join-Path $autoRoot "Commands\HvacCommands.cs"
+if (Test-Path $hvacCmd) {
+    $t = Read-Utf8 $hvacCmd
+    $r = Wrap-NamedVoidMethod $t "DrawSupplyAirSchematic" "MEP_ELOCK_ENTRY_DrawSupplyAirSchematic"
+    Log ("ENTRY HvacCommands.DrawSupplyAirSchematic: " + $r.Reason)
+    if ($r.Count -gt 0) { Write-Utf8NoBom $hvacCmd (Ensure-UsingUi $r.Text) }
+}
+
+# PanelCommands: chi wrap void co StartTransaction (entry ve CAD)
+$panelCmd = Join-Path $autoRoot "Commands\PanelCommands.cs"
+if (Test-Path $panelCmd) {
+    $t = Read-Utf8 $panelCmd
     $rx = [regex]'(?m)^\s*(public|private|internal|protected)\s+(static\s+)?void\s+(\w+)\s*\('
     $names = @()
-    foreach ($m in $rx.Matches($text)) {
+    foreach ($m in $rx.Matches($t)) {
         $name = $m.Groups[3].Value
-        $open = $text.IndexOf([char]123, $m.Index)
+        $open = $t.IndexOf([char]123, $m.Index)
         if ($open -lt 0) { continue }
-        $close = Find-MatchingBrace -Text $text -OpenIndex $open
+        $close = Find-MatchingBrace $t $open
         if ($close -lt 0) { continue }
-        $body = $text.Substring($open, $close - $open + 1)
-        if (Test-ShouldWrapMethod -Name $name -Body $body) {
+        $body = $t.Substring($open, $close - $open)
+        if ($body -match 'StartTransaction') { $names += $name }
+    }
+    foreach ($name in ($names | Select-Object -Unique)) {
+        $t = Read-Utf8 $panelCmd
+        $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
+        Log ("ENTRY PanelCommands." + $name + ": " + $r.Reason)
+        if ($r.Count -gt 0) { Write-Utf8NoBom $panelCmd (Ensure-UsingUi $r.Text) }
+    }
+}
+
+# ElectricalToolControl.xaml.cs: chi wrap *_Click co StartTransaction / Cad service call
+$elecCs = Join-Path $autoRoot "UI\ElectricalToolControl.xaml.cs"
+if (-not (Test-Path $elecCs)) { $elecCs = Join-Path $autoRoot "ui\ElectricalToolControl.xaml.cs" }
+if (Test-Path $elecCs) {
+    $t = Read-Utf8 $elecCs
+    $rx = [regex]'(?m)^\s*(private|protected|internal|public)\s+void\s+(\w+_Click)\s*\('
+    $names = @()
+    foreach ($m in $rx.Matches($t)) {
+        $name = $m.Groups[2].Value
+        if ($name -match 'HeNuoc_Click|BaoChay_Click') { continue } # dung Queue
+        $open = $t.IndexOf([char]123, $m.Index)
+        if ($open -lt 0) { continue }
+        $close = Find-MatchingBrace $t $open
+        if ($close -lt 0) { continue }
+        $body = $t.Substring($open, $close - $open)
+        if ($body -match 'StartTransaction|BuildSchematic|DrawingService|AppendEntity|TransactionManager|Cad\.') {
             $names += $name
         }
     }
-    $names = $names | Select-Object -Unique
-    $count = 0
-    foreach ($name in $names) {
-        $text = Read-Utf8 $Path
-        $marker = "MEP_ELOCK_" + $name
-        $r = Wrap-NamedVoidMethod -Text $text -MethodName $name -Marker $marker
-        if ($r.Count -gt 0) {
-            Write-Utf8NoBom $Path (Ensure-UsingUi $r.Text)
-            Log ("OK " + [IO.Path]::GetFileName($Path) + "::" + $name)
-            $count++
-        }
-    }
-    return $count
-}
-
-$autoCadRoot = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD"
-if (-not (Test-Path $autoCadRoot)) {
-    throw "Khong thay $autoCadRoot"
-}
-
-$total = 0
-$dirs = @(
-    (Join-Path $autoCadRoot "Cad"),
-    (Join-Path $autoCadRoot "Commands"),
-    (Join-Path $autoCadRoot "UI"),
-    (Join-Path $autoCadRoot "ui")
-)
-
-foreach ($dir in $dirs) {
-    if (-not (Test-Path $dir)) { continue }
-    Get-ChildItem $dir -Filter *.cs -File -ErrorAction SilentlyContinue | ForEach-Object {
-        if ($_.FullName -match 'package_staging') { return }
-        $n = Wrap-FileMethods $_.FullName
-        $total += $n
-    }
-    # xaml.cs
-    Get-ChildItem $dir -Filter *.xaml.cs -File -ErrorAction SilentlyContinue | ForEach-Object {
-        $n = Wrap-FileMethods $_.FullName
-        $total += $n
+    foreach ($name in ($names | Select-Object -Unique)) {
+        $t = Read-Utf8 $elecCs
+        $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
+        Log ("ENTRY ElectricalToolControl." + $name + ": " + $r.Reason)
+        if ($r.Count -gt 0) { Write-Utf8NoBom $elecCs (Ensure-UsingUi $r.Text) }
     }
 }
 
-# Force known entry points neu con sot
-$force = @(
-    @{ File = "Cad\HvacSupplyAirDrawingService.cs"; Methods = @("BuildSchematic") },
-    @{ File = "Commands\HvacCommands.cs"; Methods = @("DrawSupplyAirSchematic") },
-    @{ File = "Commands\PanelCommands.cs"; Methods = @() }
-)
+# Khong wrap Cad\* helpers (BuildSchematic, DrawDuct...) — goi tu entry da wrap.
 
-foreach ($f in $force) {
-    $path = Join-Path $autoCadRoot $f.File
-    if (-not (Test-Path $path)) { continue }
-    $text = Read-Utf8 $path
-    # Neu PanelCommands: wrap moi void co StartTransaction / Build / Draw
-    if ($f.File -match 'PanelCommands') {
-        $total += (Wrap-FileMethods $path)
-        continue
-    }
-    foreach ($method in $f.Methods) {
-        $text = Read-Utf8 $path
-        $r = Wrap-NamedVoidMethod -Text $text -MethodName $method -Marker ("MEP_ELOCK_" + $method)
-        if ($r.Count -gt 0) {
-            Write-Utf8NoBom $path (Ensure-UsingUi $r.Text)
-            Log ("FORCE " + $f.File + "::" + $method)
-            $total++
-        }
-        else {
-            Log ("SKIP " + $f.File + "::" + $method + " (" + $r.Reason + ")")
-        }
-    }
-}
-
-# Disable old bundle
-$old = Join-Path $env:ProgramData "Autodesk\ApplicationPlugins\MepPanelMvp.bundle"
-if (Test-Path $old) {
-    try {
-        Rename-Item $old "MepPanelMvp.bundle.OFF" -Force -ErrorAction Stop
-        Log "Disabled MepPanelMvp.bundle"
-    } catch {
-        Log "MepPanelMvp.bundle rename skipped"
-    }
-}
-
-$logPath = Join-Path $Root "elock-all-systems.log"
-$log.Add(("TOTAL_WRAPS=" + $total))
+$logPath = Join-Path $Root "elock-audit-fix.log"
 $log | Set-Content $logPath -Encoding UTF8
-Write-Host ("   TOTAL_WRAPS=" + $total)
 Write-Host ("   Log: " + $logPath)
-
-if ($total -eq 0) {
-    Write-Host "   WARNING: 0 wraps (co the da wrap het)."
-}
-
-Write-Host "   Done ALL systems eLock fix."
+Write-Host "   Done audit fix."

@@ -5,8 +5,10 @@ using Autodesk.AutoCAD.ApplicationServices;
 namespace MepPanelMvp.UI
 {
     /// <summary>
-    /// Chay code ve CAD an toan tu WPF modeless.
-    /// LUON ExecuteInCommandContextAsync. Khong LockDocument tren UI thread.
+    /// Ve CAD an toan tu WPF:
+    /// - Dang trong command context: LockDocument + chay dong bo
+    /// - Dang o application context (modeless UI): ExecuteInCommandContextAsync
+    /// Khong bao gio queue long nhau (tranh mat chuc nang / prompt).
     /// </summary>
     public static class MepDocumentContext
     {
@@ -24,6 +26,17 @@ namespace MepPanelMvp.UI
                 throw new InvalidOperationException("Khong co ban ve AutoCAD dang mo.");
             }
 
+            // Da nam trong command/document context -> chay thang.
+            if (!docs.IsApplicationContext)
+            {
+                using (doc.LockDocument())
+                {
+                    action();
+                }
+                return;
+            }
+
+            // Tu panel WPF modeless -> chuyen sang command context (1 lan).
             docs.ExecuteInCommandContextAsync(
                 async _ =>
                 {
@@ -36,28 +49,17 @@ namespace MepPanelMvp.UI
                     }
                     catch (Exception ex)
                     {
-                        ShowError(doc, ex);
+                        try
+                        {
+                            AcApp.ShowAlertDialog("Loi ve CAD: " + ex.Message);
+                        }
+                        catch
+                        {
+                            doc.Editor.WriteMessage("\n[MEP] Loi ve CAD: " + ex.Message);
+                        }
                     }
                 },
                 null);
-        }
-
-        private static void ShowError(Document doc, Exception ex)
-        {
-            try
-            {
-                AcApp.ShowAlertDialog("Loi ve CAD: " + ex.Message);
-            }
-            catch
-            {
-                try
-                {
-                    doc.Editor.WriteMessage("\n[MEP] Loi ve CAD: " + ex.Message);
-                }
-                catch
-                {
-                }
-            }
         }
     }
 }
