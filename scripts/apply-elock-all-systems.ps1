@@ -164,66 +164,54 @@ Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinu
 Log ("REVERT total files=" + $revertedFiles + " wraps=" + $revertedWraps)
 
 # --- ENTRY ONLY wraps ---
-# HVAC command entry
-$hvacCmd = Join-Path $autoRoot "Commands\HvacCommands.cs"
-if (Test-Path $hvacCmd) {
-    $t = Read-Utf8 $hvacCmd
-    $r = Wrap-NamedVoidMethod $t "DrawSupplyAirSchematic" "MEP_ELOCK_ENTRY_DrawSupplyAirSchematic"
-    Log ("ENTRY HvacCommands.DrawSupplyAirSchematic: " + $r.Reason)
-    if ($r.Count -gt 0) { Write-Utf8NoBom $hvacCmd (Ensure-UsingUi $r.Text) }
-}
-
-# PanelCommands: chi wrap void co StartTransaction (entry ve CAD)
-$panelCmd = Join-Path $autoRoot "Commands\PanelCommands.cs"
-if (Test-Path $panelCmd) {
-    $t = Read-Utf8 $panelCmd
+function Wrap-EntryMethodsInFile([string]$Path, [string]$Label) {
+    if (-not (Test-Path $Path)) {
+        Log ("MISSING " + $Label + ": " + $Path)
+        return
+    }
+    $t = Read-Utf8 $Path
     $rx = [regex]'(?m)^\s*(public|private|internal|protected)\s+(static\s+)?void\s+(\w+)\s*\('
     $names = @()
     foreach ($m in $rx.Matches($t)) {
         $name = $m.Groups[3].Value
+        if ($name -match '^(HeNuoc_Click|BaoChay_Click)$') { continue }
         $open = $t.IndexOf([char]123, $m.Index)
         if ($open -lt 0) { continue }
         $close = Find-MatchingBrace $t $open
         if ($close -lt 0) { continue }
         $body = $t.Substring($open, $close - $open)
-        if ($body -match 'StartTransaction') { $names += $name }
-    }
-    foreach ($name in ($names | Select-Object -Unique)) {
-        $t = Read-Utf8 $panelCmd
-        $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
-        Log ("ENTRY PanelCommands." + $name + ": " + $r.Reason)
-        if ($r.Count -gt 0) { Write-Utf8NoBom $panelCmd (Ensure-UsingUi $r.Text) }
-    }
-}
-
-# ElectricalToolControl.xaml.cs: chi wrap *_Click co StartTransaction / Cad service call
-$elecCs = Join-Path $autoRoot "UI\ElectricalToolControl.xaml.cs"
-if (-not (Test-Path $elecCs)) { $elecCs = Join-Path $autoRoot "ui\ElectricalToolControl.xaml.cs" }
-if (Test-Path $elecCs) {
-    $t = Read-Utf8 $elecCs
-    $rx = [regex]'(?m)^\s*(private|protected|internal|public)\s+void\s+(\w+_Click)\s*\('
-    $names = @()
-    foreach ($m in $rx.Matches($t)) {
-        $name = $m.Groups[2].Value
-        if ($name -match 'HeNuoc_Click|BaoChay_Click') { continue } # dung Queue
-        $open = $t.IndexOf([char]123, $m.Index)
-        if ($open -lt 0) { continue }
-        $close = Find-MatchingBrace $t $open
-        if ($close -lt 0) { continue }
-        $body = $t.Substring($open, $close - $open)
-        if ($body -match 'StartTransaction|BuildSchematic|DrawingService|AppendEntity|TransactionManager|Cad\.') {
-            $names += $name
+        # Entry ve CAD: transaction, Cad service, BuildSchematic, hoac message loi so do
+        $hit = $false
+        if ($body -match 'StartTransaction') { $hit = $true }
+        if ($body -match 'BuildSchematic|DrawingService|TransactionManager|AppendEntity') { $hit = $true }
+        if ($body -match 'HvacSupplyAir|PanelDrawing|CabinetLayout|RealisticWiring|ThreePhase|PowerDevice|CustomDevice') { $hit = $true }
+        if ($body -match 'so do HVAC|tao so do|LockViolation') { $hit = $true }
+        if ($name -match '(_Click|Draw|Build|Create|Insert|Place|Export|Render|Duplicate|EditPanel|SelectSame)') {
+            if ($body -match 'Cad\.|DrawingService|BuildSchematic|StartTransaction|Database') { $hit = $true }
         }
+        if ($hit) { $names += $name }
     }
     foreach ($name in ($names | Select-Object -Unique)) {
-        $t = Read-Utf8 $elecCs
+        $t = Read-Utf8 $Path
         $r = Wrap-NamedVoidMethod $t $name ("MEP_ELOCK_ENTRY_" + $name)
-        Log ("ENTRY ElectricalToolControl." + $name + ": " + $r.Reason)
-        if ($r.Count -gt 0) { Write-Utf8NoBom $elecCs (Ensure-UsingUi $r.Text) }
+        Log ("ENTRY " + $Label + "." + $name + ": " + $r.Reason)
+        if ($r.Count -gt 0) { Write-Utf8NoBom $Path (Ensure-UsingUi $r.Text) }
     }
 }
 
-# Khong wrap Cad\* helpers (BuildSchematic, DrawDuct...) — goi tu entry da wrap.
+Wrap-EntryMethodsInFile (Join-Path $autoRoot "Commands\HvacCommands.cs") "HvacCommands"
+Wrap-EntryMethodsInFile (Join-Path $autoRoot "Commands\PanelCommands.cs") "PanelCommands"
+
+# Cua so WPF cau hinh (noi user bam Tao so do)
+$uiRoot = Join-Path $autoRoot "UI"
+if (-not (Test-Path $uiRoot)) { $uiRoot = Join-Path $autoRoot "ui" }
+if (Test-Path $uiRoot) {
+    Get-ChildItem $uiRoot -Filter *.xaml.cs -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Wrap-EntryMethodsInFile $_.FullName $_.BaseName
+    }
+}
+
+# Khong wrap Cad\* helpers.
 
 $logPath = Join-Path $Root "elock-audit-fix.log"
 $log | Set-Content $logPath -Encoding UTF8
