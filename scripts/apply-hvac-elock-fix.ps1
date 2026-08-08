@@ -1,5 +1,7 @@
-# Fix eLockViolation khi tao so do HVAC tu cua so WPF modeless.
-# ASCII-only script (tranh loi parse PowerShell Windows).
+# Fix eLockViolation HVAC - ban manh (ASCII-only).
+# 1) Copy MepDocumentContext.cs
+# 2) Tim file .cs co StartTransaction + HVAC/AHU/Hvac/...
+# 3) Boc moi try{...}catch chua StartTransaction bang MepDocumentContext.Run
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -8,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 
-Write-Host "==> Fix HVAC eLockViolation (MepDocumentContext)"
+Write-Host "==> Fix HVAC eLockViolation (strong)"
 
 $uiDir = $null
 foreach ($c in @(
@@ -23,11 +25,9 @@ if (-not $uiDir) {
 }
 
 $srcHelper = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\UI\MepDocumentContext.cs"
-if (-not (Test-Path $srcHelper)) {
-    throw "Thieu patch: $srcHelper"
-}
+if (-not (Test-Path $srcHelper)) { throw "Thieu patch: $srcHelper" }
 Copy-Item $srcHelper (Join-Path $uiDir "MepDocumentContext.cs") -Force
-Write-Host "   OK MepDocumentContext.cs"
+Write-Host "   OK MepDocumentContext.cs -> $uiDir"
 
 function Read-Utf8([string]$Path) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -45,9 +45,8 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
 function Find-MatchingBrace([string]$Text, [int]$OpenIndex) {
     $depth = 0
     for ($i = $OpenIndex; $i -lt $Text.Length; $i++) {
-        $ch = $Text[$i]
-        if ($ch -eq [char]123) { $depth++ }
-        elseif ($ch -eq [char]125) {
+        if ($Text[$i] -eq [char]123) { $depth++ }
+        elseif ($Text[$i] -eq [char]125) {
             $depth--
             if ($depth -eq 0) { return $i }
         }
@@ -55,79 +54,107 @@ function Find-MatchingBrace([string]$Text, [int]$OpenIndex) {
     return -1
 }
 
-function Test-HvacErrorMessage([string]$Text) {
-    # ASCII + UTF8 patterns without breaking PS parser
-    if ($Text -match 'Loi tao so do HVAC') { return $true }
-    if ($Text -match 'tao so do HVAC') { return $true }
-    if ($Text -match 'so do HVAC') { return $true }
-    # Vietnamese UTF-8 bytes decoded: "Lỗi tạo sơ đồ HVAC"
-    if ($Text.Contains([string]([char]0x004C) + [char]0x1ED7 + 'i tao')) { return $true }
-    if ($Text.IndexOf('HVAC', [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
-        $Text.IndexOf([char]0x1ED3) -ge 0) { return $true } # o with horn+dot below often in "do"
+function Test-HvacRelated([string]$Name, [string]$Text) {
+    if ($Name -match '(?i)Hvac|HVAC|DieuHoa|SupplyAir|AirCondition|OngGio|Configuration') { return $true }
+    if ($Text -match '(?i)HVAC|Hvac|AHU|MEPHVAC|SupplyAir|DieuHoa') { return $true }
+    if ($Text -match 'SA-\d{2}') { return $true }
+    if ($Text -match '(?i)LockViolation') { return $true }
+    if ($Text -match '(?i)tao so do') { return $true }
     return $false
 }
 
-function Wrap-HvacTryBlocks([string]$Text) {
-    if ($Text -match 'MepDocumentContext\.Run\s*\(') {
-        return $Text
+function Ensure-UsingUi([string]$Text) {
+    if ($Text -match 'using\s+MepPanelMvp\.UI\s*;') { return $Text }
+    if ($Text -match '(?m)^namespace\s+') {
+        return [regex]::Replace($Text, '(?m)^(namespace\s+)', "using MepPanelMvp.UI;`r`n`r`n`$1", 1)
     }
-
-    if (-not (Test-HvacErrorMessage $Text)) {
-        return $Text
-    }
-
-    # Find last "try" before an HVAC-related catch message
-    $needle = 'HVAC'
-    $msgIdx = $Text.LastIndexOf($needle, [StringComparison]::OrdinalIgnoreCase)
-    if ($msgIdx -lt 0) { return $Text }
-
-    $tryIdx = $Text.LastIndexOf('try', $msgIdx, [StringComparison]::Ordinal)
-    if ($tryIdx -lt 0) { return $Text }
-
-    $braceOpen = $Text.IndexOf([char]123, $tryIdx)
-    if ($braceOpen -lt 0 -or $braceOpen -gt ($tryIdx + 40)) {
-        return $Text
-    }
-
-    $braceClose = Find-MatchingBrace -Text $Text -OpenIndex $braceOpen
-    if ($braceClose -lt 0) {
-        return $Text
-    }
-
-    $afterLen = [Math]::Min(80, $Text.Length - $braceClose - 1)
-    $after = $Text.Substring($braceClose + 1, $afterLen)
-    if ($after -notmatch '^\s*catch\b') {
-        return $Text
-    }
-
-    $inner = $Text.Substring($braceOpen + 1, $braceClose - $braceOpen - 1)
-    if ($inner -match 'MepDocumentContext\.Run') {
-        return $Text
-    }
-
-    $openWrap = "`r`n            MepDocumentContext.Run(() =>`r`n            " + [char]123
-    $closeWrap = "`r`n            " + [char]125 + ");`r`n            "
-
-    $wrapped =
-        $Text.Substring(0, $braceOpen + 1) +
-        $openWrap +
-        $inner +
-        $closeWrap +
-        $Text.Substring($braceClose)
-
-    if ($wrapped -notmatch 'using\s+MepPanelMvp\.UI') {
-        if ($wrapped -match '(?m)^namespace\s+') {
-            $wrapped = [regex]::Replace($wrapped, '(?m)^(namespace\s+)', "using MepPanelMvp.UI;`r`n`r`n`$1", 1)
-        }
-        else {
-            $wrapped = "using MepPanelMvp.UI;`r`n" + $wrapped
-        }
-    }
-
-    return $wrapped
+    return "using MepPanelMvp.UI;`r`n" + $Text
 }
 
-$patched = 0
+function Wrap-AllTryWithTransaction([string]$Text) {
+    $result = New-Object System.Text.StringBuilder
+    $pos = 0
+    $wrapCount = 0
+
+    while ($true) {
+        $tryIdx = $Text.IndexOf('try', $pos, [StringComparison]::Ordinal)
+        if ($tryIdx -lt 0) { break }
+
+        # word boundary: char before try
+        if ($tryIdx -gt 0) {
+            $before = $Text[$tryIdx - 1]
+            if ([char]::IsLetterOrDigit($before) -or $before -eq '_') {
+                $pos = $tryIdx + 3
+                continue
+            }
+        }
+        $afterTry = $tryIdx + 3
+        if ($afterTry -lt $Text.Length) {
+            $afterCh = $Text[$afterTry]
+            if ([char]::IsLetterOrDigit($afterCh) -or $afterCh -eq '_') {
+                $pos = $tryIdx + 3
+                continue
+            }
+        }
+
+        $braceOpen = $Text.IndexOf([char]123, $tryIdx)
+        if ($braceOpen -lt 0 -or $braceOpen -gt ($tryIdx + 40)) {
+            $pos = $tryIdx + 3
+            continue
+        }
+
+        $braceClose = Find-MatchingBrace -Text $Text -OpenIndex $braceOpen
+        if ($braceClose -lt 0) {
+            $pos = $tryIdx + 3
+            continue
+        }
+
+        $inner = $Text.Substring($braceOpen + 1, $braceClose - $braceOpen - 1)
+        if ($inner -notmatch 'StartTransaction') {
+            $pos = $braceClose + 1
+            continue
+        }
+        if ($inner -match 'MepDocumentContext\.Run') {
+            $pos = $braceClose + 1
+            continue
+        }
+
+        $afterLen = [Math]::Min(120, $Text.Length - $braceClose - 1)
+        $after = ""
+        if ($afterLen -gt 0) {
+            $after = $Text.Substring($braceClose + 1, $afterLen)
+        }
+        if ($after -notmatch '^\s*catch\b') {
+            $pos = $braceClose + 1
+            continue
+        }
+
+        [void]$result.Append($Text.Substring($pos, $braceOpen + 1 - $pos))
+        [void]$result.Append("`r`n            MepDocumentContext.Run(() =>`r`n            ")
+        [void]$result.Append([char]123)
+        [void]$result.Append($inner)
+        [void]$result.Append("`r`n            ")
+        [void]$result.Append([char]125)
+        [void]$result.Append(");`r`n            ")
+        # keep the original closing brace of try
+        [void]$result.Append([char]125)
+
+        $wrapCount++
+        $pos = $braceClose + 1
+    }
+
+    if ($wrapCount -eq 0) {
+        return @{ Text = $Text; Count = 0 }
+    }
+
+    [void]$result.Append($Text.Substring($pos))
+    return @{ Text = $result.ToString(); Count = $wrapCount }
+}
+
+$log = New-Object System.Collections.Generic.List[string]
+$patchedFiles = 0
+$totalWraps = 0
+
 $candidates = Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse -ErrorAction SilentlyContinue |
     Where-Object {
         $_.FullName -notmatch '\\(bin|obj)\\' -and
@@ -136,30 +163,33 @@ $candidates = Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse -Error
 
 foreach ($f in $candidates) {
     $raw = Read-Utf8 $f.FullName
-    $nameHit = ($f.Name -match 'Hvac|HVAC|DieuHoa|SupplyAir|AirCondition')
-    $textHit = (Test-HvacErrorMessage $raw)
-    if (-not $nameHit -and -not $textHit) { continue }
-    if ($raw -notmatch 'StartTransaction' -and -not $textHit) { continue }
+    if ($raw -notmatch 'StartTransaction') { continue }
+    if (-not (Test-HvacRelated -Name $f.Name -Text $raw)) { continue }
 
-    $newText = Wrap-HvacTryBlocks $raw
-    if ($newText -ne $raw) {
-        Write-Utf8NoBom $f.FullName $newText
-        Write-Host ("   OK wrap MepDocumentContext.Run -> " + $f.FullName)
-        $patched++
-        continue
+    $log.Add(("CANDIDATE: " + $f.FullName))
+    $wrap = Wrap-AllTryWithTransaction $raw
+    if ($wrap.Count -gt 0) {
+        $out = Ensure-UsingUi $wrap.Text
+        Write-Utf8NoBom $f.FullName $out
+        Write-Host ("   OK " + $f.Name + " wraps=" + $wrap.Count)
+        $log.Add(("PATCHED wraps=" + $wrap.Count + " " + $f.FullName))
+        $patchedFiles++
+        $totalWraps += $wrap.Count
     }
-
-    if ($raw -match 'StartTransaction' -and $raw -notmatch 'MepDocumentContext\.Run' -and $raw -notmatch 'LockDocument\s*\(') {
-        Write-Host ("   WARN: " + $f.Name + " has StartTransaction but auto-wrap skipped.")
+    else {
+        Write-Host ("   SKIP (no wrap) " + $f.Name)
+        $log.Add(("SKIP: " + $f.FullName))
     }
 }
 
-if ($patched -eq 0) {
-    Write-Host "   Helper copied. Auto-wrap found 0 files."
-    Write-Host "   If still eLockViolation, wrap CAD draw code with MepDocumentContext.Run."
-}
-else {
-    Write-Host ("   Patched " + $patched + " file(s).")
+$logPath = Join-Path $Root "hvac-elock-fix.log"
+$log | Set-Content -Path $logPath -Encoding UTF8
+Write-Host ("   Log: " + $logPath)
+Write-Host ("   PatchedFiles=" + $patchedFiles + " TotalWraps=" + $totalWraps)
+
+if ($patchedFiles -eq 0) {
+    Write-Host "   WARNING: Khong wrap duoc file nao."
+    Write-Host "   Gui noi dung file hvac-elock-fix.log hoac ten file chua chuoi loi HVAC."
 }
 
-Write-Host "   Done HVAC eLock fix."
+Write-Host "   Done HVAC eLock strong fix."
