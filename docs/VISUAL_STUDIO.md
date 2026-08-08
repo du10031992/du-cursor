@@ -27,8 +27,14 @@ Now listening on: http://localhost:5268
 Hosting started
 ```
 
-Admin: http://localhost:5268/admin  
+Admin: http://localhost:5268/admin
 OTP test: **123456**
+
+> User được lưu trong SQLite `mep-panel-license.db` tại thư mục chạy
+> `MepPanel.LicenseServer`. Nếu F5 source vừa giải nén ở một thư mục khác,
+> server sẽ tạo database mới và chỉ hiện user seed. Muốn giữ user cũ: F5
+> project cũ, hoặc đóng Visual Studio rồi chép `mep-panel-license.db` cũ sang
+> thư mục `MepPanel.LicenseServer` của source mới trước khi F5.
 
 ### Lỗi MSB3021 / file bị khóa
 

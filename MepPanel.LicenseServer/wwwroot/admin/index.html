@@ -320,8 +320,8 @@
             <div class="actions">
               <button type="button" class="ok" data-action="user-active" data-id="${u.id}">Mở user</button>
               <button type="button" class="danger" data-action="user-block" data-id="${u.id}">Khóa user</button>
-              <button type="button" class="warn" data-action="release" data-id="${u.id}">Mở chuyển máy</button>
-              ${u.license ? `<button type="button" class="secondary" data-action="extend" data-license="${u.license.id}">Gia hạn +30 ngày</button>` : ""}
+              <button type="button" class="warn" data-action="release" data-id="${u.id}" data-phone="${u.phoneNumber}">Mở chuyển máy</button>
+              ${u.license ? `<button type="button" class="secondary" data-action="extend" data-license="${u.license.id}" data-phone="${u.phoneNumber}">Gia hạn...</button>` : ""}
             </div>
 
             <div class="devices">
@@ -434,10 +434,29 @@
         } else if (action === "device-block") {
           await api(`/api/Admin/devices/${id}/status`, { method: "PUT", body: JSON.stringify({ status: "Blocked" }) });
         } else if (action === "release") {
-          await api(`/api/Admin/users/${id}/release-device`, { method: "POST", body: "{}" });
+          const phone = btn.getAttribute("data-phone") || ("user #" + id);
+          if (!confirm(`Mở chuyển máy cho ${phone}?\n\nMáy Active hiện tại sẽ bị thu hồi. User có thể đăng nhập trên máy khác.`)) {
+            return;
+          }
+          const result = await api(`/api/Admin/users/${id}/release-device`, { method: "POST", body: "{}" });
+          showMsg(result.message || "Đã mở chuyển máy.");
         } else if (action === "extend") {
           const licenseId = btn.getAttribute("data-license");
-          await api(`/api/Admin/licenses/${licenseId}/extend`, { method: "PUT", body: JSON.stringify({ extraDays: 30 }) });
+          const phone = btn.getAttribute("data-phone") || ("user #" + id);
+          const value = prompt(`Gia hạn giấy phép cho ${phone} bao nhiêu ngày?`, "30");
+          if (value === null) {
+            return;
+          }
+          const extraDays = Number.parseInt(value.trim(), 10);
+          if (!Number.isInteger(extraDays) || extraDays < 1 || extraDays > 3650) {
+            showMsg("Số ngày phải là số nguyên từ 1 đến 3650.", true);
+            return;
+          }
+          const result = await api(`/api/Admin/licenses/${licenseId}/extend`, {
+            method: "PUT",
+            body: JSON.stringify({ extraDays })
+          });
+          showMsg(result.message || `Đã gia hạn ${extraDays} ngày.`);
         }
         await reload();
       } catch (err) {
