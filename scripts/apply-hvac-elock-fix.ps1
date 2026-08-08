@@ -1,5 +1,5 @@
 # Fix eLockViolation khi tao so do HVAC tu cua so WPF modeless.
-# Copy MepDocumentContext.cs + boc try { ve CAD } bang MepDocumentContext.Run.
+# ASCII-only script (tranh loi parse PowerShell Windows).
 param(
     [Parameter(Mandatory = $true)]
     [string]$PluginSourceRoot
@@ -46,8 +46,8 @@ function Find-MatchingBrace([string]$Text, [int]$OpenIndex) {
     $depth = 0
     for ($i = $OpenIndex; $i -lt $Text.Length; $i++) {
         $ch = $Text[$i]
-        if ($ch -eq '{') { $depth++ }
-        elseif ($ch -eq '}') {
+        if ($ch -eq [char]123) { $depth++ }
+        elseif ($ch -eq [char]125) {
             $depth--
             if ($depth -eq 0) { return $i }
         }
@@ -55,27 +55,36 @@ function Find-MatchingBrace([string]$Text, [int]$OpenIndex) {
     return -1
 }
 
+function Test-HvacErrorMessage([string]$Text) {
+    # ASCII + UTF8 patterns without breaking PS parser
+    if ($Text -match 'Loi tao so do HVAC') { return $true }
+    if ($Text -match 'tao so do HVAC') { return $true }
+    if ($Text -match 'so do HVAC') { return $true }
+    # Vietnamese UTF-8 bytes decoded: "Lỗi tạo sơ đồ HVAC"
+    if ($Text.Contains([string]([char]0x004C) + [char]0x1ED7 + 'i tao')) { return $true }
+    if ($Text.IndexOf('HVAC', [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+        $Text.IndexOf([char]0x1ED3) -ge 0) { return $true } # o with horn+dot below often in "do"
+    return $false
+}
+
 function Wrap-HvacTryBlocks([string]$Text) {
     if ($Text -match 'MepDocumentContext\.Run\s*\(') {
         return $Text
     }
 
-    # Tim chuoi loi HVAC (unicode hoac ascii)
-    $rxMsg = [regex]'L[oô]i\s+t[aạ]o\s+s[oơ]\s+[dđ][oồ]\s+HVAC|Loi tao so do HVAC|tạo sơ đồ HVAC|tao so do HVAC'
-    $m = $rxMsg.Match($Text)
-    if (-not $m.Success) {
+    if (-not (Test-HvacErrorMessage $Text)) {
         return $Text
     }
 
-    # Tim try { gan nhat truoc chuoi loi (thuong la try cua catch hien message)
-    $searchFrom = $m.Index
-    $tryIdx = $Text.LastIndexOf('try', $searchFrom, [StringComparison]::Ordinal)
-    if ($tryIdx -lt 0) {
-        return $Text
-    }
+    # Find last "try" before an HVAC-related catch message
+    $needle = 'HVAC'
+    $msgIdx = $Text.LastIndexOf($needle, [StringComparison]::OrdinalIgnoreCase)
+    if ($msgIdx -lt 0) { return $Text }
 
-    # Bo qua "try" nam trong chuoi/comment thô - can { ngay sau
-    $braceOpen = $Text.IndexOf('{', $tryIdx)
+    $tryIdx = $Text.LastIndexOf('try', $msgIdx, [StringComparison]::Ordinal)
+    if ($tryIdx -lt 0) { return $Text }
+
+    $braceOpen = $Text.IndexOf([char]123, $tryIdx)
     if ($braceOpen -lt 0 -or $braceOpen -gt ($tryIdx + 40)) {
         return $Text
     }
@@ -85,8 +94,8 @@ function Wrap-HvacTryBlocks([string]$Text) {
         return $Text
     }
 
-    # Chi wrap neu catch nam ngay sau block nay
-    $after = $Text.Substring($braceClose + 1, [Math]::Min(80, $Text.Length - $braceClose - 1))
+    $afterLen = [Math]::Min(80, $Text.Length - $braceClose - 1)
+    $after = $Text.Substring($braceClose + 1, $afterLen)
     if ($after -notmatch '^\s*catch\b') {
         return $Text
     }
@@ -96,11 +105,14 @@ function Wrap-HvacTryBlocks([string]$Text) {
         return $Text
     }
 
+    $openWrap = "`r`n            MepDocumentContext.Run(() =>`r`n            " + [char]123
+    $closeWrap = "`r`n            " + [char]125 + ");`r`n            "
+
     $wrapped =
         $Text.Substring(0, $braceOpen + 1) +
-        "`r`n            MepDocumentContext.Run(() =>`r`n            {" +
+        $openWrap +
         $inner +
-        "`r`n            });`r`n            " +
+        $closeWrap +
         $Text.Substring($braceClose)
 
     if ($wrapped -notmatch 'using\s+MepPanelMvp\.UI') {
@@ -124,40 +136,30 @@ $candidates = Get-ChildItem -Path $PluginSourceRoot -Filter *.cs -Recurse -Error
 
 foreach ($f in $candidates) {
     $raw = Read-Utf8 $f.FullName
-    if ($raw -notmatch 'HVAC' -and $raw -notmatch 'Hvac' -and $raw -notmatch 'DieuHoa' -and $raw -notmatch 'dieu hoa') {
-        continue
-    }
-    if ($raw -notmatch 'L[oô]i\s+t[aạ]o\s+s[oơ]|Loi tao so do|sơ đồ HVAC|so do HVAC|StartTransaction') {
-        continue
-    }
-
-    # Chi xu ly file co message loi HVAC hoac ten file lien quan
-    $isTarget = ($raw -match 'L[oô]i\s+t[aạ]o\s+s[oơ]\s+[dđ][oồ]\s+HVAC|Loi tao so do HVAC|tạo sơ đồ HVAC') -or
-                ($f.Name -match 'Hvac|HVAC|DieuHoa|SupplyAir|AirCondition')
-    if (-not $isTarget) { continue }
+    $nameHit = ($f.Name -match 'Hvac|HVAC|DieuHoa|SupplyAir|AirCondition')
+    $textHit = (Test-HvacErrorMessage $raw)
+    if (-not $nameHit -and -not $textHit) { continue }
+    if ($raw -notmatch 'StartTransaction' -and -not $textHit) { continue }
 
     $newText = Wrap-HvacTryBlocks $raw
     if ($newText -ne $raw) {
         Write-Utf8NoBom $f.FullName $newText
-        Write-Host "   OK wrap MepDocumentContext.Run -> $($f.FullName)"
+        Write-Host ("   OK wrap MepDocumentContext.Run -> " + $f.FullName)
         $patched++
         continue
     }
 
-    # Fallback: file HVAC co StartTransaction nhung chua LockDocument / MepDocumentContext
     if ($raw -match 'StartTransaction' -and $raw -notmatch 'MepDocumentContext\.Run' -and $raw -notmatch 'LockDocument\s*\(') {
-        Write-Host "   CANH BAO: $($f.Name) co StartTransaction nhung chua wrap duoc tu dong."
-        Write-Host "             Them: MepDocumentContext.Run(() => { ... ve CAD ... });"
+        Write-Host ("   WARN: " + $f.Name + " has StartTransaction but auto-wrap skipped.")
     }
 }
 
 if ($patched -eq 0) {
-    Write-Host "   (Khong tu wrap duoc file message loi - helper da copy.)"
-    Write-Host "   Neu van eLockViolation: mo file chua chuoi 'tao so do HVAC',"
-    Write-Host "   boc doan ve CAD bang MepDocumentContext.Run(() => { ... });"
+    Write-Host "   Helper copied. Auto-wrap found 0 files."
+    Write-Host "   If still eLockViolation, wrap CAD draw code with MepDocumentContext.Run."
 }
 else {
-    Write-Host "   Da patch $patched file."
+    Write-Host ("   Patched " + $patched + " file(s).")
 }
 
-Write-Host "   Xong HVAC eLock fix."
+Write-Host "   Done HVAC eLock fix."
