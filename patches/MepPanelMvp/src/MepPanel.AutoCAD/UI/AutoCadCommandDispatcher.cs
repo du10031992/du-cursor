@@ -7,6 +7,7 @@ namespace MepPanelMvp.UI
 {
     /// <summary>
     /// Goi chuc nang tu panel WPF (MepInternalCommand) — khong can lenh CLI.
+    /// Su dung ExecuteInCommandContextAsync de tranh eLockViolation tu modeless WPF.
     /// </summary>
     internal static class AutoCadCommandDispatcher
     {
@@ -27,15 +28,33 @@ namespace MepPanelMvp.UI
                 return;
             }
 
-            if (TryInvoke(cmd))
+            // Chay qua document execution context -> tranh eLockViolation tu WPF dialog
+            try
             {
-                return;
+                AcApp.DocumentManager.ExecuteInCommandContextAsync(
+                    async (_) =>
+                    {
+                        if (!TryInvoke(cmd))
+                        {
+                            var doc = AcApp.DocumentManager.MdiActiveDocument;
+                            if (doc != null)
+                            {
+                                doc.SendStringToExecute(cmd + " ", true, false, true);
+                            }
+                        }
+                    }, null);
             }
-
-            var doc = AcApp.DocumentManager.MdiActiveDocument;
-            if (doc != null)
+            catch
             {
-                doc.SendStringToExecute(cmd + " ", true, false, true);
+                // Fallback: goi truc tiep (neu khong co document context)
+                if (!TryInvoke(cmd))
+                {
+                    var doc = AcApp.DocumentManager.MdiActiveDocument;
+                    if (doc != null)
+                    {
+                        doc.SendStringToExecute(cmd + " ", true, false, true);
+                    }
+                }
             }
         }
 
