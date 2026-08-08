@@ -170,26 +170,28 @@ function Wrap-EntryMethodsInFile([string]$Path, [string]$Label) {
         return
     }
     $t = Read-Utf8 $Path
-    $rx = [regex]'(?m)^\s*(public|private|internal|protected)\s+(static\s+)?void\s+(\w+)\s*\('
+    $rx = [regex]'(?m)^\s*(public|private|internal|protected)\s+(static\s+)?(async\s+)?void\s+(\w+)\s*\('
     $names = @()
     foreach ($m in $rx.Matches($t)) {
-        $name = $m.Groups[3].Value
+        $name = $m.Groups[4].Value
         if ($name -match '^(HeNuoc_Click|BaoChay_Click)$') { continue }
         $open = $t.IndexOf([char]123, $m.Index)
         if ($open -lt 0) { continue }
         $close = Find-MatchingBrace $t $open
         if ($close -lt 0) { continue }
         $body = $t.Substring($open, $close - $open)
-        # Entry ve CAD: transaction, Cad service, BuildSchematic, hoac message loi so do
         $hit = $false
         if ($body -match 'StartTransaction') { $hit = $true }
         if ($body -match 'BuildSchematic|DrawingService|TransactionManager|AppendEntity') { $hit = $true }
         if ($body -match 'HvacSupplyAir|PanelDrawing|CabinetLayout|RealisticWiring|ThreePhase|PowerDevice|CustomDevice') { $hit = $true }
         if ($body -match 'so do HVAC|tao so do|LockViolation') { $hit = $true }
-        if ($name -match '(_Click|Draw|Build|Create|Insert|Place|Export|Render|Duplicate|EditPanel|SelectSame)') {
-            if ($body -match 'Cad\.|DrawingService|BuildSchematic|StartTransaction|Database') { $hit = $true }
+        if ($name -match '(_Click|Draw|Build|Create|Insert|Place|Export|Render|Duplicate|EditPanel|SelectSame|Schematic|SoDo)') {
+            if ($body -match 'Cad\.|DrawingService|BuildSchematic|StartTransaction|Database|HvacSupply') { $hit = $true }
         }
         if ($hit) { $names += $name }
+    }
+    if ($names.Count -eq 0 -and $t -match 'BuildSchematic|StartTransaction') {
+        Log ("WARN " + $Label + ": has CAD calls but no void entry matched")
     }
     foreach ($name in ($names | Select-Object -Unique)) {
         $t = Read-Utf8 $Path
@@ -202,14 +204,25 @@ function Wrap-EntryMethodsInFile([string]$Path, [string]$Label) {
 Wrap-EntryMethodsInFile (Join-Path $autoRoot "Commands\HvacCommands.cs") "HvacCommands"
 Wrap-EntryMethodsInFile (Join-Path $autoRoot "Commands\PanelCommands.cs") "PanelCommands"
 
-# Cua so WPF cau hinh (noi user bam Tao so do)
-$uiRoot = Join-Path $autoRoot "UI"
-if (-not (Test-Path $uiRoot)) { $uiRoot = Join-Path $autoRoot "ui" }
-if (Test-Path $uiRoot) {
-    Get-ChildItem $uiRoot -Filter *.xaml.cs -File -ErrorAction SilentlyContinue | ForEach-Object {
-        Wrap-EntryMethodsInFile $_.FullName $_.BaseName
-    }
+# Cua so WPF + ElectricalToolControl: quet de quy toan bo AutoCAD
+$xamlFiles = Get-ChildItem $autoRoot -Filter *.xaml.cs -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging)\\' }
+
+Log ("XAML.CS found=" + @($xamlFiles).Count)
+foreach ($f in $xamlFiles) {
+    Log ("SCAN " + $f.FullName.Substring($autoRoot.Length).TrimStart('\', '/'))
+    Wrap-EntryMethodsInFile $f.FullName $f.Name
 }
+
+# Force: moi file goi BuildSchematic (thuong la HvacConfigurationWindow)
+Get-ChildItem $autoRoot -Filter *.cs -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\(bin|obj|package_staging|Cad)\\' } |
+    ForEach-Object {
+        $raw = Read-Utf8 $_.FullName
+        if ($raw -notmatch 'BuildSchematic') { return }
+        Log ("HAS BuildSchematic: " + $_.Name)
+        Wrap-EntryMethodsInFile $_.FullName $_.Name
+    }
 
 # Khong wrap Cad\* helpers.
 
