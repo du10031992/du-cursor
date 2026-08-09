@@ -1,0 +1,41 @@
+{
+  "bundleId": "MepPanel.Plugin.bundle",
+  "product": "MepPanel",
+  "version": "0.4.0",
+  "entryDll": "MepPanel.AutoCAD.dll",
+  "requiredDlls": [
+    {
+      "file": "MepPanel.AutoCAD.dll",
+      "role": "main",
+      "description": "Plugin chinh: MEPDB, MEPHVAC, licensing, UI"
+    },
+    {
+      "file": "MepPanel.Core.dll",
+      "role": "shared",
+      "description": "Core domain va services"
+    }
+  ],
+  "controlledFeatures": ["MEPDB"],
+  "subFeatures": [
+    "MEPDBDRAW",
+    "MEPHVAC",
+    "MEPDBWATER",
+    "MEPDBSMOKE",
+    "MEPSELAYER",
+    "MEPDBCONFIG",
+    "MEPDBEXPORT",
+    "MEPDBCABINET2D",
+    "MEPDBUPDATE",
+    "MEPDBEXCEL",
+    "MEPDBCABINETVIEWS",
+    "MEPDBPOWER",
+    "MEPDB3P4W"
+  ],
+  "licenseControl": {
+    "entryCommand": "MEPDB",
+    "dispatcher": "AutoCadCommandDispatcher",
+    "guard": "LicenseGuard",
+    "features": ["MEPDB"]
+  },
+  "configFile": "MepPanel.config.json"
+}

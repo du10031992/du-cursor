@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "MepPanel.LicenseServer": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "admin/",
+      "applicationUrl": "http://localhost:5268",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/.vs/
+*.db
+*.db-shm
+*.db-wal
+mep-panel-license.db*
+.idea/
+*.log
+dist/
+releases/**/*.zip
+plugin.local.json
