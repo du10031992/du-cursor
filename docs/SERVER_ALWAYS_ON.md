@@ -25,6 +25,22 @@ Kết quả:
 - Mặc định mở LAN và mở firewall cổng `5268`, nên máy AutoCAD khác kết nối được.
 - Database dùng đúng file cố định `C:\MepPanel\du-cursor\MepPanel.LicenseServer\mep-panel-license.db`.
 
+Script in ra sẵn thông tin đăng nhập quản trị:
+
+| Mục | Giá trị mặc định |
+|---|---|
+| Admin | `http://localhost:5268/admin` |
+| Admin API Key | `MEP-PANEL-ADMIN-TEST-2026` |
+| OTP | `123456` (TestMode, chỉ dùng LAN nội bộ) |
+
+Đổi key quản trị và dùng SMS thật:
+
+```powershell
+.\scripts\install-license-server-service.ps1 `
+  -AdminApiKey 'key-rieng-cua-ban' `
+  -UseRealSms -SmsWebhookUrl 'https://nha-cung-cap/send' -SmsApiKey 'xxx'
+```
+
 Script sẽ in URL cho máy khác, ví dụ `http://192.168.1.50:5268/`. Trên từng máy AutoCAD:
 
 ```powershell
