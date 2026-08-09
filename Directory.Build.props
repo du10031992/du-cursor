@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Phiên bản sản phẩm MepPanel (đổi tại đây khi phát hành). -->
-    <MepPanelVersion>0.3.0</MepPanelVersion>
+    <MepPanelVersion>0.4.0</MepPanelVersion>
 
     <Version>$(MepPanelVersion)</Version>
     <AssemblyVersion>$(MepPanelVersion).0</AssemblyVersion>

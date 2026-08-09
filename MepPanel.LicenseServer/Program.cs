@@ -143,6 +143,13 @@ static string ResolveDatabasePath(IConfiguration configuration)
         Environment.GetEnvironmentVariable("MEP_PANEL_LICENSE_DB_PATH") ??
         configuration["LicenseStorage:DatabasePath"];
 
+    // Tuong thich goi Docker/production cu dung ConnectionStrings:DefaultConnection.
+    if (string.IsNullOrWhiteSpace(configuredPath))
+    {
+        configuredPath = ExtractSqliteDataSource(
+            configuration.GetConnectionString("DefaultConnection"));
+    }
+
     if (string.IsNullOrWhiteSpace(configuredPath))
     {
         configuredPath = OperatingSystem.IsWindows()
@@ -151,6 +158,27 @@ static string ResolveDatabasePath(IConfiguration configuration)
     }
 
     return Path.GetFullPath(configuredPath);
+}
+
+static string? ExtractSqliteDataSource(string? connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        return null;
+    }
+
+    foreach (var part in connectionString.Split(';'))
+    {
+        var pair = part.Split(new[] { '=' }, 2);
+        if (pair.Length == 2 &&
+            (string.Equals(pair[0].Trim(), "Data Source", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(pair[0].Trim(), "Filename", StringComparison.OrdinalIgnoreCase)))
+        {
+            return pair[1].Trim();
+        }
+    }
+
+    return null;
 }
 
 var adminIndex = ResolveAdminIndexPath(app.Environment);

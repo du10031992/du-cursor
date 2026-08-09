@@ -7,7 +7,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: Data Source=/data/mep-panel-license.db
+      MEP_PANEL_LICENSE_DB_PATH: /data/mep-panel-license.db
       Jwt__Key: ${JWT_KEY}
       Admin__ApiKey: ${ADMIN_API_KEY}
       LicenseSettings__TestMode: "false"

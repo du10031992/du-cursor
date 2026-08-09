@@ -21,7 +21,7 @@ Script cài **plugin thật** từ bundle (không build lại):
 | `MepPanel.AutoCAD.dll` | Plugin chính — MEPDB, MEPHVAC, UI, licensing |
 | `MepPanel.Core.dll` | Core services |
 
-Đường dẫn cài:  
+Đường dẫn cài:
 `%ProgramData%\Autodesk\ApplicationPlugins\MepPanel.Plugin.bundle\Contents\`
 
 **Mở lại AutoCAD** → plugin tự load.
@@ -55,15 +55,19 @@ Build loader đơn giản từ source (v0.3 stub):
 .\scripts\install-plugin-bundle.ps1 -BuildDevLoader
 ```
 
-## Cấu hình server
+## Cấu hình Server trung tâm
 
 File `MepPanel.config.json` trong `Contents/` (nếu plugin hỗ trợ):
 
 ```json
 {
-  "licenseServerUrl": "https://localhost:7024/"
+  "licenseServerUrl": "https://license.congty.vn/"
 }
 ```
+
+Máy AutoCAD khác phải trỏ về cùng URL Server trung tâm; không dùng
+`localhost` trên các máy client. Cách cài gói client nhiều máy:
+[REMOTE_DEPLOYMENT.md](REMOTE_DEPLOYMENT.md).
 
 ## NETLOAD thủ công
 

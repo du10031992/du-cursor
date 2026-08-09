@@ -33,6 +33,10 @@ namespace MepPanel.AutoCAD.Licensing
             if (!string.IsNullOrWhiteSpace(fromConfig))
             {
                 list.Add(Normalize(fromConfig));
+                // Client production da cau hinh Server trung tam:
+                // khong duoc fallback ve localhost, tranh may client tin mot server
+                // khac tren chinh may do khi Server trung tam dang mat ket noi.
+                return list.ToArray();
             }
 
             foreach (string url in FallbackUrls)
