@@ -4,6 +4,7 @@ using System.Reflection;
 using Autodesk.AutoCAD.EditorInput;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Exception = System.Exception;
+using MepPanel.AutoCAD.Licensing;
 using MepPanelMvp.UI;
 
 namespace MepPanelMvp.Commands
@@ -54,11 +55,15 @@ namespace MepPanelMvp.Commands
                 return;
             }
 
+            if (!LicenseGuard.EnsureSubFeature(featureCode))
+            {
+                return;
+            }
+
             // Toan bo prompt + ve CAD chay trong command context
             MepDocumentContext.Run(() =>
             {
                 Editor ed = doc.Editor;
-                WarnIfFeatureMissing(ed, featureCode, title);
 
                 var kw = new PromptKeywordOptions(
                     "\n" + title + ": chon chuc nang [VeOng] PhuKien ThuVien TieuChuan TinhToan Render")

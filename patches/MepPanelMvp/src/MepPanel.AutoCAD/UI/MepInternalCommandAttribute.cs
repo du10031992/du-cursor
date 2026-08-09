@@ -15,4 +15,19 @@ namespace MepPanelMvp.UI
             Name = name ?? string.Empty;
         }
     }
+
+    /// <summary>
+    /// Khai bao feature bat buoc cho lenh moi.
+    /// Dispatcher kiem tra attribute nay truoc khi goi method.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    public sealed class MepRequiresFeatureAttribute : Attribute
+    {
+        public string FeatureCode { get; }
+
+        public MepRequiresFeatureAttribute(string featureCode)
+        {
+            FeatureCode = featureCode ?? string.Empty;
+        }
+    }
 }

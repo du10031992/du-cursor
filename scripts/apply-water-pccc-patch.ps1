@@ -12,6 +12,7 @@ $CoreCalcSrc = Join-Path $PatchRoot "MepPanel.Core\Calculations"
 $CoreStdSrc = Join-Path $PatchRoot "MepPanel.Core\Standards"
 $DrawSrc = Join-Path $PatchRoot "MepPanel.Blocks.AutoCAD\Drawing"
 $FeaturesSrc = Join-Path $PatchRoot "MepPanel.Core\PluginFeatures.cs"
+$CommandRegistrySrc = Join-Path $PatchRoot "MepPanel.Core\CommandFeatureRegistry.cs"
 $GateSrc = Join-Path $PatchRoot "MepPanel.Core\PluginFeatureGate.cs"
 $DbPanelDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
 $DbPanelSrc = Join-Path $PatchRoot "MepPanel.Blocks.AutoCAD\MepDbToolPanel.cs"
@@ -20,6 +21,7 @@ $CoreCalcDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\Calculations"
 $CoreStdDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\Standards"
 $DrawDst = Join-Path $PluginSourceRoot "src\MepPanel.Blocks.AutoCAD\Drawing"
 $FeaturesDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\PluginFeatures.cs"
+$CommandRegistryDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\CommandFeatureRegistry.cs"
 $GateDst = Join-Path $PluginSourceRoot "src\MepPanel.Core\PluginFeatureGate.cs"
 
 if (-not (Test-Path $DrawSrc)) {
@@ -44,6 +46,11 @@ if (Test-Path $FeaturesSrc) {
     New-Item -ItemType Directory -Force -Path (Split-Path $FeaturesDst) | Out-Null
     Copy-Item $FeaturesSrc $FeaturesDst -Force
     Write-Host "   OK PluginFeatures (MEPDBWATER / MEPDBSMOKE)"
+}
+
+if (Test-Path $CommandRegistrySrc) {
+    Copy-Item $CommandRegistrySrc $CommandRegistryDst -Force
+    Write-Host "   OK CommandFeatureRegistry (command -> feature)"
 }
 
 if (Test-Path $GateSrc) {

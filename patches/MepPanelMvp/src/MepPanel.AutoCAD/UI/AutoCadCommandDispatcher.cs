@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+using MepPanel.AutoCAD.Licensing;
+using MepPanel.Core;
 
 namespace MepPanelMvp.UI
 {
@@ -18,12 +20,18 @@ namespace MepPanelMvp.UI
         {
             public Type Type { get; set; }
             public MethodInfo Method { get; set; }
+            public string FeatureCode { get; set; }
         }
 
         public static void Queue(string command)
         {
             string cmd = (command ?? string.Empty).Trim();
             if (cmd.Length == 0)
+            {
+                return;
+            }
+
+            if (!EnsureCommandFeature(cmd))
             {
                 return;
             }
@@ -79,6 +87,38 @@ namespace MepPanelMvp.UI
                 WriteMessage("[MEP] Loi goi " + commandName + ": " + ex.Message);
                 return true;
             }
+        }
+
+        private static bool EnsureCommandFeature(string commandName)
+        {
+            EnsureMap();
+
+            MethodInvoker invoker;
+            string feature = _map.TryGetValue(commandName, out invoker) && invoker != null
+                ? invoker.FeatureCode
+                : null;
+
+            if (string.IsNullOrWhiteSpace(feature))
+            {
+                feature = CommandFeatureRegistry.Resolve(commandName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(feature))
+            {
+                return LicenseGuard.EnsureSubFeature(feature);
+            }
+
+            // Chi MEPDB la entry CLI. Lenh noi bo MEP moi ma chua khai bao
+            // feature phai bi chan (fail closed), tranh bo sot quyen khi nang cap.
+            if (commandName.StartsWith("MEP", StringComparison.OrdinalIgnoreCase))
+            {
+                WriteMessage(
+                    "[MEP] Lenh " + commandName +
+                    " chua dang ky feature. Hay them [MepRequiresFeature] hoac CommandFeatureRegistry.");
+                return false;
+            }
+
+            return true;
         }
 
         private static void WriteMessage(string text)
@@ -141,7 +181,12 @@ namespace MepPanelMvp.UI
                                 continue;
                             }
 
-                            map[name] = new MethodInvoker { Type = type, Method = method };
+                            map[name] = new MethodInvoker
+                            {
+                                Type = type,
+                                Method = method,
+                                FeatureCode = GetRequiredFeature(method) ?? CommandFeatureRegistry.Resolve(name)
+                            };
                         }
                     }
                 }
@@ -173,11 +218,30 @@ namespace MepPanelMvp.UI
                     return;
                 }
 
-                map[commandName] = new MethodInvoker { Type = t, Method = mi };
+                map[commandName] = new MethodInvoker
+                {
+                    Type = t,
+                    Method = mi,
+                    FeatureCode = GetRequiredFeature(mi) ?? CommandFeatureRegistry.Resolve(commandName)
+                };
             }
             catch
             {
             }
+        }
+
+        private static string GetRequiredFeature(MethodInfo method)
+        {
+            foreach (object attribute in method.GetCustomAttributes(false))
+            {
+                var required = attribute as MepRequiresFeatureAttribute;
+                if (required != null && !string.IsNullOrWhiteSpace(required.FeatureCode))
+                {
+                    return required.FeatureCode;
+                }
+            }
+
+            return null;
         }
 
         private static IEnumerable<string> GetCommandNames(MethodInfo method)
