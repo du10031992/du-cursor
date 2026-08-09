@@ -16,7 +16,10 @@ Máy AutoCAD A, B, C...
 
 ## 1. Chạy Server trung tâm
 
-Production khuyến nghị dùng VPS/domain HTTPS theo [DEPLOY_VPS.md](DEPLOY_VPS.md).
+Server phải chạy nền, không phụ thuộc Visual Studio. Cách cài chạy nền tự khởi động
+trên máy chủ Windows: [SERVER_ALWAYS_ON.md](SERVER_ALWAYS_ON.md).
+
+Production qua Internet khuyến nghị dùng VPS/domain HTTPS theo [DEPLOY_VPS.md](DEPLOY_VPS.md).
 
 URL ví dụ:
 

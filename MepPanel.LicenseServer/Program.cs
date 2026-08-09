@@ -6,7 +6,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    // Chay nhu Windows Service: working directory la System32, phai neo
+    // content root vao thu muc cai dat de tim wwwroot/admin va appsettings.
+    ContentRootPath = AppContext.BaseDirectory
+});
+
+// No-op khi chay bang F5/console; chi co tac dung khi chay nhu Windows Service.
+builder.Host.UseWindowsService();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -224,7 +233,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+// Chi tu chuyen huong HTTPS khi duoc bat tuong minh.
+// Ly do: server chay LAN bang http:// hoac dat sau nginx (nginx da lo TLS) se
+// bi redirect sai va lam client khong goi duoc API.
+if (builder.Configuration.GetValue("Security:RequireHttps", false))
 {
     app.UseHttpsRedirection();
 }
