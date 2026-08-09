@@ -14,6 +14,6 @@
       Platform="AutoCAD*"
       SeriesMin="R24.0"
       SeriesMax="R24.0" />
-    <ComponentEntry AppName="MepPanel" ModuleName="./Contents/MepPanel.AutoCAD.dll" AppDescription="MepPanel MEP Plugin v0.13" LoadOnAutoCADStartup="True" />
+  <ComponentEntry AppName="MepPanel" ModuleName="./Contents/MepPanel.AutoCAD.dll" AppDescription="MepPanel MEP Plugin v0.4.0" LoadOnAutoCADStartup="True" />
   </Components>
 </ApplicationPackage>
