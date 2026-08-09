@@ -75,7 +75,27 @@ py -m pip install pillow
    - Feature phụ tắt: nút mờ/disabled và command cũng bị chặn.
    - Khóa user/máy: lần kiểm tra Server tiếp theo bị từ chối.
 
-## 4. Mở firewall
+## 4. Kiểm tra kết nối trên máy client
+
+```powershell
+.\verify-client-server.ps1
+```
+
+Script đọc `MepPanel.config.json` đã cài, gọi `/health` của Server và cảnh báo nếu client còn trỏ `localhost`.
+
+## 5. Bắt buộc trước khi mở ra Internet
+
+| Việc | Lý do |
+|---|---|
+| Dùng HTTPS với certificate hợp lệ | Plugin kiểm tra certificate với Server từ xa; cert sai sẽ bị từ chối |
+| Đổi `JWT_KEY` và `ADMIN_API_KEY` | Key mặc định trong repo là key thử nghiệm |
+| Giữ `LicenseSettings__TestMode=false` | TestMode dùng OTP cố định `123456` và trả mã đó trong API |
+| Cấu hình SMS thật | Không có SMS thì không gửi được OTP production |
+| Giới hạn IP cho `/admin` trong `nginx.conf` | Trang Admin chỉ được bảo vệ bằng API key |
+
+Server đã tự chặn: tối đa 5 lần xin OTP mỗi 15 phút cho một số điện thoại, và tạm khóa 15 phút sau 5 lần nhập OTP sai. `nginx.conf` giới hạn thêm tần số gọi `/api/Auth/`.
+
+## 6. Mở firewall
 
 - VPS: mở cổng `443` (HTTPS).
 - Server trong LAN: dùng URL `https://<ip-hoặc-tên-máy>/`, mở firewall cổng HTTPS và cài certificate tin cậy trên các máy client.

@@ -26,17 +26,26 @@ namespace MepPanel.AutoCAD.Licensing
 
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
-            ServicePointManager.ServerCertificateValidationCallback =
-                (sender, certificate, chain, errors) => true;
+
+            var address = new Uri(baseUrl.TrimEnd('/') + "/");
 
             var handler = new HttpClientHandler
             {
                 UseProxy = false
             };
 
+            // Server trung tam qua Internet phai co certificate hop le, neu khong
+            // ke tan cong co the gia mao License Server va cap quyen sai.
+            // Chi bo qua kiem tra cho server dev chay ngay tren may nay.
+            if (address.IsLoopback)
+            {
+                handler.ServerCertificateCustomValidationCallback =
+                    (message, certificate, chain, errors) => true;
+            }
+
             _httpClient = new HttpClient(handler)
             {
-                BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/"),
+                BaseAddress = address,
                 Timeout = TimeSpan.FromSeconds(30)
             };
         }

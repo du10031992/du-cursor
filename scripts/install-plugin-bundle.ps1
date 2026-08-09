@@ -8,7 +8,9 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
     [switch]$SkipInstall,
-    [switch]$BuildDevLoader
+    [switch]$BuildDevLoader,
+    # Tro plugin toi License Server trung tam (vi du: https://license.congty.vn/).
+    [string]$LicenseServerUrl
 )
 
 $ErrorActionPreference = "Stop"
@@ -58,6 +60,41 @@ function Ensure-ConfigFile {
         Copy-Item $configExample $configPath
         Write-Host "==> Created MepPanel.config.json from example"
     }
+
+    if (-not $LicenseServerUrl) {
+        return
+    }
+
+    try {
+        $uri = [Uri]$LicenseServerUrl
+    }
+    catch {
+        throw "LicenseServerUrl khong hop le. Vi du: https://license.congty.vn/"
+    }
+
+    if (-not $uri.IsAbsoluteUri -or $uri.Scheme -notin @("http", "https")) {
+        throw "LicenseServerUrl phai la URL http/https day du."
+    }
+
+    $config = [ordered]@{ licenseServerUrl = $uri.AbsoluteUri }
+    if (Test-Path $configPath) {
+        try {
+            $current = Get-Content $configPath -Raw | ConvertFrom-Json
+            if ($current.pipeLibraryDwg) {
+                $config.pipeLibraryDwg = [string]$current.pipeLibraryDwg
+            }
+        }
+        catch {
+            # URL van du de plugin ket noi; template loi khong chan cai dat.
+        }
+    }
+
+    [System.IO.File]::WriteAllText(
+        $configPath,
+        ($config | ConvertTo-Json -Depth 4),
+        (New-Object System.Text.UTF8Encoding $false))
+
+    Write-Host "==> License Server: $($uri.AbsoluteUri)"
 }
 
 function Copy-BundleToInstallDir {

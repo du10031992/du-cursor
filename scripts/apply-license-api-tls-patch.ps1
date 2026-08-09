@@ -74,15 +74,20 @@ elseif (Test-Path $clientPath) {
     if ($text -notmatch 'SecurityProtocolType\.Tls12') {
         $tls = @(
             '            ServicePointManager.SecurityProtocol =',
-            '                SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;',
-            '            ServicePointManager.ServerCertificateValidationCallback =',
-            '                (sender, certificate, chain, errors) => true;'
+            '                SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;'
         ) -join "`r`n"
 
         if ($text -match 'new\s+HttpClient\b') {
             $text = [regex]::Replace($text, '(new\s+HttpClient\b)', ($tls + "`r`n            `$1"), 1)
             Write-Host "   OK chen TLS 1.2"
         }
+    }
+
+    # Ban patch cu tat kiem tra certificate toan cuc -> Server trung tam co the bi gia mao.
+    $insecureTls = 'ServicePointManager\.ServerCertificateValidationCallback\s*=\s*\([^)]*\)\s*=>\s*true\s*;'
+    if ($text -match $insecureTls) {
+        $text = [regex]::Replace($text, ('\s*' + $insecureTls), '')
+        Write-Host "   OK bo callback tat kiem tra TLS (bao mat Server trung tam)"
     }
     if ($text -ne $orig) {
         Write-Text $clientPath $text

@@ -15,6 +15,13 @@ public sealed class OtpService
     private static readonly ConcurrentDictionary<string, OtpEntry> Store =
         new(StringComparer.Ordinal);
 
+    private static readonly ConcurrentDictionary<string, ThrottleEntry> Throttles =
+        new(StringComparer.Ordinal);
+
+    private const int MaxRequestsPerWindow = 5;
+    private const int MaxVerifyAttempts = 5;
+    private static readonly TimeSpan ThrottleWindow = TimeSpan.FromMinutes(15);
+
     public OtpService(
         IConfiguration configuration,
         IWebHostEnvironment environment,
@@ -48,7 +55,20 @@ public sealed class OtpService
             };
         }
 
-        string otp = Random.Shared.Next(100000, 999999).ToString();
+        // Chong spam SMS va dò OTP tu Internet.
+        if (!TryReserveRequestSlot(phoneNumber, out TimeSpan retryAfter))
+        {
+            await _auditService.WriteAsync(
+                "request-otp-throttled",
+                $"Chan yeu cau OTP qua nhieu cho {phoneNumber}",
+                userId);
+
+            throw new OtpThrottledException(
+                "Ban da yeu cau OTP qua nhieu lan. Thu lai sau " +
+                Math.Max(1, (int)Math.Ceiling(retryAfter.TotalMinutes)) + " phut.");
+        }
+
+        string otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         DateTime expiresAt = DateTime.UtcNow.AddMinutes(5);
         Store[phoneNumber] = new OtpEntry(Hash(otp), expiresAt);
 
@@ -84,6 +104,11 @@ public sealed class OtpService
             return string.Equals((otp ?? string.Empty).Trim(), testOtp, StringComparison.Ordinal);
         }
 
+        if (IsVerifyLocked(phoneNumber))
+        {
+            return false;
+        }
+
         if (!Store.TryGetValue(phoneNumber, out OtpEntry? entry) || entry == null)
         {
             return false;
@@ -99,9 +124,98 @@ public sealed class OtpService
         if (ok)
         {
             Store.TryRemove(phoneNumber, out _);
+            ResetVerifyAttempts(phoneNumber);
+            return true;
         }
 
-        return ok;
+        // Sau nhieu lan sai, huy OTP hien tai va tam khoa de chan dò 6 chu so.
+        if (RegisterFailedVerify(phoneNumber))
+        {
+            Store.TryRemove(phoneNumber, out _);
+        }
+
+        return false;
+    }
+
+    private static bool TryReserveRequestSlot(string phoneNumber, out TimeSpan retryAfter)
+    {
+        retryAfter = TimeSpan.Zero;
+        DateTime now = DateTime.UtcNow;
+        ThrottleEntry entry = Throttles.GetOrAdd(phoneNumber, _ => new ThrottleEntry(now));
+
+        lock (entry.Sync)
+        {
+            if (now - entry.WindowStartUtc >= ThrottleWindow)
+            {
+                entry.WindowStartUtc = now;
+                entry.RequestCount = 0;
+            }
+
+            if (entry.RequestCount >= MaxRequestsPerWindow)
+            {
+                retryAfter = entry.WindowStartUtc + ThrottleWindow - now;
+                return false;
+            }
+
+            entry.RequestCount++;
+            return true;
+        }
+    }
+
+    private static bool IsVerifyLocked(string phoneNumber)
+    {
+        if (!Throttles.TryGetValue(phoneNumber, out ThrottleEntry? entry) || entry == null)
+        {
+            return false;
+        }
+
+        lock (entry.Sync)
+        {
+            if (entry.LockedUntilUtc == null)
+            {
+                return false;
+            }
+
+            if (entry.LockedUntilUtc <= DateTime.UtcNow)
+            {
+                entry.LockedUntilUtc = null;
+                entry.FailedVerifyCount = 0;
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>Tra ve true khi vua bi khoa (OTP hien tai phai bi huy).</summary>
+    private static bool RegisterFailedVerify(string phoneNumber)
+    {
+        DateTime now = DateTime.UtcNow;
+        ThrottleEntry entry = Throttles.GetOrAdd(phoneNumber, _ => new ThrottleEntry(now));
+
+        lock (entry.Sync)
+        {
+            entry.FailedVerifyCount++;
+            if (entry.FailedVerifyCount < MaxVerifyAttempts)
+            {
+                return false;
+            }
+
+            entry.LockedUntilUtc = now + ThrottleWindow;
+            return true;
+        }
+    }
+
+    private static void ResetVerifyAttempts(string phoneNumber)
+    {
+        if (Throttles.TryGetValue(phoneNumber, out ThrottleEntry? entry) && entry != null)
+        {
+            lock (entry.Sync)
+            {
+                entry.FailedVerifyCount = 0;
+                entry.LockedUntilUtc = null;
+            }
+        }
     }
 
     private static string Hash(string value)
@@ -111,6 +225,33 @@ public sealed class OtpService
     }
 
     private sealed record OtpEntry(string CodeHash, DateTime ExpiresAtUtc);
+
+    private sealed class ThrottleEntry
+    {
+        public ThrottleEntry(DateTime windowStartUtc)
+        {
+            WindowStartUtc = windowStartUtc;
+        }
+
+        public object Sync { get; } = new object();
+
+        public DateTime WindowStartUtc { get; set; }
+
+        public int RequestCount { get; set; }
+
+        public int FailedVerifyCount { get; set; }
+
+        public DateTime? LockedUntilUtc { get; set; }
+    }
+}
+
+/// <summary>Yeu cau OTP bi chan vi qua nhieu lan trong thoi gian ngan.</summary>
+public sealed class OtpThrottledException : Exception
+{
+    public OtpThrottledException(string message)
+        : base(message)
+    {
+    }
 }
 
 public sealed class OtpRequestResult

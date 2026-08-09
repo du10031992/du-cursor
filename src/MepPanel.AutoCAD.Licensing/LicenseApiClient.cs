@@ -21,15 +21,25 @@ namespace MepPanel.AutoCAD.Licensing
                 throw new ArgumentException("BaseUrl không hợp lệ.", nameof(baseUrl));
             }
 
-            // Cho phep HTTPS self-signed + bat TLS 1.2 (AutoCAD .NET Framework).
+            // Bat TLS 1.2 cho AutoCAD .NET Framework.
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
-            ServicePointManager.ServerCertificateValidationCallback =
-                (sender, certificate, chain, errors) => true;
 
-            _httpClient = new HttpClient
+            var address = new Uri(baseUrl.TrimEnd('/') + "/");
+            var handler = new HttpClientHandler();
+
+            // Server trung tam qua Internet phai co certificate hop le, neu khong
+            // ke tan cong co the gia mao License Server va cap quyen sai.
+            // Chi bo qua kiem tra cho server dev chay ngay tren may nay.
+            if (address.IsLoopback)
             {
-                BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/"),
+                handler.ServerCertificateCustomValidationCallback =
+                    (message, certificate, chain, errors) => true;
+            }
+
+            _httpClient = new HttpClient(handler)
+            {
+                BaseAddress = address,
                 Timeout = TimeSpan.FromSeconds(30)
             };
         }

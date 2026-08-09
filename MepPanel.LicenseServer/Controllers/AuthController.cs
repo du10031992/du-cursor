@@ -61,6 +61,12 @@ public class AuthController : ControllerBase
                 testOtp = result.TestOtp
             });
         }
+        catch (OtpThrottledException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status429TooManyRequests,
+                new { message = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return StatusCode(

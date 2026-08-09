@@ -53,6 +53,7 @@ echo "==> Tao goi ClientPlugin (tro Server trung tam)"
 cp -R "$ROOT/bundle/MepPanel.Plugin.bundle" "$CLIENT_OUT/"
 rm -f "$CLIENT_OUT/MepPanel.Plugin.bundle/Contents/MepPanel.config.json"
 cp "$ROOT/scripts/install-client-plugin.ps1" "$CLIENT_OUT/Install-MepPanel-Client.ps1"
+cp "$ROOT/scripts/verify-client-server.ps1" "$CLIENT_OUT/verify-client-server.ps1"
 
 # Asset can co tren moi may client: thu vien AMC va renderer/Pillow assets.
 CLIENT_CONTENTS="$CLIENT_OUT/MepPanel.Plugin.bundle/Contents"
