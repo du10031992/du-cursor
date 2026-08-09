@@ -11,6 +11,7 @@ namespace MepPanelMvp.UI
             InitializeComponent();
             ViewModel = viewModel;
             DataContext = viewModel;
+            PluginFeatureUi.Apply(this);
         }
 
         public HvacViewModel ViewModel { get; }

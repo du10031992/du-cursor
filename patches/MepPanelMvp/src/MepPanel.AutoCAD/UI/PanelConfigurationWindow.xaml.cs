@@ -12,6 +12,7 @@ namespace MepPanelMvp.UI
             ViewModel = viewModel;
             DataContext = viewModel;
             RefreshOrientation();
+            PluginFeatureUi.Apply(this);
         }
 
         public PanelViewModel ViewModel { get; }

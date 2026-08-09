@@ -49,18 +49,22 @@
       <UniformGrid Columns="2">
         <Button Content="HỆ ĐIỆN"
                 Background="#A83B35"
-                Click="OpenConfiguration_Click"
+                Tag="MEPDBDRAW"
+                Click="OpenElectricalConfiguration_Click"
                 Margin="0,0,4,6"/>
         <Button Content="HỆ NƯỚC"
                 Background="#28758A"
-                IsEnabled="False"
+                Tag="MEPDBWATER"
+                Click="HeNuoc_Click"
                 Margin="4,0,0,6"/>
         <Button Content="BÁO CHÁY"
                 Background="#8B4B2B"
-                IsEnabled="False"
+                Tag="MEPDBSMOKE"
+                Click="BaoChay_Click"
                 Margin="0,0,4,6"/>
         <Button Content="ĐIỀU HÒA"
                 Background="#315D7C"
+                Tag="MEPHVAC"
                 Click="Hvac_Click"
                 Margin="4,0,0,6"/>
       </UniformGrid>
@@ -68,34 +72,34 @@
       <TextBlock Text="CHỨC NĂNG CHUNG" FontWeight="Bold" Margin="0,8,0,6"
                  Foreground="{DynamicResource PluginAccentBrush}"/>
 
-      <Button Content="Chọn layer" Click="SelectLayer_Click"/>
-      <Button Content="Cấu hình tủ" Click="OpenConfiguration_Click" Background="#315D7C"/>
-      <Button Content="Xuất CSV" Click="Export_Click" Background="#4F477D"/>
-      <Button Content="Tủ mới" Click="NewPanel_Click" Background="#536B42"/>
-      <Button Content="Sửa tủ" Click="EditPanel_Click" Background="#7B572E"/>
-      <Button Content="Xuất Excel" Click="Export_Click" Background="#8B4B2B"/>
-      <Button Content="Bản chiếu tủ" Click="CabinetViews_Click" Background="#6B3E78"/>
-      <Button Content="Sơ đồ nguồn" Click="PowerLayout_Click"
+      <Button Content="Chọn layer" Tag="MEPSELAYER" Click="SelectLayer_Click"/>
+      <Button Content="Cấu hình tủ" Tag="MEPDBCONFIG" Click="OpenPanelConfiguration_Click" Background="#315D7C"/>
+      <Button Content="Xuất CSV" Tag="MEPDBEXPORT" Click="Export_Click" Background="#4F477D"/>
+      <Button Content="Tủ mới" Tag="MEPDBCONFIG" Click="NewPanel_Click" Background="#536B42"/>
+      <Button Content="Sửa tủ" Tag="MEPDBUPDATE" Click="EditPanel_Click" Background="#7B572E"/>
+      <Button Content="Xuất Excel" Tag="MEPDBEXCEL" Click="Excel_Click" Background="#8B4B2B"/>
+      <Button Content="Bản chiếu tủ" Tag="MEPDBCABINETVIEWS" Click="CabinetViews_Click" Background="#6B3E78"/>
+      <Button Content="Sơ đồ nguồn" Tag="MEPDBPOWER" Click="PowerLayout_Click"
               ToolTip="Sơ đồ nguồn R-S-T-N-E"/>
-      <Button Content="3P-4D+E" Click="ThreePhaseFourWire_Click" Background="#3F6074"/>
-      <Button Content="Nạp block TB" Click="DeviceBlocks_Click"
+      <Button Content="3P-4D+E" Tag="MEPDB3P4W" Click="ThreePhaseFourWire_Click" Background="#3F6074"/>
+      <Button Content="Nạp block TB" Tag="MEPDBDRAW" Click="DeviceBlocks_Click"
               ToolTip="Chọn block MCCB/MCB/RCBO/SPD và dây"/>
-      <Button Content="Vẽ tủ 2D" Click="Cabinet2d_Click" Background="#765033"
+      <Button Content="Vẽ tủ 2D" Tag="MEPDBCABINET2D" Click="Cabinet2d_Click" Background="#765033"
               ToolTip="Vẽ DWG tủ 2D từ cấu hình"/>
-      <Button Content="Render mẫu tủ" Click="CabinetRender_Click" Background="#2F7772"
+      <Button Content="Render mẫu tủ" Tag="MEPDBCABINET2D" Click="CabinetRender_Click" Background="#2F7772"
               ToolTip="Render PNG mẫu theo loại tủ"/>
-      <Button Content="Trải tủ" Click="CabinetUnfold_Click"/>
-      <Button Content="Kiến thức điện" Click="ElectricalKnowledge_Click" Background="#69552A"/>
+      <Button Content="Trải tủ" Tag="MEPDBCABINET2D" Click="CabinetUnfold_Click"/>
+      <Button Content="Kiến thức điện" Tag="MEPDBDRAW" Click="ElectricalKnowledge_Click" Background="#69552A"/>
 
       <TextBlock Text="LOẠI TỦ / TIỆN ÍCH" FontWeight="Bold" Margin="0,8,0,6"
                  Foreground="{DynamicResource PluginAccentBrush}"/>
-      <Button Content="Tủ nhánh" Click="BranchPanel_Click"/>
-      <Button Content="Tủ tổng" Click="MainPanel_Click"/>
-      <Button Content="Đánh số lại" Click="Renumber_Click"/>
-      <Button Content="Nhân bản tủ" Click="DuplicatePanel_Click"/>
+      <Button Content="Tủ nhánh" Tag="MEPDBCONFIG" Click="BranchPanel_Click"/>
+      <Button Content="Tủ tổng" Tag="MEPDBCONFIG" Click="MainPanel_Click"/>
+      <Button Content="Đánh số lại" Tag="MEPDBCONFIG" Click="Renumber_Click"/>
+      <Button Content="Nhân bản tủ" Tag="MEPDBCABINET2D" Click="DuplicatePanel_Click"/>
       <Button Content="Trợ giúp" Click="Help_Click"/>
-      <Button Content="Đi dây thực tế" Click="RealisticWiring_Click" Background="#8A3F56"/>
-      <Button Content="Render PNG dây" Click="RealisticWiringRender_Click" Background="#2F7772"
+      <Button Content="Đi dây thực tế" Tag="MEPDBCABINET2D" Click="RealisticWiring_Click" Background="#8A3F56"/>
+      <Button Content="Render PNG dây" Tag="MEPDBCABINET2D" Click="RealisticWiringRender_Click" Background="#2F7772"
               ToolTip="Render PNG theo loại dây thiết bị hiện tại"/>
 
       <TextBlock x:Name="EditStatusText"

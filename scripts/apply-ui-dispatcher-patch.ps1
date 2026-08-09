@@ -26,7 +26,9 @@ foreach ($name in @(
     "AutoCadCommandDispatcher.cs",
     "MepDocumentContext.cs",
     "HvacConfigurationWindow.xaml.cs",
-    "PanelConfigurationWindow.xaml.cs"
+    "PanelConfigurationWindow.xaml.cs",
+    "ElectricalToolControl.xaml.cs",
+    "ElectricalToolControl.xaml"
 )) {
     $src = Join-Path $srcDir $name
     if (-not (Test-Path $src)) {
@@ -35,6 +37,14 @@ foreach ($name in @(
     }
     Copy-Item $src (Join-Path $dst $name) -Force
     Write-Host "   OK $name"
+}
+
+$featureUiSrc = Join-Path $Root "patches\MepPanelMvp\src\MepPanel.AutoCAD\Licensing\PluginFeatureUi.cs"
+if (Test-Path $featureUiSrc) {
+    $featureUiDst = Join-Path $PluginSourceRoot "src\MepPanel.AutoCAD\Licensing"
+    New-Item -ItemType Directory -Force -Path $featureUiDst | Out-Null
+    Copy-Item $featureUiSrc (Join-Path $featureUiDst "PluginFeatureUi.cs") -Force
+    Write-Host "   OK PluginFeatureUi.cs"
 }
 
 $disp = Join-Path $dst "AutoCadCommandDispatcher.cs"
