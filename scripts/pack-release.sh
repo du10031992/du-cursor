@@ -48,6 +48,7 @@ cp "$ROOT/docs/PLUGIN_INSTALL.md" "$DOCS_OUT/"
 cp "$ROOT/docs/DEPLOY_VPS.md" "$DOCS_OUT/"
 cp "$ROOT/docs/REMOTE_DEPLOYMENT.md" "$DOCS_OUT/"
 cp "$ROOT/docs/SERVER_ALWAYS_ON.md" "$DOCS_OUT/"
+cp "$ROOT/docs/FILES_CHECKLIST.md" "$DOCS_OUT/"
 cp -R "$ROOT/deploy/." "$DEPLOY_OUT/"
 
 echo "==> Tao goi ClientPlugin (tro Server trung tam)"
